@@ -689,8 +689,7 @@ bool Position::gives_check(Move m) const {
 // will be prefetched
 DirtyPiece Position::do_move(Move                      m,
                              StateInfo&                newSt,
-                             bool                      givesCheck,
-                             const TranspositionTable* tt = nullptr) {
+                             bool                      givesCheck) {
 
     assert(m.is_ok());
     assert(&newSt != st);
@@ -1051,7 +1050,7 @@ void Position::do_castling(
 
 // Used to do a "null move": it flips
 // the side to move without executing any move on the board.
-void Position::do_null_move(StateInfo& newSt, const TranspositionTable& tt) {
+void Position::do_null_move(StateInfo& newSt) {
 
     assert(!checkers());
     assert(&newSt != st);

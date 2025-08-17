@@ -3,6 +3,7 @@
 #include "bitboard.h"
 #include "position.h"
 #include "kkx.h"
+#include "kkx_index.h"
 
 namespace Stockfish {
 
@@ -115,7 +116,31 @@ int main() {
     Stockfish::Position::init();
     // Benchmark::perft("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 7, false);
     // enumerate_kk();
-    check_transforms();
+    // check_transforms();
     // Stockfish::enumerate_kkp();
+
+    std::vector<PieceType> stm_pieces = {};
+    std::vector<PieceType> sntm_pieces = {ROOK};
+    KKXIndex index = KKXIndex(stm_pieces, sntm_pieces);
+    std::cout << index.num_positions() << std::endl;
+
+    uint64_t count = 0;
+    for (uint64_t ix = 0; ix < index.num_positions(); ix++) {
+        EGPosition pos;
+        std::memset(&pos, 0, sizeof(EGPosition));
+        index.pos_at_ix(pos, ix);
+        if (pos.is_legal_checkmate()) {
+            count++;
+            std::cout << pos << std::endl;
+        }
+        // std::cout << pos << std::endl;
+        // count++;
+        // if (count == 3) {
+        //     break;
+        // }
+    }
+    std::cout << "Checkmate count: " << count << std::endl;
+
+
     return 0;
 }

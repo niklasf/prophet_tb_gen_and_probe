@@ -132,10 +132,10 @@ class Position {
     Piece captured_piece() const;
 
     // Doing and undoing moves
-    void       do_move(Move m, StateInfo& newSt, const TranspositionTable* tt);
-    DirtyPiece do_move(Move m, StateInfo& newSt, bool givesCheck, const TranspositionTable* tt);
+    void       do_move(Move m, StateInfo& newSt);
+    DirtyPiece do_move(Move m, StateInfo& newSt, bool givesCheck);
     void       undo_move(Move m);
-    void       do_null_move(StateInfo& newSt, const TranspositionTable& tt);
+    void       do_null_move(StateInfo& newSt);
     void       undo_null_move();
 
     // Static Exchange Evaluation
@@ -361,8 +361,8 @@ inline void Position::move_piece(Square from, Square to) {
     board[to]   = pc;
 }
 
-inline void Position::do_move(Move m, StateInfo& newSt, const TranspositionTable* tt = nullptr) {
-    do_move(m, newSt, gives_check(m), tt);
+inline void Position::do_move(Move m, StateInfo& newSt) {
+    do_move(m, newSt, gives_check(m));
 }
 
 inline StateInfo* Position::state() const { return st; }

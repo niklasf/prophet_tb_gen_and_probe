@@ -2,16 +2,25 @@
 #ifndef EG_POSITION_H_INCLUDED
 #define EG_POSITION_H_INCLUDED
 
+#include <iostream>
+#include <cstring>
+#include <iomanip>
+
 #include "types.h"
 #include "bitboard.h"
+#include "uci.h"
 using namespace Stockfish;
 
 // no castling
 class EGPosition {
-    public:
+public:
+    EGPosition() = default;
+
+
     void put_piece(Piece pc, Square s);
     void remove_piece(Square s);
     void move_piece(Square from, Square to);
+    void set_side_to_move(Color c);
 
     // Position representation
     Bitboard pieces() const;  // All pieces
@@ -22,10 +31,6 @@ class EGPosition {
     Bitboard pieces(Color c, PieceTypes... pts) const;
     Piece    piece_on(Square s) const;
 
-    template<PieceType Pt>
-    int count(Color c) const;
-    template<PieceType Pt>
-    int count() const;
     template<PieceType Pt>
     Square square(Color c) const;
 
@@ -43,7 +48,7 @@ class EGPosition {
     bool is_legal() const;
     bool is_legal_checkmate() const;
 
-    private:
+private:
         Piece      board[SQUARE_NB];
         Bitboard   byTypeBB[PIECE_TYPE_NB];
         Bitboard   byColorBB[COLOR_NB];
@@ -55,6 +60,29 @@ class EGPosition {
         template<Color c>
         bool has_pawn_evasions(Square checkerSq, Bitboard pinned, Bitboard block) const;
 };
+
+constexpr std::string_view PieceToChar(" PNBRQK  pnbrqk");
+
+// Returns an ASCII representation of the position
+std::ostream& operator<<(std::ostream& os, const EGPosition& pos) {
+
+    os << "\n +---+---+---+---+---+---+---+---+\n";
+
+    for (Rank r = RANK_8; r >= RANK_1; --r)
+    {
+        for (File f = FILE_A; f <= FILE_H; ++f)
+            os << " | " << PieceToChar[pos.piece_on(make_square(f, r))];
+
+        os << " | " << (1 + r) << "\n +---+---+---+---+---+---+---+---+\n";
+    }
+
+    os << "   a   b   c   d   e   f   g   h\n" << "Checkers: ";
+
+    for (Bitboard b = pos.checkers(pos.side_to_move()); b;)
+        os << square_to_uci(pop_lsb(b)) << " ";
+
+    return os;
+}
 
 inline void EGPosition::put_piece(Piece pc, Square s) {
     board[s] = pc;
@@ -82,6 +110,8 @@ inline void EGPosition::move_piece(Square from, Square to) {
 
 inline Color EGPosition::side_to_move() const { return sideToMove; }
 
+inline void EGPosition::set_side_to_move(Color c) { sideToMove = c; }
+
 inline Piece EGPosition::piece_on(Square s) const {
     assert(is_ok(s));
     return board[s];
@@ -102,18 +132,7 @@ inline Bitboard EGPosition::pieces(Color c, PieceTypes... pts) const {
 }
 
 template<PieceType Pt>
-inline int EGPosition::count(Color c) const {
-    return pieceCount[make_piece(c, Pt)];
-}
-
-template<PieceType Pt>
-inline int EGPosition::count() const {
-    return count<Pt>(WHITE) + count<Pt>(BLACK);
-}
-
-template<PieceType Pt>
 inline Square EGPosition::square(Color c) const {
-    assert(count<Pt>(c) == 1);
     return lsb(pieces(c, Pt));
 }
 inline Bitboard EGPosition::attackers_to(Square s) const { return attackers_to(s, pieces()); }
@@ -222,17 +241,17 @@ bool EGPosition::has_evasions(Color c, Bitboard checkersBB) const {
 
         const Square ksq = square<KING>(c);
         const Square checkerSq = lsb(checkersBB);
-        const Bitboard target = between_bb(ksq, checkerSq); // checkerSq in target if squares are not on same rank/file/diagonal
+        const Bitboard block_or_checker_sq = between_bb(ksq, checkerSq); // checkerSq in target if squares are not on same rank/file/diagonal
         const Bitboard pinned = blockers_for_king(c) & pieces(c);
 
-        if (has_piece_evasions<KNIGHT>(c, pinned, target)) { return true; }
-        if (has_piece_evasions<BISHOP>(c, pinned, target)) { return true; }
-        if (has_piece_evasions<ROOK>(c, pinned, target)) { return true; }
-        if (has_piece_evasions<QUEEN>(c, pinned, target)) { return true; }
+        if (has_piece_evasions<KNIGHT>(c, pinned, block_or_checker_sq)) { return true; }
+        if (has_piece_evasions<BISHOP>(c, pinned, block_or_checker_sq)) { return true; }
+        if (has_piece_evasions<ROOK>(c, pinned, block_or_checker_sq)) { return true; }
+        if (has_piece_evasions<QUEEN>(c, pinned, block_or_checker_sq)) { return true; }
         if (c == WHITE) {
-            if (has_pawn_evasions<WHITE>(checkerSq, pinned, target)) { return true; }
+            if (has_pawn_evasions<WHITE>(checkerSq, pinned, block_or_checker_sq)) { return true; }
         } else {
-            if (has_pawn_evasions<BLACK>(checkerSq, pinned, target)) { return true; }
+            if (has_pawn_evasions<BLACK>(checkerSq, pinned, block_or_checker_sq)) { return true; }
         }
         return false;
     }
@@ -249,7 +268,7 @@ bool EGPosition::is_legal_checkmate() const {
     if (!is_legal()) { return false;}
     Color c = side_to_move();
     Bitboard checkersBB = checkers(c);
-    return !has_evasions(c, checkersBB);
+    return checkersBB && !has_evasions(c, checkersBB);
 }
 
 #endif
