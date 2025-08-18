@@ -108,12 +108,12 @@ void init_kkx_index() {
 
         int8_t new_ktm_sq = int8_t(ktm_sq) ^ flip;
 
-        // if (file_of((Square) new_ktm_sq) > FILE_D) {
-        //     std::cout << "Square not in correct file " << square_to_uci(ktm_sq)<< " - " << square_to_uci((Square) new_ktm_sq) << std::endl;
-        // }
-        // if (rank_of((Square) new_ktm_sq) > RANK_4) {
-        //     std::cout << "Square not in correct rank " << square_to_uci(ktm_sq)<< " - " << square_to_uci((Square) new_ktm_sq) << std::endl;
-        // }
+        if (file_of((Square) new_ktm_sq) > FILE_D) {
+            std::cout << "Square not in correct file " << square_to_uci(ktm_sq)<< " - " << square_to_uci((Square) new_ktm_sq) << std::endl;
+        }
+        if (rank_of((Square) new_ktm_sq) > RANK_4) {
+            std::cout << "Square not in correct rank " << square_to_uci(ktm_sq)<< " - " << square_to_uci((Square) new_ktm_sq) << std::endl;
+        }
 
 
         for (Square kntm_sq = SQ_A1; kntm_sq <= SQ_H8; ++kntm_sq) {

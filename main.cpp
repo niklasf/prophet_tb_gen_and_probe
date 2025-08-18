@@ -4,6 +4,7 @@
 #include "position.h"
 #include "kkx.h"
 #include "kkx_index.h"
+#include "eg_movegen.h"
 
 namespace Stockfish {
 
@@ -66,7 +67,7 @@ int main() {
     init_kkx_index();
 
     std::vector<PieceType> stm_pieces = {};
-    std::vector<PieceType> sntm_pieces = {QUEEN, ROOK, BISHOP, KNIGHT};
+    std::vector<PieceType> sntm_pieces = {QUEEN};
     KKXIndex index = KKXIndex(stm_pieces, sntm_pieces);
     std::cout << index.num_positions() << std::endl;
 
@@ -82,6 +83,12 @@ int main() {
         if (pos.is_legal_checkmate()) {
             count++;
             // std::cout << pos << std::endl;
+        }
+        if (pos.checkers(pos.side_to_move())) {
+            EGMoveList moveList = EGMoveList<FORWARD>(pos);
+            if (moveList.size() == 0) {
+                // count++;
+            }
         }
         // std::cout << pos << std::endl;
         // count++;

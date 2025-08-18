@@ -128,9 +128,9 @@ uint64_t KKXIndex::ix_from_pos(EGPosition &pos) const {
         occupied_sqs[1] = ktm_sq;
     }
     
-    KKX_IX_T kkx_ix_t = KKX_IX_T_TABLE[ktm_sq][kntm_sq];
+    KKX_IX_T kkx_ix_tr = KKX_IX_T_TABLE[ktm_sq][kntm_sq];
     
-    uint64_t kkx = kkx_ix_t.ix;
+    uint64_t kkx = kkx_ix_tr.ix;
 
     uint64_t ix = kkx;
     uint64_t multiplier = N_KKX;
@@ -146,6 +146,10 @@ uint64_t KKXIndex::ix_from_pos(EGPosition &pos) const {
             if (pieceBB) {
                 // TODO: transform square
                 Square orig_sq = lsb(pieceBB);
+                int8_t orig_sq_ix = int8_t(orig_sq) ^ kkx_ix_tr.flip;
+                orig_sq = Square(((orig_sq_ix >> kkx_ix_tr.swap) | (orig_sq_ix << kkx_ix_tr.swap)) & 63);
+
+
                 Square sq = orig_sq;
 
                 int k = i;

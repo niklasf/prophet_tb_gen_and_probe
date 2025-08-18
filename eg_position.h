@@ -11,6 +11,8 @@
 #include "uci.h"
 using namespace Stockfish;
 
+
+
 // no castling
 class EGPosition {
 public:
@@ -45,7 +47,6 @@ public:
     Bitboard checkers(Color c) const;
     bool has_evasions(Color c, Bitboard checkersBB) const;
 
-    bool is_legal() const;
     bool is_legal_checkmate() const;
 
 private:
@@ -257,16 +258,10 @@ bool EGPosition::has_evasions(Color c, Bitboard checkersBB) const {
     }
 }
 
-// checks if side not to move is not in check
-bool EGPosition::is_legal() const {
-    Color c = side_to_move();
-    return checkers(~c) == 0;
-}
-
 // checks if king of color c = side_to_move is in checkmate and king of color ~c is not in check
 bool EGPosition::is_legal_checkmate() const {
-    if (!is_legal()) { return false;}
     Color c = side_to_move();
+    if (checkers(~c) != 0) { return false; } // sntm should not be in check
     Bitboard checkersBB = checkers(c);
     return checkersBB && !has_evasions(c, checkersBB);
 }

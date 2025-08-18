@@ -52,6 +52,15 @@
         "unordered_map": "cpp",
         "variant": "cpp",
         "vector": "cpp",
-        "algorithm": "cpp"
+        "algorithm": "cpp",
+        "atomic": "cpp",
+        "bit": "cpp",
+        "charconv": "cpp",
+        "chrono": "cpp",
+        "memory_resource": "cpp",
+        "random": "cpp",
+        "format": "cpp",
+        "span": "cpp",
+        "type_traits": "cpp"
     }
 }
