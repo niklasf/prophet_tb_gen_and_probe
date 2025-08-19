@@ -109,5 +109,91 @@ int main() {
     TimePoint t1 = now();
     std::cout << "Finished in " << (t1-t0) / 1000.0 << std::endl;
 
+    uint64_t NPOS = index.num_positions();
+    int16_t* TB = (int16_t*) calloc(sizeof(int16_t), NPOS);
+
+    // init
+    int16_t LEVEL = 1;
+    uint64_t N_LEVEL_POS = 0;
+    for (uint64_t ix = 0; ix < NPOS; ix++) {
+        std::memset(&pos, 0, sizeof(EGPosition));
+        index.pos_at_ix(pos, ix);
+        if (pos.is_legal_checkmate()) {
+            TB[ix] = -LEVEL;
+            N_LEVEL_POS++;
+        }
+    }
+    uint64_t iteration_counter = 0;
+    while (N_LEVEL_POS > 0) {
+        std::cout << N_LEVEL_POS << " positions at level " << LEVEL << std::endl;
+        LEVEL++;
+        for (uint64_t ix = 0; ix < NPOS; ix++) {
+            // for all checkmate in LEVEL-1
+            if (TB[ix] == -(LEVEL-1)) {
+                std::memset(&pos, 0, sizeof(EGPosition));
+                index.pos_at_ix(pos, ix);
+                std::cout << pos << std::endl;
+                for (Move move : EGMoveList<REVERSE>(pos)) {
+                    pos.move_piece(move.from_sq(), move.to_sq()); // non-capture
+                    pos.flip_side_to_move();
+                    uint64_t win_ix = index.ix_from_pos(pos);
+                    std::cout << move_to_uci(move, false) << " " << win_ix << std::endl;
+                    // make reverse move and mark position as win in LEVEL
+                    if (TB[win_ix] == 0) {
+                        std::cout << pos << std::endl;
+                        std::cout << "Set level of " << win_ix << " to " << LEVEL << std::endl;
+                        TB[win_ix] = LEVEL;
+                        for (Move move2 : EGMoveList<REVERSE>(pos)) {
+                            pos.move_piece(move2.from_sq(), move2.to_sq());
+                            pos.flip_side_to_move();
+                            uint64_t maybe_loss_ix = index.ix_from_pos(pos);
+                            std::cout << pos << std::endl;
+                            std::cout << "Set level of " << maybe_loss_ix << " to " << -(LEVEL+1) << std::endl;
+                            if (TB[maybe_loss_ix] == 0)
+                                TB[maybe_loss_ix] = -(LEVEL+1); // mark as potential loss in LEVEL+1
+                            pos.move_piece(move2.to_sq(), move2.from_sq());
+                            pos.flip_side_to_move();
+                        }
+                    }
+                    pos.move_piece(move.to_sq(), move.from_sq());
+                    pos.flip_side_to_move();
+                }
+                break;
+            }
+        }
+        LEVEL++;
+        return 0;
+
+        for (uint64_t ix = 0; ix < NPOS; ix++) {
+            if (TB[ix] == -LEVEL) { // potential loss in LEVEL
+                std::memset(&pos, 0, sizeof(EGPosition));
+                index.pos_at_ix(pos, ix);
+                std::cout << pos << std::endl;
+
+                // check that all forward moves lead to checkmate in <= -(LEVEL-1)
+                int16_t max_val = -1000;
+                for (Move move : EGMoveList<FORWARD>(pos)) {
+                    pos.move_piece(move.from_sq(), move.to_sq());
+                    uint64_t fwd_ix = index.ix_from_pos(pos);
+                    int16_t val = TB[fwd_ix];
+                    max_val = std::max(max_val, val);
+                    pos.move_piece(move.to_sq(), move.from_sq());
+                }
+                if (max_val > -(LEVEL - 1)) {
+                    TB[ix] = 0;
+                } else {
+                    // assert max_val == -(LEVEL - 1)
+                    // TB[ix] = LEVEL
+                }
+            }
+        }
+
+        iteration_counter++;
+        if (iteration_counter >= 1) { break; }
+        
+    }
+
+
+
     return 0;
 }

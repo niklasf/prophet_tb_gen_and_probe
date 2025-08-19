@@ -8,7 +8,9 @@ enum EGGenType {
     FORWARD, // all legal moves except castling and en-passant (for now)
     FWD_EVASIONS, // if in check all legal evasions
     FWD_NON_EVASIONS,
-    REVERSE // all non-capturing backward moves (no castling, no en-passant)
+    REVERSE, // all non-capturing backward moves (no castling, no en-passant)
+    REV_CHECKS,
+    REV_NONCHECKS
 };
 
 
@@ -43,7 +45,7 @@ Move* generate_pawn_moves(const EGPosition& pos, Move* moveList, Bitboard target
     constexpr Color     Them     = ~Us;
     constexpr Bitboard  TRank7BB = (Us == WHITE ? Rank7BB : Rank2BB);
     constexpr Bitboard  TRank3BB = (Us == WHITE ? Rank3BB : Rank6BB);
-    constexpr Direction Up       = pawn_push(Us);
+    constexpr Direction Up       = (Us == WHITE ? NORTH : SOUTH);
     constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
@@ -88,6 +90,7 @@ Move* generate_pawn_moves(const EGPosition& pos, Move* moveList, Bitboard target
             moveList = make_promotions<Type, Up>(moveList, pop_lsb(b3));
     }
    
+    // Standard and en passant captures
     {
         Bitboard b1 = shift<UpRight>(pawnsNotOn7) & enemies;
         Bitboard b2 = shift<UpLeft>(pawnsNotOn7) & enemies;
@@ -121,7 +124,9 @@ Move* generate_moves(const EGPosition& pos, Move* moveList, Bitboard target) {
 }
 
 template<Color Us, EGGenType Type>
-Move* generate_all(const EGPosition& pos, Move* moveList, Bitboard checkers) {
+Move* generate_all_fwd(const EGPosition& pos, Move* moveList, Bitboard checkers) {
+    static_assert(Type == FWD_EVASIONS || Type == FWD_NON_EVASIONS);
+
     const Square ksq = pos.square<KING>(Us);
     Bitboard     target;
 
@@ -137,7 +142,6 @@ Move* generate_all(const EGPosition& pos, Move* moveList, Bitboard checkers) {
     }
 
     Bitboard b = attacks_bb<KING>(ksq) & (Type == FWD_EVASIONS ? ~pos.pieces(Us) : target);
-
     moveList = splat_moves(moveList, ksq, b);
 
     return moveList;
@@ -156,9 +160,9 @@ Move* generate<FORWARD>(const EGPosition& pos, Move* moveList) {
     Bitboard checkers = pos.checkers(us);
 
     if (us == WHITE)
-        moveList = checkers ? generate_all<WHITE,FWD_EVASIONS>(pos, moveList, checkers) : generate_all<WHITE,FWD_NON_EVASIONS>(pos, moveList, checkers);
+        moveList = checkers ? generate_all_fwd<WHITE,FWD_EVASIONS>(pos, moveList, checkers) : generate_all_fwd<WHITE,FWD_NON_EVASIONS>(pos, moveList, checkers);
     else
-        moveList = checkers ? generate_all<BLACK,FWD_EVASIONS>(pos, moveList, checkers) : generate_all<BLACK,FWD_NON_EVASIONS>(pos, moveList,  checkers);
+        moveList = checkers ? generate_all_fwd<BLACK,FWD_EVASIONS>(pos, moveList, checkers) : generate_all_fwd<BLACK,FWD_NON_EVASIONS>(pos, moveList,  checkers);
     
     while (cur != moveList) {
         if (pinned & cur->from_sq() && !(line_bb(cur->from_sq(), cur->to_sq()) & ksq)) {
@@ -172,6 +176,109 @@ Move* generate<FORWARD>(const EGPosition& pos, Move* moveList) {
     return moveList;
 }
 
+template<Color Us,EGGenType Type>
+Move* generate_rev_pawn_moves(const EGPosition& pos, Move* moveList) {
+
+    // constexpr Color     Them     = ~Us;
+    constexpr Bitboard  TRank2BB = (Us == WHITE ? Rank2BB : Rank7BB);
+    constexpr Bitboard  TRank3BB = (Us == WHITE ? Rank3BB : Rank6BB);
+    constexpr Direction Down     = (Us == WHITE ? SOUTH: NORTH);
+
+    const Bitboard emptySquares = ~pos.pieces();
+    Bitboard pawnsNotOn2 = pos.pieces(Us, PAWN) & ~TRank2BB;
+
+
+    // Single and double pawn pushes, no promotions
+    {
+        Bitboard b1 = shift<Down>(pawnsNotOn2) & emptySquares;
+        Bitboard b2 = shift<Down>(b1 & TRank3BB) & emptySquares;
+
+        moveList = splat_pawn_moves<Down>(moveList, b1);
+        moveList = splat_pawn_moves<Down + Down>(moveList, b2);
+    }
+
+    // no captures
+
+    return moveList;
+}
+
+template<Color Us, EGGenType Type>
+Move* generate_all_rev(const EGPosition& pos, Move* moveList) {
+    Square   ksq    = pos.square<KING>(Us);
+
+    Bitboard target = ~pos.pieces(); // non-captures
+
+    moveList = generate_rev_pawn_moves<Us, Type>(pos, moveList);
+    moveList = generate_moves<Us, KNIGHT>(pos, moveList, target);
+    moveList = generate_moves<Us, BISHOP>(pos, moveList, target);
+    moveList = generate_moves<Us, ROOK>(pos, moveList, target);
+    moveList = generate_moves<Us, QUEEN>(pos, moveList, target);
+    
+    Bitboard b = attacks_bb<KING>(ksq) & target;
+    moveList = splat_moves(moveList, ksq, b);
+
+    return moveList;
+}
+
+bool attackers_to_exist_after_moving_piece(Square s, Color c, Bitboard byTypeBB[PIECE_TYPE_NB], Bitboard byColorBB[COLOR_NB]) {
+    Bitboard occupied = byTypeBB[ALL_PIECES];
+    return ((attacks_bb<ROOK>(s) & (byTypeBB[ROOK] | byTypeBB[QUEEN]) & byColorBB[c])
+            && (attacks_bb<ROOK>(s, occupied) & (byTypeBB[ROOK] | byTypeBB[QUEEN]) & byColorBB[c]))
+        || ((attacks_bb<BISHOP>(s) & (byTypeBB[BISHOP] | byTypeBB[QUEEN]) & byColorBB[c])
+            && (attacks_bb<BISHOP>(s, occupied) & (byTypeBB[ROOK] | byTypeBB[QUEEN]) & byColorBB[c]))
+        || (((attacks_bb<PAWN>(s, ~c) & byTypeBB[PAWN]) | (attacks_bb<KNIGHT>(s) & byTypeBB[KNIGHT])
+             | (attacks_bb<KING>(s) & byTypeBB[KING]))
+            & byColorBB[c]);
+}
+Bitboard attackers_to_after_moving_piece(Square s, Bitboard byTypeBB[PIECE_TYPE_NB], Bitboard byColorBB[COLOR_NB]) {
+    Bitboard occupied = byTypeBB[ALL_PIECES];
+    return (attacks_bb<ROOK>(s, occupied) & (byTypeBB[ROOK] | byTypeBB[QUEEN]))
+         | (attacks_bb<BISHOP>(s, occupied) & (byTypeBB[BISHOP] | byTypeBB[QUEEN]))
+         | (attacks_bb<PAWN>(s, BLACK) & byTypeBB[PAWN] & byColorBB[WHITE])
+         | (attacks_bb<PAWN>(s, WHITE) & byTypeBB[PAWN] & byColorBB[BLACK])
+         | (attacks_bb<KNIGHT>(s) & byTypeBB[KNIGHT]) | (attacks_bb<KING>(s) & byTypeBB[KING]);
+}
+
+template<>
+Move* generate<REVERSE>(const EGPosition& pos, Move* moveList) {
+
+    Color    us     = ~pos.side_to_move();
+    Move*    cur    = moveList;
+    Square our_ksq = pos.square<KING>(us);
+    Square their_ksq = pos.square<KING>(~us);
+
+    moveList = (us == WHITE) ? generate_all_rev<WHITE, REVERSE>(pos, moveList) : generate_all_rev<BLACK, REVERSE>(pos, moveList);
+
+    Bitboard byTypeBB[PIECE_TYPE_NB];
+    Bitboard byColorBB[COLOR_NB];
+    for (PieceType pt = ALL_PIECES; pt <= KING; ++pt) byTypeBB[pt] = pos.pieces(pt);
+    byColorBB[us] = pos.pieces(us);
+    byColorBB[~us] = pos.pieces(~us);
+
+    while (cur != moveList) {
+        Square from = cur->from_sq();
+        Square to = cur->to_sq();
+        PieceType pt = type_of(pos.piece_on(from));
+        Bitboard fromTo = from | to;
+        byTypeBB[ALL_PIECES] ^= fromTo;
+        byTypeBB[pt] ^= fromTo;
+        byColorBB[us] ^= fromTo;
+
+        if (attackers_to_exist_after_moving_piece(their_ksq, us, byTypeBB, byColorBB)) {
+            *cur = *(--moveList);
+        } else if (cur->from_sq() != our_ksq && popcount(attackers_to_after_moving_piece(our_ksq, byTypeBB, byColorBB) & byColorBB[~us]) > 1) {
+            // if our king is in double check after reversing move, only legal moves are king moves
+            *cur = *(--moveList);
+        } else {
+            ++cur;
+        }
+        Bitboard toFrom = to | from;
+        byTypeBB[ALL_PIECES] ^= toFrom;;
+        byTypeBB[pt] ^= toFrom;
+        byColorBB[us] ^= toFrom;
+    }
+    return moveList;
+}
 
 template<EGGenType T>
 struct EGMoveList {

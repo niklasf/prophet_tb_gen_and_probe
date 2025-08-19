@@ -23,6 +23,7 @@ public:
     void remove_piece(Square s);
     void move_piece(Square from, Square to);
     void set_side_to_move(Color c);
+    void flip_side_to_move();
 
     // Position representation
     Bitboard pieces() const;  // All pieces
@@ -112,6 +113,8 @@ inline void EGPosition::move_piece(Square from, Square to) {
 inline Color EGPosition::side_to_move() const { return sideToMove; }
 
 inline void EGPosition::set_side_to_move(Color c) { sideToMove = c; }
+
+inline void EGPosition::flip_side_to_move() { sideToMove = ~sideToMove; }
 
 inline Piece EGPosition::piece_on(Square s) const {
     assert(is_ok(s));
