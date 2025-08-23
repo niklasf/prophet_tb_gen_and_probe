@@ -49,11 +49,14 @@ public:
     Bitboard checkers(Color c) const;
     bool has_evasions(Color c, Bitboard checkersBB) const;
 
+    bool sntm_in_check() const;
     bool is_legal_checkmate() const;
 
     bool is_equal(const EGPosition& pos) const;
 
     std::string fen() const;
+
+    void flip_diagonally();
 
 private:
         Piece      board[SQUARE_NB];
@@ -316,6 +319,9 @@ bool EGPosition::has_evasions(Color c, Bitboard checkersBB) const {
         return false;
     }
 }
+bool EGPosition::sntm_in_check() const {
+    return checkers(~side_to_move());
+}
 
 // checks if king of color c = side_to_move is in checkmate and king of color ~c is not in check
 bool EGPosition::is_legal_checkmate() const {
@@ -323,6 +329,44 @@ bool EGPosition::is_legal_checkmate() const {
     if (checkers(~c) != 0) { return false; } // sntm should not be in check
     Bitboard checkersBB = checkers(c);
     return checkersBB && !has_evasions(c, checkersBB);
+}
+
+void EGPosition::flip_diagonally() {
+    for (Square sq = SQ_A1; sq <= SQ_H8; ++sq) {
+        if (rank_of(sq) > file_of(sq)) { continue; }
+        Square flipped_sq = Square((sq >> 3) | (sq << 3) & 63);
+        Piece tmp = board[sq];
+        board[sq] = board[flipped_sq];
+        board[flipped_sq] = tmp;
+    }
+    for (PieceType pt = PAWN; pt <= KING; ++pt) {
+        Bitboard x = byTypeBB[pt];
+        Bitboard t;
+        const uint64_t k1 = 0x5500550055005500;
+        const uint64_t k2 = 0x3333000033330000;
+        const uint64_t k4 = 0x0f0f0f0f00000000;
+        t  = k4 & (x ^ (x << 28));
+        x ^=       t ^ (t >> 28) ;
+        t  = k2 & (x ^ (x << 14));
+        x ^=       t ^ (t >> 14) ;
+        t  = k1 & (x ^ (x <<  7));
+        x ^=       t ^ (t >>  7) ;
+        byTypeBB[pt] = x;
+    }
+    for (Color c : {WHITE, BLACK}) {
+        Bitboard x = byColorBB[c];
+        Bitboard t;
+        const uint64_t k1 = 0x5500550055005500;
+        const uint64_t k2 = 0x3333000033330000;
+        const uint64_t k4 = 0x0f0f0f0f00000000;
+        t  = k4 & (x ^ (x << 28));
+        x ^=       t ^ (t >> 28) ;
+        t  = k2 & (x ^ (x << 14));
+        x ^=       t ^ (t >> 14) ;
+        t  = k1 & (x ^ (x <<  7));
+        x ^=       t ^ (t >>  7) ;
+        byColorBB[c] = x;
+    }
 }
 
 #endif

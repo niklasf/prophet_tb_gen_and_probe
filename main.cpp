@@ -68,57 +68,174 @@ void enumerate_kk_naive() {
 // sq' = (((sq >> 3) | (sq << 3)) & 63) ^ 63;
 
 void test_kkx_index() {
+    Color stm = WHITE;
+
     PieceType pts[2] = {QUEEN, ROOK};
-    Color cs[2] = {WHITE, BLACK};
+    Color cs[2] = {~stm, stm};
 
-    Color stm = BLACK;
 
-    std::vector<PieceType> stm_pieces = {ROOK};
+    std::vector<PieceType> stm_pieces = {};
     std::vector<PieceType> sntm_pieces = {QUEEN};
     KKXIndex index = KKXIndex(stm_pieces, sntm_pieces);
 
     EGPosition pos1;
     EGPosition pos2;
-    for (Square p1_sq = SQ_A1; p1_sq <= SQ_H8; ++p1_sq) {
-        for (Square p2_sq = SQ_A1; p2_sq <= SQ_H8; ++p2_sq) {
-            if(p2_sq == p1_sq) { continue; }
-            for (Square k1_sq = SQ_A1; k1_sq <= SQ_H8; ++k1_sq) {
-                if (k1_sq == p1_sq || k1_sq == p2_sq) { continue; }
-                for (Square k2_sq = SQ_A1; k2_sq <= SQ_H8; ++k2_sq) {
-                    if (k2_sq == p1_sq || k2_sq == p2_sq || k2_sq == k1_sq) { continue; }
-                    if ((PseudoAttacks[KING][k1_sq] & k2_sq) == 0) {
-                        std::memset(&pos1, 0, sizeof(EGPosition));
-                        std::memset(&pos2, 0, sizeof(EGPosition));
-                        pos1.put_piece(make_piece(cs[0],pts[0]), p1_sq);
-                        pos1.put_piece(make_piece(cs[1],pts[1]), p2_sq);
-                        pos1.put_piece(B_KING, k1_sq);
-                        pos1.put_piece(W_KING, k2_sq);
-                        pos1.set_side_to_move(stm);
+    EGPosition pos3;
+    // for (Square p1_sq = SQ_A1; p1_sq <= SQ_H8; ++p1_sq) {
+    //     for (Square p2_sq = SQ_A1; p2_sq <= SQ_H8; ++p2_sq) {
+    //         if(p2_sq == p1_sq) { continue; }
 
-                        uint64_t ix = index.ix_from_pos(pos1);
-                        index.pos_at_ix(pos2, ix);
+    uint64_t count = 0;
 
-                        if (!pos1.is_equal(pos2)) {
-                            std::cout << pos1 << std::endl;
-                            std::cout << "vs" << std::endl;
-                            std::cout << pos2 << std::endl;
-                            exit(1);
-                        }
+    for (Square k1_sq = SQ_A1; k1_sq <= SQ_H8; ++k1_sq) {
+        for (Square k2_sq = SQ_A1; k2_sq <= SQ_H8; ++k2_sq) {
+            if (k2_sq == k1_sq) { continue; }
+            for (Square p1_sq = SQ_A1; p1_sq <= SQ_H8; ++p1_sq) {
+                if (p1_sq == k1_sq || p1_sq == k2_sq) { continue; }
+
+                if ((PseudoAttacks[KING][k1_sq] & k2_sq) == 0) {
+                    std::memset(&pos1, 0, sizeof(EGPosition));
+                    std::memset(&pos2, 0, sizeof(EGPosition));
+                    std::memset(&pos3, 0, sizeof(EGPosition));
+                    pos1.put_piece(make_piece(cs[0],pts[0]), p1_sq);
+                    // pos1.put_piece(make_piece(cs[1],pts[1]), p2_sq);
+                    pos1.put_piece(B_KING, k1_sq);
+                    pos1.put_piece(W_KING, k2_sq);
+                    pos1.set_side_to_move(stm);
+
+                    uint64_t ix = index.ix_from_pos(pos1);
+                    index.pos_at_ix(pos2, ix, stm);
+                    transform_to(pos1, pos3);
+
+                    if (!pos2.is_equal(pos3)) {
+                        std::cout << pos1 << std::endl;
+                        std::cout << "vs at ix" << std::endl;
+                        std::cout << pos2 << std::endl;
+                        std::cout << "vs transformed" << std::endl;
+                        std::cout << pos3 << std::endl;
+                        exit(1);
                     }
+                    count++;
                 }
             }
         }
     }
+    std::cout << "Checked " << count << " kkx positions" << std::endl;
+    
 }
 
 inline int16_t WIN_IN(int16_t level) { return 1000 - level; }
 inline int16_t LOSS_IN(int16_t level) { return -1000 + level; }
+
+int16_t ab(EGPosition &pos, int16_t alpha, int16_t beta, int ply) {
+    if (ply == 10) {
+        return 0;
+    }
+    if (pos.is_legal_checkmate()) {
+        return LOSS_IN(ply);
+    }
+    for (Move move : EGMoveList<FORWARD>(pos)) {
+        if (move.to_sq() & pos.pieces()) {
+            // capture
+            return 0;
+        }
+
+        pos.move_piece(move.from_sq(), move.to_sq());
+        pos.flip_side_to_move();
+        
+        int16_t val = -ab(pos, -beta, -alpha, ply+1);
+
+        pos.move_piece(move.to_sq(), move.from_sq());
+        pos.flip_side_to_move();
+
+        alpha = std::max(val, alpha);
+
+        if (val >= beta) {
+            alpha = beta;
+            break;
+        }
+
+
+    }
+    return alpha;
+}
+
+void print_pos_and_moves(EGPosition &pos, KKXIndex &index, int16_t* TB, KKXIndex &index2, int16_t* TB2) {
+    uint64_t ix = index.ix_from_pos(pos);
+    std::cout << pos << pos.fen() << " with val:" << int(TB[ix]) << std::endl;
+    int16_t max_val = LOSS_IN(0);
+    for (Move move : EGMoveList<FORWARD>(pos)) {
+        if (move.to_sq() & pos.pieces()) {
+            max_val = std::max(max_val, (int16_t) 0);
+            std::cout << move_to_uci(move, false) << " capture" << std::endl;
+            continue;
+        }
+
+        pos.move_piece(move.from_sq(), move.to_sq());
+        pos.flip_side_to_move();
+
+        uint64_t fwd_ix = index2.ix_from_pos(pos);
+        int16_t val = TB2[fwd_ix];
+        max_val = std::max(max_val, (int16_t) -TB2[fwd_ix]);
+        std::cout << move_to_uci(move, false) << " " << val  << " at ix: " << fwd_ix << std::endl;
+
+        pos.move_piece(move.to_sq(), move.from_sq());
+        pos.flip_side_to_move();
+    }
+    std::cout << "max_val: " << max_val << std::endl;
+}
+void print_pos_and_rev_moves(EGPosition &pos, KKXIndex &index, int16_t* TB, KKXIndex &index2, int16_t* TB2) {
+    uint64_t ix = index.ix_from_pos(pos);
+    std::cout << pos << pos.fen() << " at ix: " << ix << " with val:" << int(TB[ix]) << std::endl;
+    for (Move move : EGMoveList<REVERSE>(pos)) {
+
+        pos.move_piece(move.from_sq(), move.to_sq());
+        pos.flip_side_to_move();
+
+        uint64_t fwd_ix = index2.ix_from_pos(pos);
+        int16_t val = TB2[fwd_ix];
+        std::cout << "rev: " << move_to_uci(move, false) << " " << val  << " at ix: " << fwd_ix << std::endl;
+
+        pos.move_piece(move.to_sq(), move.from_sq());
+        pos.flip_side_to_move();
+    }
+}
+void check_consistency(EGPosition &pos, KKXIndex &index, int16_t* TB, KKXIndex &index2, int16_t* TB2) {
+    uint64_t ix = index.ix_from_pos(pos);
+    int16_t tb_val = TB[ix];
+    int16_t val = LOSS_IN(0);
+    for (Move move : EGMoveList<FORWARD>(pos)) {
+        if (move.to_sq() & pos.pieces()) {
+            val = std::max(val, (int16_t) 0);
+            continue;
+        }
+
+        pos.move_piece(move.from_sq(), move.to_sq());
+        pos.flip_side_to_move();
+
+        uint64_t fwd_ix = index2.ix_from_pos(pos);
+        val = std::max(val, (int16_t) -TB2[fwd_ix]);
+        
+        pos.move_piece(move.to_sq(), move.from_sq());
+        pos.flip_side_to_move();
+    }
+    if (val > 0) { val--; }
+    if (val < 0 && val != LOSS_IN(0)) { val++; }
+
+    if (val != tb_val) {
+        std::cout << "INCONSISTENCY: at ix " << ix << " " << val << " vs " << tb_val << std::endl;
+        print_pos_and_moves(pos, index, TB, index2, TB2);
+        exit(1);
+    }
+}
 
 int main() {
     Stockfish::Bitboards::init();
     Stockfish::Position::init();
     // Benchmark::perft("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 7, false);
     // check_transforms();
+    // _enumerate_kk(0);
+
     Stockfish::enumerate_kk_naive();
 
     init_kkx_index();
@@ -129,6 +246,7 @@ int main() {
     std::vector<PieceType> stm_pieces = {};
     std::vector<PieceType> sntm_pieces = {QUEEN};
     KKXIndex index = KKXIndex(stm_pieces, sntm_pieces);
+    KKXIndex index2 = KKXIndex(sntm_pieces, stm_pieces);
     std::cout << "Num positions: " << index.num_positions() << std::endl;
 
     uint64_t count = 0;
@@ -147,7 +265,7 @@ int main() {
     for (uint64_t ix = 0; ix < index.num_positions(); ix++) {
 
         std::memset(&pos, 0, sizeof(EGPosition));
-        index.pos_at_ix(pos, ix);
+        index.pos_at_ix(pos, ix, BLACK);
         if (pos.is_legal_checkmate()) {
             count++;
             // std::cout << pos << std::endl;
@@ -179,17 +297,22 @@ int main() {
     uint64_t NPOS = index.num_positions();
     int16_t* TB = (int16_t*) calloc(sizeof(int16_t), NPOS);
 
+    int16_t* TB2 = (int16_t*) calloc(sizeof(int16_t), NPOS);
+    // int16_t* GT_TB = (int16_t*) calloc(sizeof(int16_t), NPOS);
+
     // init
     int16_t LEVEL = 0;
     uint64_t N_LEVEL_POS = 0;
     for (uint64_t ix = 0; ix < NPOS; ix++) {
         std::memset(&pos, 0, sizeof(EGPosition));
-        index.pos_at_ix(pos, ix);
+        index.pos_at_ix(pos, ix, BLACK);
         if (pos.is_legal_checkmate()) {
             TB[ix] = LOSS_IN(LEVEL);
             N_LEVEL_POS++;
         }
     }
+    
+
     std::cout << N_LEVEL_POS << " positions at level " << LEVEL << std::endl;
 
     uint64_t iteration_counter = 0;
@@ -200,18 +323,21 @@ int main() {
             // for all checkmate in LEVEL-1
             if (TB[ix] == LOSS_IN(LEVEL-1)) {
                 std::memset(&pos, 0, sizeof(EGPosition));
-                index.pos_at_ix(pos, ix);
+                index.pos_at_ix(pos, ix, BLACK);
                 // std::cout << "POSITION:" << std::endl;
                 // std::cout << pos << std::endl;
                 for (Move move : EGMoveList<REVERSE>(pos)) {
                     // make reverse move and mark position as win in LEVEL
                     pos.move_piece(move.from_sq(), move.to_sq()); // non-capture
                     pos.flip_side_to_move();
-                    uint64_t win_ix = index.ix_from_pos(pos);
+                    bool flipped = false;
+
+FLIP_ENTRY:                    
+                    uint64_t win_ix = index2.ix_from_pos(pos);
                     // std::cout << "1." << move_to_uci(move, false) << " " << win_ix << std::endl;
                     // EGPosition pos2;
 
-                    if (TB[win_ix] == 0) {
+                    if (TB2[win_ix] == 0) {
                         // EGMoveList moveList2 = EGMoveList<REVERSE>(pos);
                         // if (moveList2.size() == 0) {
                         //     // no move can lead to this position, e.g. stalemate
@@ -219,8 +345,8 @@ int main() {
                         //     continue;
                         // }
 
-                        TB[win_ix] = WIN_IN(LEVEL);
-                        if (N_LEVEL_POS == 0) { std::cout << pos.fen() << std::endl; }
+                        TB2[win_ix] = WIN_IN(LEVEL);
+                        if (N_LEVEL_POS == 0) { std::cout << pos << pos.fen() << ", ix: " << win_ix << std::endl; }
                         N_LEVEL_POS++;
 
                         // std::cout << pos << "set level of " << win_ix << " to " << LEVEL << std::endl;
@@ -231,6 +357,7 @@ int main() {
 
                         // print_transform(pos);
 
+                        
                         for (Move move2 : EGMoveList<REVERSE>(pos)) {
                             pos.move_piece(move2.from_sq(), move2.to_sq());
                             pos.flip_side_to_move();
@@ -248,10 +375,33 @@ int main() {
 
                             if (TB[maybe_loss_ix] == 0)
                                 TB[maybe_loss_ix] = LOSS_IN(LEVEL+1); // mark as potential loss in LEVEL+1
+
+                            Square wk = pos.square<KING>(WHITE);
+                            Square bk = pos.square<KING>(BLACK);
+                            if (rank_of(wk) == file_of(wk) && rank_of(bk) == file_of(bk)) {
+                                pos.flip_diagonally();
+                                maybe_loss_ix = index.ix_from_pos(pos);
+                                if (TB[maybe_loss_ix] == 0)
+                                    TB[maybe_loss_ix] = LOSS_IN(LEVEL+1); // mark as potential loss in LEVEL+1
+                                pos.flip_diagonally();
+                            }
+                            
                             pos.move_piece(move2.to_sq(), move2.from_sq());
                             pos.flip_side_to_move();
                         }
                     }
+
+                    Square wk = pos.square<KING>(WHITE);
+                    Square bk = pos.square<KING>(BLACK);
+
+                    if (rank_of(wk) == file_of(wk) && rank_of(bk) == file_of(bk)) {
+                        pos.flip_diagonally();
+                        if (!flipped) {
+                            flipped = true;
+                            goto FLIP_ENTRY;
+                        }
+                    }
+
                     pos.move_piece(move.to_sq(), move.from_sq());
                     pos.flip_side_to_move();
                 }
@@ -264,8 +414,9 @@ int main() {
         N_LEVEL_POS = 0;
         for (uint64_t ix = 0; ix < NPOS; ix++) {
             if (TB[ix] == LOSS_IN(LEVEL)) { // potential loss in LEVEL
+            // if (TB[ix] == 0) {
                 std::memset(&pos, 0, sizeof(EGPosition));
-                index.pos_at_ix(pos, ix);
+                index.pos_at_ix(pos, ix, BLACK);
                 // std::cout << pos << std::endl;
 
                 // check that all forward moves lead to checkmate in <= -(LEVEL-1)
@@ -273,7 +424,7 @@ int main() {
                 int16_t max_val = LOSS_IN(0);
                 if (moveList.size() == 0) {
                     max_val = 0; // has to be stalemate, but should never happen since pos was found by reverse move
-                    std::cout << "stalemate?!:" << pos << ix << std::endl;
+                    // std::cout << "stalemate?!:" << pos <<  ix << std::endl;
                 } else {
                     for (Move move : moveList) {
                         if (move.to_sq() & pos.pieces()) {
@@ -285,8 +436,8 @@ int main() {
                         pos.move_piece(move.from_sq(), move.to_sq());
                         pos.flip_side_to_move();
 
-                        uint64_t fwd_ix = index.ix_from_pos(pos);
-                        int16_t val = TB[fwd_ix];
+                        uint64_t fwd_ix = index2.ix_from_pos(pos);
+                        int16_t val = TB2[fwd_ix];
                         // std::cout << move_to_uci(move, false) << " " << val << std::endl;
                         if (val != LOSS_IN(LEVEL) && val != WIN_IN(LEVEL) ) {
                             max_val = std::max(max_val, (int16_t) -val);
@@ -300,29 +451,13 @@ int main() {
                 if (max_val >= 0) {
                     TB[ix] = 0;
                 } else {
-                    if (N_LEVEL_POS == 0) { std::cout << pos.fen() << std::endl; }
+                    if (N_LEVEL_POS == 0) { std::cout << pos << pos.fen() << ", ix: " << ix << std::endl; }
                     N_LEVEL_POS++;
                     if (max_val != LOSS_IN(LEVEL - 1)) {
-                        std::cout << "INCONSISTENT ERR: " << pos << std::endl;
+                        std::cout << "INCONSISTENT ERR: ";
                         std::cout << pos.fen() << std::endl;
                         std::cout << max_val << " vs " << LOSS_IN(LEVEL - 1) << std::endl; 
-                        for (Move move : moveList) {
-                            if (move.to_sq() & pos.pieces()) {
-                                // capture
-                                std::cout << move_to_uci(move, false) << " capture" << std::endl;
-                                continue;
-                            }
-
-                            pos.move_piece(move.from_sq(), move.to_sq());
-                            pos.flip_side_to_move();
-
-                            uint64_t fwd_ix = index.ix_from_pos(pos);
-                            int16_t val = TB[fwd_ix];
-                            std::cout << move_to_uci(move, false) << " " << val << std::endl;
-
-                            pos.move_piece(move.to_sq(), move.from_sq());
-                            pos.flip_side_to_move();
-                        }
+                        print_pos_and_moves(pos, index, TB, index2, TB2);
                         exit(1);
                     }
                     TB[ix] = LOSS_IN(LEVEL);
@@ -336,6 +471,75 @@ int main() {
         
     }
 
+    // std::memset(&pos, 0, sizeof(EGPosition));
+    // index.pos_at_ix(pos, 901, BLACK);
+    // print_pos_and_moves(pos, index, TB, index2, TB2);
+
+    // std::memset(&pos, 0, sizeof(EGPosition));
+    // index2.pos_at_ix(pos, 2334, WHITE);
+    // print_pos_and_moves(pos, index2, TB2, index, TB);
+
+    // std::memset(&pos, 0, sizeof(EGPosition));
+    // index.pos_at_ix(pos, 7352, BLACK);
+    // print_pos_and_moves(pos, index, TB, index2, TB2);
+
+    // std::memset(&pos, 0, sizeof(EGPosition));
+    // index2.pos_at_ix(pos, 21483, WHITE);
+    // print_pos_and_moves(pos, index2, TB2, index, TB);
+
+    // std::memset(&pos, 0, sizeof(EGPosition));
+    // index.pos_at_ix(pos, 7301, BLACK);
+    // print_pos_and_moves(pos, index, TB, index2, TB2);
+
+    // std::memset(&pos, 0, sizeof(EGPosition));
+    // index2.pos_at_ix(pos, 3140, WHITE);
+    // print_pos_and_moves(pos, index2, TB2, index, TB);
+
+    // std::memset(&pos, 0, sizeof(EGPosition));
+    // index.pos_at_ix(pos, 7334, BLACK);
+    // print_pos_and_moves(pos, index, TB, index2, TB2);
+
+    // std::memset(&pos, 0, sizeof(EGPosition));
+    // index2.pos_at_ix(pos, 21708, WHITE);
+    // print_pos_and_moves(pos, index2, TB2, index, TB);
+
+    // std::memset(&pos, 0, sizeof(EGPosition));
+    // index.pos_at_ix(pos, 5911, BLACK);
+    // print_pos_and_moves(pos, index, TB, index2, TB2);
+
+    std::memset(&pos, 0, sizeof(EGPosition));
+    index.pos_at_ix(pos, 10381, BLACK);
+    print_pos_and_rev_moves(pos, index, TB, index2, TB2);
+
+    std::memset(&pos, 0, sizeof(EGPosition));
+    index2.pos_at_ix(pos, 11066, WHITE);
+    print_pos_and_rev_moves(pos, index2, TB2, index, TB);
+
+    LEVEL = 0;
+    while (true) {
+        std::cout << "Check consistency at level " << LEVEL << std::endl;
+        N_LEVEL_POS = 0;
+        for (uint64_t ix = 0; ix < NPOS; ix++) {
+            std::memset(&pos, 0, sizeof(EGPosition));
+            index.pos_at_ix(pos, ix, BLACK);
+            if (!pos.sntm_in_check() && TB[ix] == LOSS_IN(LEVEL)) {
+                N_LEVEL_POS++;
+                check_consistency(pos, index, TB, index2, TB2);
+            }
+
+            std::memset(&pos, 0, sizeof(EGPosition));
+            index2.pos_at_ix(pos, ix, WHITE);
+            if (!pos.sntm_in_check() && TB2[ix] == WIN_IN(LEVEL)) {
+                N_LEVEL_POS++;
+                check_consistency(pos, index2, TB2, index, TB);
+            }
+
+        }
+
+        if (N_LEVEL_POS == 0) { break; }
+        LEVEL++;
+
+    }
 
 
     return 0;

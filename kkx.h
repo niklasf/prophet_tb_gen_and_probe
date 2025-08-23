@@ -48,7 +48,7 @@ void _enumerate_kk(int print_sqs) {
                 count++;
             }
         }
-        std::cout << std::endl;
+        if (print_sqs > 0) { std::cout << std::endl; } 
     }
     if (print_sqs > 0) {
         std::cout << "};" << std::endl;

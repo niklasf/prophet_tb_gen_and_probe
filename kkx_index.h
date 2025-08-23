@@ -22,7 +22,7 @@ public:
     int n_pieces() const;
     uint64_t num_positions() const;
 
-    void pos_at_ix(EGPosition &pos, uint64_t ix) const;
+    void pos_at_ix(EGPosition &pos, uint64_t ix, Color stm) const;
     uint64_t ix_from_pos(EGPosition &pos) const;
 };
 
@@ -42,10 +42,10 @@ uint64_t KKXIndex::num_positions() const {
 }
 
 
-void KKXIndex::pos_at_ix(EGPosition &pos, uint64_t ix) const {
+void KKXIndex::pos_at_ix(EGPosition &pos, uint64_t ix, Color stm) const {
     uint64_t kkx = ix % N_KKX;
     ix = ix / N_KKX;
-    pos.set_side_to_move(BLACK);
+    pos.set_side_to_move(stm);
 
 
     Square occupied_sqs[6];
@@ -60,18 +60,18 @@ void KKXIndex::pos_at_ix(EGPosition &pos, uint64_t ix) const {
         occupied_sqs[0] = kntm_sq;
         occupied_sqs[1] = ktm_sq;
     }
-    pos.put_piece(B_KING, ktm_sq);
-    pos.put_piece(W_KING, kntm_sq);
+    pos.put_piece(make_piece(stm, KING), ktm_sq);
+    pos.put_piece(make_piece(~stm, KING), kntm_sq);
 
 
     Piece pieces[4] = {NO_PIECE,NO_PIECE,NO_PIECE,NO_PIECE};
     int i = 0;
     for (PieceType p : sntm_pieces) {
-        pieces[i] = make_piece(WHITE, p);
+        pieces[i] = make_piece(~stm, p);
         i++;
     }
     for (PieceType p : stm_pieces) {
-        pieces[i] = make_piece(BLACK, p);
+        pieces[i] = make_piece(stm, p);
         i++;
     }
 
@@ -145,6 +145,26 @@ void print_transform(const EGPosition &pos) {
     std::cout << pos2 << std::endl;
 }
 
+void transform_to(const EGPosition &pos, EGPosition &pos2) {
+    Color stm = pos.side_to_move();
+
+    Square orig_ktm_sq = pos.square<KING>(stm);
+    Square orig_kntm_sq = pos.square<KING>(~stm);
+
+    KKX_IX_T kkx_ix_tr = get_kkx_ix_t(orig_ktm_sq, orig_kntm_sq);
+
+    for (PieceType pt = PAWN; pt <= KING; ++pt) {
+        for (Color c: {WHITE, BLACK}) {
+            Bitboard bb = pos.pieces(c, pt);
+            while (bb) {
+                Square sq = pop_lsb(bb);
+                pos2.put_piece(make_piece(c,pt), transform(sq, kkx_ix_tr));
+            }
+        }
+    }
+    pos2.set_side_to_move(pos.side_to_move());
+}
+
 uint64_t KKXIndex::ix_from_pos(EGPosition &pos) const {
     Color stm = pos.side_to_move();
 
@@ -183,11 +203,19 @@ uint64_t KKXIndex::ix_from_pos(EGPosition &pos) const {
     uint64_t s = 62;
     int i = 2;
 
+    // TODO: replace with appropriate check
+    if (popcount(pos.pieces(stm)) != int(stm_pieces.size())+1) {
+        std::cout << "Wrong number of stm pieces" << std::endl;
+        exit(1);
+    }
+    if (popcount(pos.pieces(~stm)) != int(sntm_pieces.size())+1) {
+        std::cout << "Wrong number of sntm pieces" << std::endl;
+        exit(1);
+    }
     for (Color c: {~stm, stm}) {
         for (PieceType p: {QUEEN, ROOK, BISHOP, KNIGHT}) {
             Bitboard pieceBB = pos.pieces(c, p);
             if (pieceBB) {
-                // TODO: transform square
                 Square orig_sq = lsb(pieceBB);
                 orig_sq = transform(orig_sq, kkx_ix_tr);
 
