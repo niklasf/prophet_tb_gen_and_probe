@@ -29,8 +29,6 @@
 
 #include "types.h"
 
-namespace Stockfish {
-
 namespace Bitboards {
 
 void        init();
@@ -396,6 +394,5 @@ inline Square pop_lsb(Bitboard& b) {
     return s;
 }
 
-}  // namespace Stockfish
 
 #endif  // #ifndef BITBOARD_H_INCLUDED

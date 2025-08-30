@@ -90,7 +90,6 @@
         #define pext(b, m) 0
     #endif
 
-namespace Stockfish {
 
     #ifdef USE_POPCNT
 constexpr bool HasPopCnt = true;
@@ -312,6 +311,8 @@ constexpr Square& operator-=(Square& s, Direction d) { return s = s - d; }
 
 
 constexpr Square  operator^(Square s, int i) { return Square(int(s) ^ i); }
+constexpr Square  operator^(Square s1, Square s2) { return Square(int(s1) ^ int(s2)); }
+constexpr Square  operator&(Square s, int i) { return Square(int(s) & i); }
 
 
 // constexpr Square operator^(Square s, int8_t d) { return Square(int(s) ^ d); }
@@ -445,6 +446,5 @@ struct is_all_same {
 template<typename... Ts>
 constexpr auto is_all_same_v = is_all_same<Ts...>::value;
 
-}  // namespace Stockfish
 
 #endif  // #ifndef TYPES_H_INCLUDED
