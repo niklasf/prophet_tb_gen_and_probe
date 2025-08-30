@@ -2,11 +2,11 @@
 #define UCI_H_INCLUDED
 
 #include "types.h"
-#include "position.h"
 
+#include <iostream>
 
 std::string square_to_uci(Square s);
 
-std::string move_to_uci(Move m, bool chess960);
+std::string move_to_uci(Move m);
 
 #endif

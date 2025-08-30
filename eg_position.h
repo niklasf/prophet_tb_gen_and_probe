@@ -9,7 +9,6 @@
 #include "types.h"
 #include "bitboard.h"
 #include "uci.h"
-using namespace Stockfish;
 
 
 
@@ -56,13 +55,23 @@ public:
 
     std::string fen() const;
 
-    void flip_diagonally();
+    Piece do_move(Move m);
+    void undo_move(Move m, Piece captured);
+
+    // int& get_wpiece_count() const;
+    // int* get_bpiece_count() const;
+
+    template<PieceType Pt>
+    int count(Color c) const;
+
+    void reset();
 
 private:
         Piece      board[SQUARE_NB];
         Bitboard   byTypeBB[PIECE_TYPE_NB];
         Bitboard   byColorBB[COLOR_NB];
         Color      sideToMove;
+        int        pieceCount[PIECE_NB];
 
         bool has_king_evasions(Color c) const;
         template<PieceType Pt>
@@ -70,6 +79,19 @@ private:
         template<Color c>
         bool has_pawn_evasions(Square checkerSq, Bitboard pinned, Bitboard block) const;
 };
+
+template<PieceType Pt>
+inline int EGPosition::count(Color c) const {
+    return pieceCount[make_piece(c, Pt)];
+}
+
+// int& EGPosition::get_wpiece_count() const {
+//     return &pieceCount;
+// }
+
+// int& EGPosition::get_bpiece_count() const {
+//     return ((int*) &pieceCount) + 8;
+// }
 
 bool EGPosition::is_equal(const EGPosition& pos) const {
     for (int i = 0; i < SQUARE_NB; i++) {
@@ -142,11 +164,17 @@ std::string EGPosition::fen() const {
     return ss.str();
 }
 
+inline void EGPosition::reset() {
+    std::memset(this, 0, sizeof(EGPosition));
+}
+
 
 inline void EGPosition::put_piece(Piece pc, Square s) {
     board[s] = pc;
     byTypeBB[ALL_PIECES] |= byTypeBB[type_of(pc)] |= s;
     byColorBB[color_of(pc)] |= s;
+    pieceCount[pc]++;
+    pieceCount[make_piece(color_of(pc), ALL_PIECES)]++;
 }
 
 inline void EGPosition::remove_piece(Square s) {
@@ -155,6 +183,8 @@ inline void EGPosition::remove_piece(Square s) {
     byTypeBB[type_of(pc)] ^= s;
     byColorBB[color_of(pc)] ^= s;
     board[s] = NO_PIECE;
+    pieceCount[pc]--;
+    pieceCount[make_piece(color_of(pc), ALL_PIECES)]--;
 }
 
 inline void EGPosition::move_piece(Square from, Square to) {
@@ -165,6 +195,31 @@ inline void EGPosition::move_piece(Square from, Square to) {
     byColorBB[color_of(pc)] ^= fromTo;
     board[from] = NO_PIECE;
     board[to]   = pc;
+}
+
+
+inline Piece EGPosition::do_move(Move m) {
+    Square from     = m.from_sq();
+    Square to       = m.to_sq();
+    Piece  captured = piece_on(to);
+
+    if (captured) {
+        remove_piece(to);
+    }
+    move_piece(from, to);
+    sideToMove = ~sideToMove;
+    return captured;
+}
+
+inline void EGPosition::undo_move(Move m, Piece captured) {
+    Square from     = m.from_sq();
+    Square to       = m.to_sq();
+
+    move_piece(to, from);
+    if (captured) {
+        put_piece(captured, to);
+    }
+    sideToMove = ~sideToMove;
 }
 
 inline Color EGPosition::side_to_move() const { return sideToMove; }
@@ -329,46 +384,6 @@ bool EGPosition::is_legal_checkmate() const {
     if (checkers(~c) != 0) { return false; } // sntm should not be in check
     Bitboard checkersBB = checkers(c);
     return checkersBB && !has_evasions(c, checkersBB);
-}
-
-void EGPosition::flip_diagonally() {
-    for (Square sq = SQ_A1; sq <= SQ_H8; ++sq) {
-        if (rank_of(sq) > file_of(sq)) { continue; }
-        Square flipped_sq = Square(((sq >> 3) | (sq << 3)) & 63);
-        // std::cout << int(sq) << " -> " << int(flipped_sq) << std::endl;
-        Piece tmp = board[sq];
-        board[sq] = board[flipped_sq];
-        board[flipped_sq] = tmp;
-    }
-    // exit(1);
-    for (PieceType pt = ALL_PIECES; pt <= KING; ++pt) {
-        Bitboard x = byTypeBB[pt];
-        Bitboard t;
-        const uint64_t k1 = 0x5500550055005500;
-        const uint64_t k2 = 0x3333000033330000;
-        const uint64_t k4 = 0x0f0f0f0f00000000;
-        t  = k4 & (x ^ (x << 28));
-        x ^=       t ^ (t >> 28) ;
-        t  = k2 & (x ^ (x << 14));
-        x ^=       t ^ (t >> 14) ;
-        t  = k1 & (x ^ (x <<  7));
-        x ^=       t ^ (t >>  7) ;
-        byTypeBB[pt] = x;
-    }
-    for (Color c : {WHITE, BLACK}) {
-        Bitboard x = byColorBB[c];
-        Bitboard t;
-        const uint64_t k1 = 0x5500550055005500;
-        const uint64_t k2 = 0x3333000033330000;
-        const uint64_t k4 = 0x0f0f0f0f00000000;
-        t  = k4 & (x ^ (x << 28));
-        x ^=       t ^ (t >> 28) ;
-        t  = k2 & (x ^ (x << 14));
-        x ^=       t ^ (t >> 14) ;
-        t  = k1 & (x ^ (x <<  7));
-        x ^=       t ^ (t >>  7) ;
-        byColorBB[c] = x;
-    }
 }
 
 #endif

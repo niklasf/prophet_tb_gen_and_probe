@@ -6,8 +6,8 @@
 #include <iostream>
 #include "types.h"
 #include "bitboard.h"
+#include "uci.h"
 
-using namespace Stockfish;
 
 Square KSQs_NP_HALF_OCT[10] = {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1,
@@ -89,15 +89,9 @@ int8_t KKX_KNTM_SQ[N_KKX] = {
  0, 1, 2, 3, 4, 5, 6, 7, 9,10,11,12,13,14,15,21,22,23,29,30,31,37,38,39,45,46,47,54,55,63,
 };
 
-struct KKX_IX_T {
-    int16_t ix;
-    int8_t flip;
-    int8_t swap;
-};
+int16_t KKX_IX_TABLE[64][64];
 
-KKX_IX_T KKX_IX_T_TABLE[64][64];
-
-void init_kkx_index() {
+void init_kkx_table() {
 
     int count = 0;
 
@@ -149,20 +143,20 @@ void init_kkx_index() {
                 count++;
             }
             // printf("KKX_IX_T_TABLE[%d][%d] = (%d,%d,%d)\n", ktm_sq, kntm_sq, ix, flip, swap);
-            KKX_IX_T_TABLE[ktm_sq][kntm_sq] = {ix, flip, swap};
+            KKX_IX_TABLE[ktm_sq][kntm_sq] = ix;
 
         }
     }
     std::cout << "init_kkx_index count: " << count << std::endl; // 3612
 }
 
-inline KKX_IX_T get_kkx_ix_t(Square ktm, Square kntm) {
-    KKX_IX_T kkx_ix_tr = KKX_IX_T_TABLE[ktm][kntm];
-    if (kkx_ix_tr.ix == -1) {
-        printf("Tried to access KKX_IX_T_TABLE[%d][%d] = -1\n", ktm, kntm);
+inline int16_t get_kkx_ix(Square ktm, Square kntm) {
+    int16_t kkx_ix = KKX_IX_TABLE[ktm][kntm];
+    if (kkx_ix == -1) {
+        printf("Tried to access KKX_IX_TABLE[%d][%d] = -1\n", ktm, kntm);
         exit(1);
     } else {
-        return kkx_ix_tr;
+        return kkx_ix;
     }
 }
 
