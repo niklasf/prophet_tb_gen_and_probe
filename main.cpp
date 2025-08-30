@@ -4,7 +4,7 @@
 #include "linearize.h"
 #include "eg_position.h"
 #include "eg_movegen.h"
-
+#include "gen_egtb.h"
 
 void test_kkx_index() {
     Color stm = BLACK;
@@ -87,5 +87,10 @@ int main() {
 
     test_kkx_index();
 
-   return 0;
+    int pieces1[6] = {0, 0, 0, 0, 0, 1};
+    int pieces2[6] = {0, 0, 0, 0, 0, 0};
+    GenEGTB g = GenEGTB(pieces1, pieces2);
+    g.gen();
+    
+    return 0;
 }
