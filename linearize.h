@@ -67,14 +67,15 @@ void pos_at_ix(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int bpie
         for (int j = i-1; j >= k; j--) {
             occupied_sqs[j+1] = occupied_sqs[j];
         }
-        
-        if (allondiag && !(sq & DiagBB)) {
-            allondiag = false;
-            if (sq & AboveDiagBB) {
-                // put sq on bottom diag
-                sq = Square(((sq >> 3) | (sq << 3)) & 63);
-            }
-        }
+        // std::cout << square_to_uci(sq) << std::endl;
+        // if (allondiag && !(sq & DiagBB)) {
+        //     allondiag = false;
+        //     if (sq & AboveDiagBB) {
+        //         // put sq on bottom diag
+        //         sq = Square(((sq >> 3) | (sq << 3)) & 63);
+        //     }
+        // }
+        // std::cout << square_to_uci(sq) << std::endl;
 
         i++;
         occupied_sqs[k] = sq;
@@ -206,8 +207,8 @@ void transform_to(const EGPosition &pos, EGPosition &pos2) {
     maybe_update_swap(orig_kntm_sq, flip, allondiag, swap);
     pos2.put_piece(make_piece(~stm, KING), transform(orig_kntm_sq, flip, swap));
 
-    for (PieceType pt: {QUEEN, ROOK, BISHOP, KNIGHT}) {
-        for (Color c: {~stm, stm}) {
+    for (Color c: {~stm, stm}) {
+        for (PieceType pt: {QUEEN, ROOK, BISHOP, KNIGHT}) {
             Bitboard bb = pos.pieces(c, pt);
             if (bb) {
                 Square sq = lsb(bb);

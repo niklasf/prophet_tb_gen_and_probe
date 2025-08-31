@@ -9,8 +9,6 @@ enum EGGenType {
     FWD_EVASIONS, // if in check all legal evasions
     FWD_NON_EVASIONS,
     REVERSE, // all non-capturing backward moves (no castling, no en-passant)
-    REV_CHECKS,
-    REV_NONCHECKS
 };
 
 
@@ -147,11 +145,11 @@ Move* generate_all_fwd(const EGPosition& pos, Move* moveList, Bitboard checkers)
 }
 
 template<EGGenType>
-Move* generate(const EGPosition& pos, Move* moveList);
+Move* generate(const EGPosition& pos, Move* moveList, PieceType captured);
 
 template<>
-Move* generate<FORWARD>(const EGPosition& pos, Move* moveList) {
-
+Move* generate<FORWARD>(const EGPosition& pos, Move* moveList, PieceType captured) {
+    assert(!captured);
     Color    us     = pos.side_to_move();
     Bitboard pinned = pos.blockers_for_king(us) & pos.pieces(us);
     Square   ksq    = pos.square<KING>(us);
@@ -239,7 +237,7 @@ Bitboard attackers_to_after_moving_piece(Square s, Bitboard byTypeBB[PIECE_TYPE_
 }
 
 template<>
-Move* generate<REVERSE>(const EGPosition& pos, Move* moveList) {
+Move* generate<REVERSE>(const EGPosition& pos, Move* moveList, PieceType captured) {
 
     Color    us     = ~pos.side_to_move();
     Move*    cur    = moveList;
@@ -264,6 +262,12 @@ Move* generate<REVERSE>(const EGPosition& pos, Move* moveList) {
         byTypeBB[pt] ^= fromTo;
         byColorBB[us] ^= fromTo;
 
+        if (captured) {
+            byTypeBB[ALL_PIECES] ^= from;
+            byTypeBB[captured] ^= from;
+            byColorBB[~us] ^= from;
+        }
+
         if (attackers_to_exist_after_moving_piece(their_ksq, us, byTypeBB, byColorBB)) {
             *cur = *(--moveList);
         } else if (cur->from_sq() != our_ksq && popcount(attackers_to_after_moving_piece(our_ksq, byTypeBB, byColorBB) & byColorBB[~us]) > 1) {
@@ -273,6 +277,12 @@ Move* generate<REVERSE>(const EGPosition& pos, Move* moveList) {
             ++cur;
         }
 
+        if (captured) {
+            byTypeBB[ALL_PIECES] ^= from;
+            byTypeBB[captured] ^= from;
+            byColorBB[~us] ^= from;
+        }
+        
         // Bitboard toFrom = to | from;
         byTypeBB[ALL_PIECES] ^= fromTo;;
         byTypeBB[pt] ^= fromTo;
@@ -283,8 +293,8 @@ Move* generate<REVERSE>(const EGPosition& pos, Move* moveList) {
 
 template<EGGenType T>
 struct EGMoveList {
-    explicit EGMoveList(const EGPosition& pos) :
-        last(generate<T>(pos, moveList)) {}
+    explicit EGMoveList(const EGPosition& pos, PieceType captured = NO_PIECE_TYPE) :
+        last(generate<T>(pos, moveList, captured)) {}
     const Move* begin() const { return moveList; }
     const Move* end() const { return last; }
     size_t      size() const { return last - moveList; }

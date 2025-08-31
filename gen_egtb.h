@@ -11,34 +11,102 @@
 #include <fstream>
 #include <string>
 
+uint64_t compute_num_positions(const int stm_pieces[6], const int sntm_pieces[6]) {
+    // TODO
+    uint64_t n = N_KKX;
+    
+    int k = 0;
+    for (int i = 0; i < 6; i++) {
+        k += stm_pieces[i] + sntm_pieces[i];
+    }
+
+    uint64_t s = 62;
+    for (int i = 0; i < k; i++) {
+        n *= s;
+        s--;
+    }
+    return n;
+}
+
+std::string get_egtb_identifier(int stm_pieces[6], int sntm_pieces[6]) {
+    std::ostringstream os;
+    for (int* pieces: {stm_pieces, sntm_pieces}) {
+        os << "K";
+        for (PieceType pt = QUEEN; pt >= PAWN; --pt) {
+            for (int i = 0; i < pieces[pt]; i++) {
+                os << PieceToChar[pt];
+            }
+        }
+    }
+    return os.str();
+}
+
+std::string get_filename(int stm_pieces[6], int sntm_pieces[6]) {
+    std::ostringstream os;
+    os << "egtbs/";
+    os << get_egtb_identifier(stm_pieces, sntm_pieces);
+    os << ".egtb";
+    return os.str();
+}
+
+
+void store_egtb(int16_t* TB, int stm_pieces[6], int sntm_pieces[6]) {
+    uint64_t NPOS = compute_num_positions(stm_pieces, sntm_pieces);
+    std::string filename = get_filename(stm_pieces, sntm_pieces);
+    std::ofstream outputFileStream;
+    outputFileStream.open(filename, std::ios::out|std::ios::binary);
+    for(uint64_t i=0; i<NPOS; i++)
+        outputFileStream.write((char*) &TB[i], sizeof(int16_t));
+}
+
+void load_egtb(int16_t* TB, int stm_pieces[6], int sntm_pieces[6]) {
+    uint64_t NPOS = compute_num_positions(stm_pieces, sntm_pieces);
+    std::string filename = get_filename(stm_pieces, sntm_pieces);
+    std::ifstream inputFileStream;
+    inputFileStream.open(filename, std::ios::in|std::ios::binary);
+    for(uint64_t i=0; i<NPOS; i++)
+        inputFileStream.read((char*) &TB[i], sizeof(int16_t));
+}
+
+
 class GenEGTB {
-    int pieces1[6];
-    int pieces2[6];
+    int wpieces[6];
+    int bpieces[6];
     int n_pieces;
 
-    int16_t* TB;
-    int16_t* MIRROR_TB;
+    int16_t* WTM_TB;
+    int16_t* BTM_TB;
 
-    int16_t* CAPTURE_TBs[6];
-    int16_t* MIRROR_CAPTURE_TBs[6];
+    int16_t* WTM_CAPTURE_TBs[6];
+    int16_t* BTM_CAPTURE_TBs[6];
 
 public:
-    GenEGTB(int pieces1[6], int pieces2[6]) {
-        n_pieces = 0;
+    GenEGTB(int wpieces[6], int bpieces[6]) {
+        this->n_pieces = 0;
         for (int i = 0; i < 6; i++) {
-            this->pieces1[i] = pieces1[i];
-            this->pieces2[i] = pieces2[i];
-            n_pieces += pieces1[i] + pieces2[i];
+            this->wpieces[i] = wpieces[i];
+            this->bpieces[i] = bpieces[i];
+            this->n_pieces += wpieces[i] + bpieces[i];
         }
 
-        this->TB = (int16_t*) calloc(sizeof(int16_t), num_positions());
-        this->MIRROR_TB = (int16_t*) calloc(sizeof(int16_t), num_positions());
+        this->WTM_TB = (int16_t*) calloc(sizeof(int16_t), num_positions());
+        this->BTM_TB = (int16_t*) calloc(sizeof(int16_t), num_positions());
 
-        // TODO
-        int16_t* KK_TB = (int16_t*) calloc(sizeof(int16_t), N_KKX);
-        for (int i = 0; i < 6; i++) {
-            CAPTURE_TBs[i] = KK_TB;
-            MIRROR_CAPTURE_TBs[i] = KK_TB;
+        for (PieceType pt = PAWN; pt <= QUEEN; ++pt) {
+            if (wpieces[pt] > 0) {
+                wpieces[pt]--;
+                this->BTM_CAPTURE_TBs[pt] = (int16_t*) calloc(sizeof(int16_t), compute_num_positions(bpieces, wpieces));
+                load_egtb(this->BTM_CAPTURE_TBs[pt], bpieces, wpieces);
+                std::cout << "Load " << get_egtb_identifier(bpieces, wpieces) << std::endl;
+                wpieces[pt]++;
+            }
+            if (bpieces[pt] > 0) {
+                bpieces[pt]--;
+                this->WTM_CAPTURE_TBs[pt] = (int16_t*) calloc(sizeof(int16_t), compute_num_positions(wpieces, bpieces));
+                load_egtb(this->WTM_CAPTURE_TBs[pt], wpieces, bpieces); 
+                std::cout << "Load " << get_egtb_identifier(wpieces, bpieces) << std::endl;           
+                bpieces[pt]++;
+            }
         }
 
     }
@@ -52,65 +120,9 @@ int GenEGTB::num_pieces() const {
     return n_pieces;
 }
 
-uint64_t compute_num_positions(const int pieces1[6], const int pieces2[6]) {
-    // TODO
-    uint64_t n = N_KKX;
-    
-    int k = 0;
-    for (int i = 0; i < 6; i++) {
-        k += pieces1[i] + pieces2[i];
-    }
-
-    uint64_t s = 62;
-    for (int i = 0; i < k; i++) {
-        n *= s;
-        s--;
-    }
-    return n;
-}
 
 uint64_t GenEGTB::num_positions() const {
-    return compute_num_positions(pieces1, pieces2);
-}
-
-std::string get_egtb_identifier(int pieces1[6], int pieces2[6]) {
-    std::ostringstream os;
-    for (int* pieces: {pieces1, pieces2}) {
-        os << "K";
-        for (PieceType pt = QUEEN; pt >= PAWN; --pt) {
-            for (int i = 0; i < pieces[pt]; i++) {
-                os << PieceToChar[pt];
-            }
-        }
-    }
-    return os.str();
-}
-
-std::string get_filename(int pieces1[6], int pieces2[6]) {
-    std::ostringstream os;
-    os << "egtbs/";
-    os << get_egtb_identifier(pieces1, pieces2);
-    os << ".egtb";
-    return os.str();
-}
-
-
-void store_egtb(int16_t* TB, int pieces1[6], int pieces2[6]) {
-    uint64_t NPOS = compute_num_positions(pieces1, pieces2);
-    std::string filename = get_filename(pieces1, pieces2);
-    std::ofstream outputFileStream;
-    outputFileStream.open(filename, std::ios::out|std::ios::binary);
-    for(uint64_t i=0; i<NPOS; i++)
-        outputFileStream.write((char*) &TB[i], sizeof(int16_t));
-}
-
-void load_egtb(int16_t* TB, int pieces1[6], int pieces2[6]) {
-    uint64_t NPOS = compute_num_positions(pieces1, pieces2);
-    std::string filename = get_filename(pieces1, pieces2);
-    std::ifstream inputFileStream;
-    inputFileStream.open(filename, std::ios::in|std::ios::binary);
-    for(uint64_t i=0; i<NPOS; i++)
-        inputFileStream.read((char*) &TB[i], sizeof(int16_t));
+    return compute_num_positions(wpieces, bpieces);
 }
 
 
@@ -121,6 +133,8 @@ inline int16_t LOSS_IN(int16_t level) { return -1000 + level; }
 #define UNUSEDIX -1002
 
 void GenEGTB::gen() {
+    std::cout << "Generate " << get_egtb_identifier(wpieces, bpieces) << " and " << get_egtb_identifier(bpieces, wpieces) << std::endl;
+
     uint64_t NPOS = num_positions();
 
 
@@ -132,21 +146,22 @@ void GenEGTB::gen() {
 
     int16_t* LOSS_TB;
     int16_t* WIN_TB;
+    int16_t** CAPTURE_TBs;
     Color LOSS_COLOR;
 
-    for (int mirrored = 0; mirrored <= 1; ++mirrored) {
-        if (mirrored) {
-            LOSS_TB = MIRROR_TB;
+    for (int wtm = 0; wtm <= 1; ++wtm) {
+        if (wtm) {
+            LOSS_TB = WTM_TB;
             LOSS_COLOR = WHITE;
         } else {
-            LOSS_TB = TB;
+            LOSS_TB = BTM_TB;
             LOSS_COLOR = BLACK;
         }
         uint64_t N_UNUSED = 0;
         uint64_t N_CHECKMATE = 0;
         for (uint64_t ix = 0; ix < NPOS; ix++) {
             pos.reset();
-            pos_at_ix(pos, ix, LOSS_COLOR, pieces1, pieces2);
+            pos_at_ix(pos, ix, LOSS_COLOR, wpieces, bpieces);
             if (ix_from_pos(pos) != ix) {
                 LOSS_TB[ix] = UNUSEDIX;
                 N_UNUSED++;
@@ -166,15 +181,15 @@ void GenEGTB::gen() {
         LEVEL++;
         N_LEVEL_POS = 0;
 
-        for (int mirrored = 0; mirrored <= 1; ++mirrored) {
-            if (mirrored) {
-                LOSS_TB = MIRROR_TB;
+        for (int wtm = 0; wtm <= 1; ++wtm) {
+            if (wtm) {
+                LOSS_TB = WTM_TB;
                 LOSS_COLOR = WHITE;
-                WIN_TB = TB;
+                WIN_TB = BTM_TB;
             } else {
-                LOSS_TB = TB;
+                LOSS_TB = BTM_TB;
                 LOSS_COLOR = BLACK;
-                WIN_TB = MIRROR_TB;
+                WIN_TB = WTM_TB;
             }
 
             for (uint64_t ix = 0; ix < NPOS; ix++) {
@@ -182,7 +197,7 @@ void GenEGTB::gen() {
                 // for all checkmate in LEVEL-1
                 if (LOSS_TB[ix] == LOSS_IN(LEVEL-1)) {
                     pos.reset();
-                    pos_at_ix(pos, ix, LOSS_COLOR, pieces1, pieces2);
+                    pos_at_ix(pos, ix, LOSS_COLOR, wpieces, bpieces);
                     for (Move move : EGMoveList<REVERSE>(pos)) {
                         pos.do_rev_move(move); // non-capture
 
@@ -215,21 +230,23 @@ void GenEGTB::gen() {
 
         LEVEL++;
         N_LEVEL_POS = 0;
-        for (int mirrored = 0; mirrored <= 1; ++mirrored) {
-            if (mirrored) {
-                LOSS_TB = MIRROR_TB;
+        for (int wtm = 0; wtm <= 1; ++wtm) {
+            if (wtm) {
+                LOSS_TB = WTM_TB;
                 LOSS_COLOR = WHITE;
-                WIN_TB = TB;
+                WIN_TB = BTM_TB;
+                CAPTURE_TBs = WTM_CAPTURE_TBs;
             } else {
-                LOSS_TB = TB;
+                LOSS_TB = BTM_TB;
                 LOSS_COLOR = BLACK;
-                WIN_TB = MIRROR_TB;
+                WIN_TB = WTM_TB;
+                CAPTURE_TBs = BTM_CAPTURE_TBs;
             }
 
             for (uint64_t ix = 0; ix < NPOS; ix++) {
                 if (LOSS_TB[ix] == MAYBELOSS) {
                     pos.reset();
-                    pos_at_ix(pos, ix, LOSS_COLOR, pieces1, pieces2);
+                    pos_at_ix(pos, ix, LOSS_COLOR, wpieces, bpieces);
 
                     // check that all forward moves lead to checkmate in <= -(LEVEL-1)
                     EGMoveList moveList = EGMoveList<FORWARD>(pos);
@@ -240,8 +257,10 @@ void GenEGTB::gen() {
                         for (Move move : moveList) {
                             Piece capture = pos.do_move(move);
                             if (capture) {
-                                max_val = std::max(max_val, (int16_t) 0);
-                                // TODO
+                                // max_val = std::max(max_val, (int16_t) 0);
+                                uint64_t fwd_ix = ix_from_pos(pos);
+                                int16_t val = -CAPTURE_TBs[type_of(capture)][fwd_ix];
+                                max_val = std::max(max_val, val);
                             } else {
                                 uint64_t fwd_ix = ix_from_pos(pos);
                                 int16_t val = -WIN_TB[fwd_ix];
@@ -251,12 +270,16 @@ void GenEGTB::gen() {
                         }
                     }
                     if (max_val >= 0) {
+                        // assert(max_val == 0);
                         LOSS_TB[ix] = 0;
                     } else {
                         if (N_LEVEL_POS == 0) { std::cout << "LOSS in " <<  LEVEL << ": " << pos.fen() << ", ix: " << ix << std::endl; }
                         N_LEVEL_POS++;
-                        LOSS_TB[ix] = LOSS_IN(LEVEL);;
+                        // assert(max_val == LOSS_IN(LEVEL-1));
+                        // LOSS_TB[ix] = LOSS_IN(LEVEL);
+                        LOSS_TB[ix] = max_val + 1;
                     }
+
                 }
             }
         }
@@ -267,9 +290,9 @@ void GenEGTB::gen() {
             break;
         }
     }
-    for (int mirrored = 0; mirrored <= 1; ++mirrored) {
-        int16_t* _TB = mirrored ? MIRROR_TB : TB;
-        std::string egtb = mirrored ? get_egtb_identifier(pieces1, pieces2) : get_egtb_identifier(pieces2, pieces1);
+    for (int wtm = 0; wtm <= 1; ++wtm) {
+        int16_t* _TB = wtm ? WTM_TB : BTM_TB;
+        std::string egtb = wtm ? get_egtb_identifier(wpieces, bpieces) : get_egtb_identifier(bpieces, wpieces);
 
         uint64_t wins = 0;
         uint64_t draws = 0;
@@ -285,8 +308,9 @@ void GenEGTB::gen() {
         std::cout << losses << " losses in " << egtb << std::endl;
     }
 
-    store_egtb(TB, pieces1, pieces2);
-    store_egtb(MIRROR_TB, pieces2, pieces1);
+    store_egtb(WTM_TB, wpieces, bpieces);
+    store_egtb(BTM_TB, bpieces, wpieces);
+    std::cout << "\n\n" << std::endl;
 }
 
 #endif

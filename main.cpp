@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 #include "bitboard.h"
 #include "kkx.h"
 #include "linearize.h"
@@ -11,7 +12,7 @@ void test_kkx_index() {
 
     // 0, PAWN, KNIGHT, BISHOP, ROOK, QUEEN 
     int stm_pieces[6]  = {0, 0, 0, 0, 0, 1};
-    int sntm_pieces[6] = {0, 0, 0, 0, 0, 0};
+    int sntm_pieces[6] = {0, 0, 0, 0, 1, 0};
 
 
     PieceType pts[4] = {NO_PIECE_TYPE, NO_PIECE_TYPE, NO_PIECE_TYPE, NO_PIECE_TYPE};
@@ -47,31 +48,34 @@ void test_kkx_index() {
             if (k2_sq == k1_sq) { continue; }
             for (Square p1_sq = SQ_A1; p1_sq <= SQ_H8; ++p1_sq) {
                 if (p1_sq == k1_sq || p1_sq == k2_sq) { continue; }
+                for (Square p2_sq = SQ_A1; p2_sq <= SQ_H8; ++p2_sq) {
+                    if (p2_sq == k1_sq || p2_sq == k2_sq || p2_sq == p1_sq) { continue; }
 
-                if ((PseudoAttacks[KING][k1_sq] & k2_sq) == 0) {
-                    pos1.reset();
-                    pos2.reset();
-                    pos3.reset();
-                    // pos1.put_piece(make_piece(cs[1],pts[1]), p2_sq);
-                    pos1.put_piece(B_KING, k1_sq);
-                    pos1.put_piece(W_KING, k2_sq);
-                    pos1.put_piece(make_piece(cs[0],pts[0]), p1_sq);
-                    pos1.set_side_to_move(stm);
+                    if ((PseudoAttacks[KING][k1_sq] & k2_sq) == 0) {
+                        pos1.reset();
+                        pos2.reset();
+                        pos3.reset();
+                        pos1.put_piece(B_KING, k1_sq);
+                        pos1.put_piece(W_KING, k2_sq);
+                        pos1.put_piece(make_piece(cs[0],pts[0]), p1_sq);
+                        pos1.put_piece(make_piece(cs[1],pts[1]), p2_sq);
+                        pos1.set_side_to_move(stm);
 
-                    uint64_t ix = ix_from_pos(pos1);
-                    pos_at_ix(pos2, ix, stm, wpieces, bpieces);
-                    transform_to(pos1, pos3);
-                    uint64_t ix2 = ix_from_pos(pos3);
+                        uint64_t ix = ix_from_pos(pos1);
+                        pos_at_ix(pos2, ix, stm, wpieces, bpieces);
+                        transform_to(pos1, pos3);
+                        uint64_t ix2 = ix_from_pos(pos3);
 
-                    if (!pos2.is_equal(pos3) || ix != ix2) {
-                        std::cout << pos1 << std::endl;
-                        std::cout << "vs at ix " << ix << std::endl;
-                        std::cout << pos2 << std::endl;
-                        std::cout << "vs transformed at ix " << ix2 << std::endl;
-                        std::cout << pos3 << std::endl;
-                        exit(1);
+                        if (!pos2.is_equal(pos3) || ix != ix2) {
+                            std::cout << pos1 << std::endl;
+                            std::cout << "vs at ix " << ix << std::endl;
+                            std::cout << pos2 << std::endl;
+                            std::cout << "vs transformed at ix " << ix2 << std::endl;
+                            std::cout << pos3 << std::endl;
+                            exit(1);
+                        }
+                        count++;
                     }
-                    count++;
                 }
             }
         }
@@ -87,10 +91,38 @@ int main() {
 
     test_kkx_index();
 
-    int pieces1[6] = {0, 0, 0, 0, 0, 1};
-    int pieces2[6] = {0, 0, 0, 0, 0, 0};
-    GenEGTB g = GenEGTB(pieces1, pieces2);
+    std::vector<int> pieces1(6);
+    std::vector<int> pieces2(6);
+    
+    pieces1 = {0, 0, 0, 0, 0, 0};
+    pieces2 = {0, 0, 0, 0, 0, 0};
+
+    GenEGTB g = GenEGTB(&pieces1[0], &pieces2[0]);
     g.gen();
     
+    pieces1 = {0, 0, 0, 0, 0, 1};
+    pieces2 = {0, 0, 0, 0, 0, 0};
+
+    g = GenEGTB(&pieces1[0], &pieces2[0]);
+    g.gen();
+
+    pieces1 = {0, 0, 0, 0, 1, 0};
+    pieces2 = {0, 0, 0, 0, 0, 0};
+
+    g = GenEGTB(&pieces1[0], &pieces2[0]);
+    g.gen();
+
+    pieces1 = {0, 0, 0, 0, 1, 0};
+    pieces2 = {0, 0, 0, 0, 0, 1};
+
+    g = GenEGTB(&pieces1[0], &pieces2[0]);
+    g.gen();
+    // EGPosition pos;
+    // pos.reset();
+    // pos_at_ix(pos, 236522, WHITE, &pieces1[0], &pieces2[0]);
+    // std::cout << pos << std::endl;
+    // ix_from_pos(pos);
+    
+
     return 0;
 }

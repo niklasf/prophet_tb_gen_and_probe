@@ -154,7 +154,7 @@ inline int16_t get_kkx_ix(Square ktm, Square kntm) {
     int16_t kkx_ix = KKX_IX_TABLE[ktm][kntm];
     if (kkx_ix == -1) {
         printf("Tried to access KKX_IX_TABLE[%d][%d] = -1\n", ktm, kntm);
-        exit(1);
+        assert(false);
     } else {
         return kkx_ix;
     }
