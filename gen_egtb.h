@@ -13,20 +13,44 @@
 #include <string>
 
 uint64_t compute_num_positions(const int stm_pieces[6], const int sntm_pieces[6]) {
-    // TODO
-    uint64_t n = N_KKX;
-    
-    int k = 0;
-    for (int i = 0; i < 6; i++) {
-        k += stm_pieces[i] + sntm_pieces[i];
-    }
+    int n_pawns = stm_pieces[PAWN] + sntm_pieces[PAWN];
+    if (n_pawns == 0) {
+        uint64_t n = N_KKX;
+        
+        int n_pieces = 0;
+        for (PieceType i = PAWN; i < KING; ++i) {
+            n_pieces += stm_pieces[i] + sntm_pieces[i];
+        }
 
-    uint64_t s = 62;
-    for (int i = 0; i < k; i++) {
-        n *= s;
-        s--;
+        uint64_t s = 62;
+        for (int i = 0; i < n_pieces; i++) {
+            n *= s;
+            s--;
+        }
+        return n;
+    } else {
+        uint64_t n = 24;
+        n_pawns--;
+
+        uint64_t p = 47;
+        uint64_t s = 63;
+        for (int i = 0; i < n_pawns; i++) {
+            n *= p;
+            p--;
+            s--;
+        }
+
+        int n_nonpawn = 0;
+        for (PieceType i = KNIGHT; i < KING; ++i) {
+            n_nonpawn += stm_pieces[i] + sntm_pieces[i];
+        }
+
+        for (int i = 0; i < n_nonpawn; i++) {
+            n *= s;
+            s--;
+        }
+        return n;
     }
-    return n;
 }
 std::string get_pieces_identifier(int pieces[6]) {
     std::ostringstream os;
@@ -253,7 +277,7 @@ void GenEGTB::gen() {
         for (uint64_t ix = 0; ix < NPOS; ix++) {
             pos.reset();
             pos_at_ix(pos, ix, LOSS_COLOR, wpieces, bpieces);
-            if (ix_from_pos(pos) != ix) {
+            if (ix_from_pos(pos) != ix || pos.sntm_in_check()) {
                 LOSS_TB[ix] = UNUSEDIX;
                 N_UNUSED++;
                 continue;

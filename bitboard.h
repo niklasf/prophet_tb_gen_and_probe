@@ -61,6 +61,8 @@ constexpr Bitboard BottomHalfBB = Rank1BB | Rank2BB | Rank3BB | Rank4BB;
 constexpr Bitboard LeftHalfBB = FileABB | FileBBB | FileCBB | FileDBB;
 constexpr Bitboard RightHalfBB = FileEBB | FileFBB | FileGBB | FileHBB;
 
+constexpr Bitboard PawnSquaresBB = Rank2BB | Rank3BB | Rank4BB | Rank5BB | Rank6BB | Rank7BB;
+
 extern uint8_t PopCnt16[1 << 16];
 extern uint8_t SquareDistance[SQUARE_NB][SQUARE_NB];
 

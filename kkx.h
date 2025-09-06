@@ -24,7 +24,7 @@ Square KSQs_NP_OCT[16] = {
 };
 
 // 462 positions
-void _enumerate_kk(int print_sqs) {
+void _enumerate_kkx(int print_sqs) {
     if (print_sqs == 1) {
         std::cout << "int8_t KKX_KTM_SQ[N_KKX] = {" << std::endl;
     } else if (print_sqs == 2) {
@@ -56,10 +56,10 @@ void _enumerate_kk(int print_sqs) {
         std::cout << "KK Count: " << count << std::endl;
     }
 }
-void enumerate_kk() {
+void enumerate_kkx() {
     std::cout << "#define N_KKX 462" << std::endl;;
-    _enumerate_kk(1);
-    _enumerate_kk(2);
+    _enumerate_kkx(1);
+    _enumerate_kkx(2);
 }
 
 
@@ -147,7 +147,7 @@ void init_kkx_table() {
 
         }
     }
-    std::cout << "init_kkx_index count: " << count << std::endl; // 3612
+    std::cout << "init_kkx_table count: " << count << std::endl; // 3612
 }
 
 inline int16_t get_kkx_ix(Square ktm, Square kntm) {
