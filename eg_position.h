@@ -49,6 +49,7 @@ public:
     bool has_evasions(Color c, Bitboard checkersBB) const;
 
     bool sntm_in_check() const;
+    bool stm_in_check() const;
     bool is_legal_checkmate() const;
 
     bool is_equal(const EGPosition& pos) const;
@@ -231,7 +232,7 @@ inline void EGPosition::do_rev_move(Move m, PieceType captured) {
     assert(!piece_on(to));
     move_piece(from, to);
     if (captured) {
-        put_piece(make_piece(~sideToMove, captured), from);
+        put_piece(make_piece(sideToMove, captured), from);
     }
     sideToMove = ~sideToMove;
 }
@@ -401,6 +402,10 @@ bool EGPosition::has_evasions(Color c, Bitboard checkersBB) const {
 }
 bool EGPosition::sntm_in_check() const {
     return checkers(~side_to_move());
+}
+
+bool EGPosition::stm_in_check() const {
+    return checkers(side_to_move());
 }
 
 // checks if king of color c = side_to_move is in checkmate and king of color ~c is not in check

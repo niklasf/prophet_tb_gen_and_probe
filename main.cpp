@@ -94,35 +94,32 @@ int main() {
     std::vector<int> pieces1(6);
     std::vector<int> pieces2(6);
     
-    pieces1 = {0, 0, 0, 0, 0, 0};
-    pieces2 = {0, 0, 0, 0, 0, 0};
-
-    GenEGTB g = GenEGTB(&pieces1[0], &pieces2[0]);
-    g.gen();
+    // pieces1 = {0, 0, 0, 0, 0, 0};
+    // pieces2 = {0, 0, 0, 0, 0, 0};
+    // GenEGTB g = GenEGTB(&pieces1[0], &pieces2[0]);
+    // g.gen();
     
+    // pieces1 = {0, 0, 0, 0, 0, 1};
+    // pieces2 = {0, 0, 0, 0, 0, 0};
+    // g = GenEGTB(&pieces1[0], &pieces2[0]);
+    // g.gen();
+
+    // pieces1 = {0, 0, 0, 0, 1, 0};
+    // pieces2 = {0, 0, 0, 0, 0, 0};
+    // g = GenEGTB(&pieces1[0], &pieces2[0]);
+    // g.gen();
+
     pieces1 = {0, 0, 0, 0, 0, 1};
-    pieces2 = {0, 0, 0, 0, 0, 0};
+    pieces2 = {0, 0, 0, 1, 0, 0};
 
-    g = GenEGTB(&pieces1[0], &pieces2[0]);
-    g.gen();
-
-    pieces1 = {0, 0, 0, 0, 1, 0};
-    pieces2 = {0, 0, 0, 0, 0, 0};
-
-    g = GenEGTB(&pieces1[0], &pieces2[0]);
-    g.gen();
-
-    pieces1 = {0, 0, 0, 0, 1, 0};
-    pieces2 = {0, 0, 0, 0, 0, 1};
-
-    g = GenEGTB(&pieces1[0], &pieces2[0]);
-    g.gen();
     // EGPosition pos;
     // pos.reset();
-    // pos_at_ix(pos, 236522, WHITE, &pieces1[0], &pieces2[0]);
+    // pos_at_ix(pos, 967, WHITE, &pieces1[0], &pieces2[0]);
     // std::cout << pos << std::endl;
-    // ix_from_pos(pos);
+    // exit(1);
     
+    GenEGTB g = GenEGTB(&pieces1[0], &pieces2[0]);
+    g.gen();
 
     return 0;
 }
