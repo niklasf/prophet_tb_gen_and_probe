@@ -96,7 +96,7 @@ int main() {
 
     test_index();
 
-    exit(0);
+    // exit(0);
 
     std::vector<int> pieces1(6);
     std::vector<int> pieces2(6);
@@ -116,8 +116,8 @@ int main() {
     // g = GenEGTB(&pieces1[0], &pieces2[0]);
     // g.gen();
 
-    pieces1 = {0, 0, 1, 1, 0, 0};
-    pieces2 = {0, 0, 0, 0, 0, 0};
+    pieces1 = {0, 0, 0, 0, 0, 1};
+    pieces2 = {0, 0, 0, 0, 1, 0};
 
     // EGPosition pos;
     // pos.reset();

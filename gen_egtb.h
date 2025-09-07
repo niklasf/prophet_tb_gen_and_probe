@@ -411,33 +411,28 @@ void GenEGTB::gen() {
                 CAPTURE_TBs = WPC_WTM_TBs;
                 WIN_TB = WTM_TB;
             }
+            assert (CAPTURE_TBs[type_of(NO_PIECE)] == WIN_TB);
 
             for (uint64_t ix = 0; ix < NPOS; ix++) {
                 if (LOSS_TB[ix] == MAYBELOSS) {
                 // if (LOSS_TB[ix] == MAYBELOSS || LOSS_TB[ix] == 0) {
                     pos.reset();
                     pos_at_ix(pos, ix, LOSS_COLOR, wpieces, bpieces);
-                    if (pos.sntm_in_check()) { continue; }
+                    assert (!pos.sntm_in_check()); // should be UNUSED_IX if sntm_in_check
 
                     // check that all forward moves lead to checkmate in <= -(LEVEL-1)
                     EGMoveList moveList = EGMoveList<FORWARD>(pos);
                     int16_t max_val = LOSS_IN(0);
                     if (moveList.size() == 0) {
                         max_val = 0; // has to be stale mate
-                        // assert(false); // cannot happen at MAYBELOSS position
+                        assert(LOSS_TB[ix] != MAYBELOSS); // cannot happen at MAYBELOSS position
                     } else {
                         for (Move move : moveList) {
                             Piece capture = pos.do_move(move);
-                            if (capture) {
-                                // max_val = std::max(max_val, (int16_t) 0);
-                                uint64_t fwd_ix = ix_from_pos(pos);
-                                int16_t val = -CAPTURE_TBs[type_of(capture)][fwd_ix];
-                                max_val = std::max(max_val, val);
-                            } else {
-                                uint64_t fwd_ix = ix_from_pos(pos);
-                                int16_t val = -WIN_TB[fwd_ix];
-                                max_val = std::max(max_val, val);
-                            }
+                            uint64_t fwd_ix = ix_from_pos(pos);
+
+                            int16_t val = -CAPTURE_TBs[type_of(capture)][fwd_ix]; // CAPTURE_TBs[0] = WIN_TB
+                            max_val = std::max(max_val, val);
                             pos.undo_move(move, capture);
                         }
                     }
