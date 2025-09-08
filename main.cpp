@@ -66,7 +66,7 @@ void test_index() {
                         // std::cout << "B\n";
                         pos_at_ix(pos2, ix, stm, wpieces, bpieces);
                         // std::cout << "C\n";
-                        transform_to(pos1, pos3);
+                        transform_to_canoncial(pos1, pos3);
                         // std::cout << "D\n";
                         uint64_t ix2 = ix_from_pos(pos3);
                         // std::cout << "E\n";
@@ -101,10 +101,10 @@ int main() {
     std::vector<int> pieces1(6);
     std::vector<int> pieces2(6);
     
-    pieces1 = {0, 0, 0, 0, 0, 0};
-    pieces2 = {0, 0, 0, 0, 0, 0};
-    GenEGTB g = GenEGTB(&pieces1[0], &pieces2[0]);
-    g.gen();
+    // pieces1 = {0, 0, 0, 0, 0, 0};
+    // pieces2 = {0, 0, 0, 0, 0, 0};
+    // GenEGTB g = GenEGTB(&pieces1[0], &pieces2[0]);
+    // g.gen();
     
     // 3 men, no pawns
     /*
@@ -117,14 +117,26 @@ int main() {
     */
 
 
+    // pieces1 = {0, 0, 0, 0, 0, 1};
+    // pieces2 = {0, 0, 0, 0, 0, 0};
+
+    // EGPosition pos;
+    // pos.reset();
+    // pos_at_ix(pos, 2310, BLACK, &pieces1[0], &pieces2[0]);
+    // std::cout << pos;
+    // for (Move move : EGMoveList<REVERSE>(pos, NO_PIECE_TYPE, QUEEN)) {
+    //     std::cout << move_to_uci(move) << std::endl;
+    // }
+    // exit(0);
+
     // 4 men
     pieces1 = {0, 1, 0, 0, 0, 0};
     pieces2 = {0, 0, 0, 0, 0, 0};
 
-    pieces1 = {0, 0, 0, 0, 0, 1};
-    pieces2 = {0, 0, 0, 0, 1, 0};
+    // pieces1 = {0, 0, 0, 0, 0, 1};
+    // pieces2 = {0, 0, 0, 0, 1, 0};
 
-    g = GenEGTB(&pieces1[0], &pieces2[0]);
+    GenEGTB g = GenEGTB(&pieces1[0], &pieces2[0]);
     g.gen();
 
     return 0;

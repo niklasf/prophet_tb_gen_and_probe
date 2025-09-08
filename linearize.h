@@ -336,7 +336,7 @@ uint64_t ix_from_pos(EGPosition const &pos) {
     }
 }
 
-void transform_to(const EGPosition &pos, EGPosition &pos2) {
+void transform_to_canoncial(const EGPosition &pos, EGPosition &pos2) {
     Color stm = pos.side_to_move();
 
     bool allondiag = true;
@@ -377,5 +377,16 @@ void transform_to(const EGPosition &pos, EGPosition &pos2) {
     pos2.set_side_to_move(pos.side_to_move());
 }
 
+void transform_to(const EGPosition &pos, EGPosition &pos2, int8_t h_flip, int8_t v_flip, int8_t swap) {
+
+    for (Square sq = SQ_A1; sq <= SQ_H8; ++sq) {
+        Piece p = pos.piece_on(sq);
+        if (p)
+            pos2.put_piece(p, transform(sq, h_flip ^ v_flip, swap));
+    }
+
+    pos2.set_side_to_move(pos.side_to_move());
+
+}
 
 #endif

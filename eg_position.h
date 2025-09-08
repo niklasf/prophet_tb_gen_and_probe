@@ -211,6 +211,10 @@ inline PieceType EGPosition::do_move(Move m) {
         remove_piece(to);
     }
     move_piece(from, to);
+    if (m.type_of() == PROMOTION) {
+        remove_piece(to);
+        put_piece(make_piece(sideToMove,m.promotion_type()), to);
+    }
     sideToMove = ~sideToMove;
     return type_of(captured);
 }
@@ -219,11 +223,16 @@ inline void EGPosition::undo_move(Move m, PieceType captured) {
     Square from     = m.from_sq();
     Square to       = m.to_sq();
 
+    sideToMove = ~sideToMove;
+
+    if (m.type_of() == PROMOTION) {
+        remove_piece(to);
+        put_piece(make_piece(sideToMove,PAWN), to);
+    }
     move_piece(to, from);
     if (captured) {
-        put_piece(make_piece(sideToMove, captured), to);
+        put_piece(make_piece(~sideToMove, captured), to);
     }
-    sideToMove = ~sideToMove;
 }
 
 inline void EGPosition::do_rev_move(Move m, PieceType captured) {

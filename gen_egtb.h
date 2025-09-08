@@ -40,6 +40,11 @@ uint64_t compute_num_positions(const int stm_pieces[6], const int sntm_pieces[6]
             p--;
             s--;
         }
+        // kings
+        n *= s;
+        s--;
+        n *= s;
+        s--;
 
         int n_nonpawn = 0;
         for (PieceType i = KNIGHT; i < KING; ++i) {
@@ -253,8 +258,7 @@ inline int16_t IS_SET(int16_t val) { return val != 0 && LOSS_IN(0) <= val && val
 
 void GenEGTB::check_consistency(EGPosition &pos, bool verbose) {
     int16_t* TB = pos.side_to_move() == WHITE ? WTM_TB : BTM_TB;
-    int16_t* MIRROR_TB = pos.side_to_move() == WHITE ? BTM_TB : WTM_TB;
-    int16_t** CAPTURE_TBs = pos.side_to_move() == WHITE ? BTM_TBs[NO_PIECE_TYPE] : WTM_TBs[NO_PIECE_TYPE];
+    int16_t* (*CAPTURE_TBs)[6] = pos.side_to_move() == WHITE ? BTM_TBs : WTM_TBs;
 
     if (verbose) std::cout << pos << pos.fen() << std::endl;
 
@@ -266,12 +270,13 @@ void GenEGTB::check_consistency(EGPosition &pos, bool verbose) {
     EGMoveList movelist = EGMoveList<FORWARD>(pos);
     for (Move move : movelist) {
         PieceType capture = pos.do_move(move);
+        PieceType promotion = move.type_of() == PROMOTION ? move.promotion_type() : NO_PIECE_TYPE;
         uint64_t fwd_ix = ix_from_pos(pos);
+        // std::cout << PieceToChar[capture] << " - " << PieceToChar[promotion] << std::endl;
+        val = CAPTURE_TBs[promotion][capture][fwd_ix];
         if (capture) {
-            val = CAPTURE_TBs[capture][fwd_ix];
             if (verbose) std::cout << "  " << move_to_uci(move) << "x " << val << " at ix: " << fwd_ix << std::endl;
         } else {
-            val = MIRROR_TB[fwd_ix];
             if (verbose) std::cout << "  " << move_to_uci(move) << " " << val << " at ix: " << fwd_ix << std::endl;
         }
             max_val = std::max(max_val, (int16_t) -val);
@@ -304,6 +309,7 @@ void GenEGTB::gen() {
     std::cout << "Generate " << get_egtb_identifier(wpieces, bpieces) << " and " << get_egtb_identifier(bpieces, wpieces) << std::endl;
 
     uint64_t NPOS = num_positions();
+    std::cout << "Number of positions: " << NPOS << std::endl;
 
     EGPosition pos;
 
@@ -313,9 +319,9 @@ void GenEGTB::gen() {
 
     int16_t* LOSS_TB;
     int16_t* WIN_TB;
-    int16_t** LOSS_TBs;
-    uint64_t* LOSS_TBs_NPOS;
-    int16_t** CAPTURE_TBs;
+    int16_t* (*LOSS_TBs)[6];
+    uint64_t (*LOSS_TBs_NPOS)[6];
+    int16_t* (*CAPTURE_TBs)[6];
     Color LOSS_COLOR;
 
     TimePoint t0 = now();
@@ -353,53 +359,94 @@ void GenEGTB::gen() {
         if (wtm) {
             LOSS_COLOR = WHITE;
             LOSS_TB = WTM_TB;
-            LOSS_TBs = WTM_TBs[NO_PIECE_TYPE];
-            LOSS_TBs_NPOS = WTM_TBs_NPOS[NO_PIECE_TYPE];
+            LOSS_TBs = WTM_TBs;
+            LOSS_TBs_NPOS = WTM_TBs_NPOS;
             WIN_TB = BTM_TB;
         } else {
             LOSS_COLOR = BLACK;
             LOSS_TB = BTM_TB;
-            LOSS_TBs = BTM_TBs[NO_PIECE_TYPE];
-            LOSS_TBs_NPOS = BTM_TBs_NPOS[NO_PIECE_TYPE];
+            LOSS_TBs = BTM_TBs;
+            LOSS_TBs_NPOS = BTM_TBs_NPOS;
             WIN_TB = WTM_TB;
         }
-        for (PieceType capture_pt = PAWN; capture_pt <= QUEEN; ++capture_pt) {
-            if (LOSS_TBs[capture_pt] == NULL) { continue; }
+        
+        EGPosition transformed_pos;
+        int8_t V_FLIPS[8] = {0,  0, 56, 56,  0,  0, 56, 56};
+        int8_t H_FLIPS[8] = {0,  7,  0,  7,  0,  7,  0,  7};
+        int8_t SWAPS[8]   = {0,  0,  0,  0,  3,  3,  3,  3};
 
-            if (LOSS_COLOR == WHITE) {
-                wpieces[capture_pt]--;
-            } else {
-                bpieces[capture_pt]--;
-            }
+        for (PieceType promotion_pt = NO_PIECE_TYPE; promotion_pt <= QUEEN; ++promotion_pt) {
+            for (PieceType capture_pt = NO_PIECE_TYPE; capture_pt <= QUEEN; ++capture_pt) {
+                if (promotion_pt == NO_PIECE_TYPE && capture_pt == NO_PIECE_TYPE) { continue; }
+                if (LOSS_TBs[promotion_pt][capture_pt] == NULL) { continue; }
 
-            for (uint64_t ix = 0; ix < LOSS_TBs_NPOS[capture_pt]; ix++) {
-                int16_t val = LOSS_TBs[capture_pt][ix];
-                if (0 < val && val <= WIN_IN(0)) {
-                    MIN_LEVEL = std::max(MIN_LEVEL, (int16_t) (WIN_IN(0) - val));
+                if (capture_pt) {
+                    if (LOSS_COLOR == WHITE)
+                        wpieces[capture_pt]--;
+                    else 
+                        bpieces[capture_pt]--;
                 }
-                if (0 > val && val >= LOSS_IN(0)) {
-                    MIN_LEVEL = std::max(MIN_LEVEL, (int16_t) (val - LOSS_IN(0)));
-
-                    int16_t win_val = -val - 1;
-                    pos.reset();
-                    pos_at_ix(pos, ix, LOSS_COLOR, wpieces, bpieces);
-                    if (pos.sntm_in_check()) { continue; };
-                    for (Move move : EGMoveList<REVERSE>(pos, capture_pt)) {
-                        pos.do_rev_move(move, capture_pt);
-                        uint64_t win_ix = ix_from_pos(pos);
-                        if (!IS_SET(WIN_TB[win_ix]) || WIN_TB[win_ix] < win_val ) {
-                            WIN_TB[win_ix] = win_val;
-                        }
-                        pos.undo_rev_move(move);
+                if (promotion_pt) {
+                    if (LOSS_COLOR == WHITE) {
+                        bpieces[PAWN]--;
+                        bpieces[promotion_pt]++;
+                    } else {
+                        wpieces[PAWN]--;
+                        wpieces[promotion_pt]++;
                     }
-
                 }
-            }
 
-            if (LOSS_COLOR == WHITE) {
-                wpieces[capture_pt]++;
-            } else {
-                bpieces[capture_pt]++;
+                int N_SYMMETRIES = wpieces[PAWN] + bpieces[PAWN] > 0 ? 2 : 8;
+
+                for (uint64_t ix = 0; ix < LOSS_TBs_NPOS[promotion_pt][capture_pt]; ix++) {
+                    int16_t val = LOSS_TBs[promotion_pt][capture_pt][ix];
+                    if (0 < val && val <= WIN_IN(0)) {
+                        MIN_LEVEL = std::max(MIN_LEVEL, (int16_t) (WIN_IN(0) - val));
+                    }
+                    if (0 > val && val >= LOSS_IN(0)) {
+                        MIN_LEVEL = std::max(MIN_LEVEL, (int16_t) (val - LOSS_IN(0)));
+
+                        int16_t win_val = -val - 1;
+                        pos.reset();
+                        pos_at_ix(pos, ix, LOSS_COLOR, wpieces, bpieces);
+                        if (pos.sntm_in_check()) { continue; };
+
+                        for (int t = 0; t < N_SYMMETRIES; t++) {
+                            transformed_pos.reset();
+                            transform_to(pos, transformed_pos, H_FLIPS[t], V_FLIPS[t], SWAPS[t]);
+
+                            for (Move move : EGMoveList<REVERSE>(transformed_pos, capture_pt, promotion_pt)) {
+                                transformed_pos.do_rev_move(move, capture_pt);
+                                uint64_t win_ix = ix_from_pos(transformed_pos);
+
+                                if (WIN_TB == WTM_TB && win_ix == 22700) std::cout << move_to_uci(move) << "x" << PieceToChar[capture_pt]  << " -> " << int(win_val) << std::endl;
+
+                                if (!IS_SET(WIN_TB[win_ix]) || WIN_TB[win_ix] < win_val ) {
+                                    WIN_TB[win_ix] = win_val;
+                                }
+                                transformed_pos.undo_rev_move(move);
+                            }
+
+                        }
+
+                    }
+                }
+
+                if (capture_pt) {
+                    if (LOSS_COLOR == WHITE)
+                        wpieces[capture_pt]++;
+                    else 
+                        bpieces[capture_pt]++;
+                }
+                if (promotion_pt) {
+                    if (LOSS_COLOR == WHITE) {
+                        bpieces[PAWN]++;
+                        bpieces[promotion_pt]--;
+                    } else {
+                        wpieces[PAWN]++;
+                        wpieces[promotion_pt]--;
+                    }
+                }
             }
         }
     }
@@ -471,15 +518,15 @@ void GenEGTB::gen() {
             if (wtm) {
                 LOSS_TB = WTM_TB;
                 LOSS_COLOR = WHITE;
-                CAPTURE_TBs = BTM_TBs[NO_PIECE_TYPE];
+                CAPTURE_TBs = BTM_TBs;
                 WIN_TB = BTM_TB;
             } else {
                 LOSS_TB = BTM_TB;
                 LOSS_COLOR = BLACK;
-                CAPTURE_TBs = WTM_TBs[NO_PIECE_TYPE];
+                CAPTURE_TBs = WTM_TBs;
                 WIN_TB = WTM_TB;
             }
-            assert (CAPTURE_TBs[type_of(NO_PIECE)] == WIN_TB);
+            assert (CAPTURE_TBs[NO_PIECE_TYPE][NO_PIECE_TYPE] == WIN_TB);
 
             for (uint64_t ix = 0; ix < NPOS; ix++) {
                 if (LOSS_TB[ix] == MAYBELOSS) {
@@ -497,9 +544,11 @@ void GenEGTB::gen() {
                     } else {
                         for (Move move : moveList) {
                             PieceType capture = pos.do_move(move);
+                            PieceType promotion = move.type_of() == PROMOTION ? move.promotion_type() : NO_PIECE_TYPE;
+
                             uint64_t fwd_ix = ix_from_pos(pos);
 
-                            int16_t val = -CAPTURE_TBs[capture][fwd_ix]; // CAPTURE_TBs[0] = WIN_TB
+                            int16_t val = -CAPTURE_TBs[promotion][capture][fwd_ix]; // CAPTURE_TBs[0][0] = WIN_TB
                             max_val = std::max(max_val, val);
                             pos.undo_move(move, capture);
                         }
@@ -599,16 +648,6 @@ void GenEGTB::gen() {
     store_egtb(BTM_TB, bpieces, wpieces);
     std::cout << "\n\n" << std::endl;
 
-    // uint64_t n_promotion_pos = 0;
-    // for (uint64_t ix = 0; ix < NPOS; ix++) {
-    //     pos.reset();
-    //     pos_at_ix(pos, ix, WHITE, wpieces, bpieces);
-    //     if (pos.sntm_in_check()) { continue; }
-    //     if ((pos.pieces() ^ pos.pieces(KING)) & (RANK_1 | RANK_8) ) {
-    //         n_promotion_pos++;
-    //     }
-    // }
-    // std::cout << "n_promotion_pos: " << n_promotion_pos << " / " << NPOS << " (" << (double) n_promotion_pos / NPOS << ")" << std::endl;
 }
 
 #endif

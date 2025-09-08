@@ -105,7 +105,7 @@ void test_kkx_index() {
 
                     uint64_t ix = index.ix_from_pos(pos1);
                     index.pos_at_ix(pos2, ix, stm);
-                    transform_to(pos1, pos3);
+                    transform_to_canoncial(pos1, pos3);
                     uint64_t ix2 = index.ix_from_pos(pos3);
 
                     if (!pos2.is_equal(pos3) || ix != ix2) {

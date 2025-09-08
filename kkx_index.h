@@ -164,7 +164,7 @@ inline void maybe_update_swap(Square sq, int8_t flip, bool& allondiag, int8_t& s
     }
 }
 
-void transform_to(const EGPosition &pos, EGPosition &pos2) {
+void transform_to_canoncial(const EGPosition &pos, EGPosition &pos2) {
     Color stm = pos.side_to_move();
     bool allondiag = true;
     Square orig_ktm_sq = pos.square<KING>(stm);
