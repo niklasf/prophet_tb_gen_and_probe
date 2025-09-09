@@ -1,0 +1,153 @@
+#
+#ifndef TRIL_IX_H_INCLUDED
+#define TRIL_IX_H_INCLUDED
+
+#include <cstdint>
+#include <iostream>
+#include <cassert>
+
+
+uint64_t _number_of_ordered_tuples(uint64_t n_domain, uint64_t n_tuple) {
+    uint64_t res = 1;
+    uint64_t f = 1;
+    for (uint64_t i = 0; i < n_tuple; i++) {
+        res *= (n_domain - i);
+        f *= i + 1;
+    }
+    return res / f;
+}
+
+uint64_t NUMBER_OF_ORDER_TUPLES[65][65];
+
+void init_tril() {
+    for (uint64_t i = 0; i <= 64; i++) {
+        for (uint64_t n = 0; n <= 64; n++) {
+            NUMBER_OF_ORDER_TUPLES[i][n] = _number_of_ordered_tuples(i, n);
+        }
+    }
+}
+uint64_t number_of_ordered_tuples(uint64_t n_domain, uint64_t n_tuple) {
+    return NUMBER_OF_ORDER_TUPLES[n_domain][n_tuple];
+}
+
+// ixs in ascending order
+uint64_t tril_to_linear(uint64_t n_tuple, int* ixs) {
+    /*
+    for ixs = ..., i, j, k
+    tril_ix = k + (j)(j-1)/2 + (i)(i-1)(i-2)/6 ...
+    */
+    uint64_t tril_ix = 0;
+    for (uint64_t i = 0; i < n_tuple; i++) {
+        tril_ix += NUMBER_OF_ORDER_TUPLES[ixs[i]][i+1];
+    }
+    return tril_ix;
+}
+
+// writes to ixs in ascending order
+void tril_from_linear(uint64_t n_tuple, uint64_t tril_ix, int* ixs) {
+    for (uint64_t j = 0; j < n_tuple - 1; j++) {
+        uint64_t s = 0;
+        int i = 0;
+        while (s <= tril_ix) {
+            i++;
+            s += NUMBER_OF_ORDER_TUPLES[i][n_tuple-j-1];
+        }
+        tril_ix -= NUMBER_OF_ORDER_TUPLES[i][n_tuple-j];
+        ixs[n_tuple-j-1] = i;
+    }
+    ixs[0] = tril_ix;
+}
+
+void test_tril(uint64_t n_domain, uint64_t n_tuple) {
+    uint64_t count = 0;
+    int* ixs = (int*) calloc(sizeof(uint64_t), n_tuple);
+    for (uint64_t tril_ix = 0; tril_ix < number_of_ordered_tuples(n_domain, n_tuple); tril_ix++) {
+        tril_from_linear(n_tuple, tril_ix, ixs);
+        uint64_t tril_ix_2 = tril_to_linear(n_tuple, ixs);
+        assert(tril_ix_2 == tril_ix);
+        count++;
+    }
+    std::cout << "Checked " << count << " tril indexes" << std::endl;
+}
+void test_tril_1(uint64_t n_domain) {
+    uint64_t count = 0;
+    uint64_t n_tuple = 1;
+    int* ixs = (int*) calloc(sizeof(uint64_t), n_tuple);
+    int* ixs_2 = (int*) calloc(sizeof(uint64_t), n_tuple);
+    for (uint64_t i = 0; i < n_domain; i++) {
+        ixs[0] = i;
+        uint64_t tril_ix = tril_to_linear(n_tuple, ixs);
+        tril_from_linear(n_tuple, tril_ix, ixs_2);
+        for (uint64_t t = 0; t < n_tuple; t++) { assert(ixs[t] == ixs_2[t]); }
+        count++;
+    }
+    std::cout << "Checked " << count << " tril indexes" << std::endl;
+}
+void test_tril_2(uint64_t n_domain) {
+    uint64_t count = 0;
+    uint64_t n_tuple = 2;
+    int* ixs = (int*) calloc(sizeof(uint64_t), n_tuple);
+    int* ixs_2 = (int*) calloc(sizeof(uint64_t), n_tuple);
+    for (uint64_t i = 0; i < n_domain; i++) {
+        for (uint64_t j = i+1; j < n_domain; j++) {
+            ixs[0] = i;
+            ixs[1] = j;
+
+            uint64_t tril_ix = tril_to_linear(n_tuple, ixs);
+            tril_from_linear(n_tuple, tril_ix, ixs_2);
+            for (uint64_t t = 0; t < n_tuple; t++) { assert(ixs[t] == ixs_2[t]); }
+            count++;
+        }
+    }
+    std::cout << "Checked " << count << " tril indexes" << std::endl;
+}
+
+
+void test_tril_3(uint64_t n_domain) {
+    uint64_t count = 0;
+    uint64_t n_tuple = 3;
+    int* ixs = (int*) calloc(sizeof(uint64_t), n_tuple);
+    int* ixs_2 = (int*) calloc(sizeof(uint64_t), n_tuple);
+    for (uint64_t i = 0; i < n_domain; i++) {
+        for (uint64_t j = i+1; j < n_domain; j++) {
+            for (uint64_t k = j+1; k < n_domain; k++) {
+                ixs[0] = i;
+                ixs[1] = j;
+                ixs[2] = k;
+
+                uint64_t tril_ix = tril_to_linear(n_tuple, ixs);
+                tril_from_linear(n_tuple, tril_ix, ixs_2);
+                for (uint64_t t = 0; t < n_tuple; t++) { assert(ixs[t] == ixs_2[t]); }
+                count++;
+            }
+        }
+    }
+    std::cout << "Checked " << count << " tril indexes" << std::endl;
+}
+
+void test_tril_4(uint64_t n_domain) {
+    uint64_t count = 0;
+    uint64_t n_tuple = 4;
+    int* ixs = (int*) calloc(sizeof(uint64_t), n_tuple);
+    int* ixs_2 = (int*) calloc(sizeof(uint64_t), n_tuple);
+    for (uint64_t i = 0; i < n_domain; i++) {
+        for (uint64_t j = i+1; j < n_domain; j++) {
+            for (uint64_t k = j+1; k < n_domain; k++) {
+                for (uint64_t l = k+1; l < n_domain; l++) {
+                    ixs[0] = i;
+                    ixs[1] = j;
+                    ixs[2] = k;
+                    ixs[3] = l;
+
+                    uint64_t tril_ix = tril_to_linear(n_tuple, ixs);
+                    tril_from_linear(n_tuple, tril_ix, ixs_2);
+                    for (uint64_t t = 0; t < n_tuple; t++) { assert(ixs[t] == ixs_2[t]); }
+                    count++;
+                }
+            }
+        }
+    }
+    std::cout << "Checked " << count << " tril indexes" << std::endl;
+}
+
+#endif
