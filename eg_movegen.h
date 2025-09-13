@@ -303,6 +303,7 @@ Move* generate<REVERSE>(const EGPosition& pos, Move* moveList, PieceType capture
         Square from = cur->from_sq();
         Square to = cur->to_sq();
         PieceType pt = type_of(pos.piece_on(to));
+        // std::cout << move_to_uci(*cur) << std::endl;
 
         Bitboard fromTo = from | to;
         byTypeBB[ALL_PIECES] ^= fromTo;
@@ -324,7 +325,7 @@ Move* generate<REVERSE>(const EGPosition& pos, Move* moveList, PieceType capture
 
         if (attackers_to_exist_after_moving_piece(their_ksq, us, byTypeBB, byColorBB)) {
             *cur = *(--moveList);
-        } else if (to != our_ksq && popcount(attackers_to_after_moving_piece(our_ksq, byTypeBB, byColorBB) & byColorBB[~us]) > 1) {
+        } else if (to != our_ksq && more_than_one(attackers_to_after_moving_piece(our_ksq, byTypeBB, byColorBB) & byColorBB[~us])) {
             // if our king is in double check after reversing move, only legal moves are king moves
             *cur = *(--moveList);
         } else {

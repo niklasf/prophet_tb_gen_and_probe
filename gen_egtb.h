@@ -6,6 +6,7 @@
 #include "linearize.h"
 #include "eg_position.h"
 #include "eg_movegen.h"
+#include "triangular_indexes.h"
 #include "uci.h"
 #include "misc.h"
 #include <iostream>
@@ -36,7 +37,7 @@ uint64_t compute_num_positions(const int stm_pieces[6], const int sntm_pieces[6]
         uint64_t p = 47;
         uint64_t s = 63;
         for (int i = 0; i < n_pawns; i++) {
-            n *= p;
+            n *= p; // TODO
             p--;
             s--;
         }
@@ -46,15 +47,14 @@ uint64_t compute_num_positions(const int stm_pieces[6], const int sntm_pieces[6]
         n *= s;
         s--;
 
-        int n_nonpawn = 0;
-        for (PieceType i = KNIGHT; i < KING; ++i) {
-            n_nonpawn += stm_pieces[i] + sntm_pieces[i];
+        for (int stm = 0; stm <= 1; ++stm) {
+            const int* pieces = (stm) ? stm_pieces : sntm_pieces;
+            for (PieceType i = KNIGHT; i < KING; ++i) {
+                n *= number_of_ordered_tuples(s, pieces[i]);
+                s -= pieces[i];
+            }
         }
 
-        for (int i = 0; i < n_nonpawn; i++) {
-            n *= s;
-            s--;
-        }
         return n;
     }
 }
@@ -279,7 +279,7 @@ void GenEGTB::check_consistency(EGPosition &pos, bool verbose) {
         } else {
             if (verbose) std::cout << "  " << move_to_uci(move) << " " << val << " at ix: " << fwd_ix << std::endl;
         }
-            max_val = std::max(max_val, (int16_t) -val);
+        max_val = std::max(max_val, (int16_t) -val);
 
         pos.undo_move(move, capture);
     }
@@ -330,9 +330,11 @@ void GenEGTB::gen() {
         if (wtm) {
             LOSS_TB = WTM_TB;
             LOSS_COLOR = WHITE;
+            CAPTURE_TBs = BTM_TBs;
         } else {
             LOSS_TB = BTM_TB;
             LOSS_COLOR = BLACK;
+            CAPTURE_TBs = WTM_TBs;
         }
         uint64_t N_UNUSED = 0;
         uint64_t N_CHECKMATE = 0;
@@ -344,11 +346,37 @@ void GenEGTB::gen() {
                 N_UNUSED++;
                 continue;
             }
-            if (pos.is_legal_checkmate()) {
-                LOSS_TB[ix] = LOSS_IN(0);
-                N_CHECKMATE++;
-                N_LEVEL_POS++;
+            EGMoveList movelist = EGMoveList<FORWARD>(pos);
+            if (movelist.size() == 0) {
+                if (pos.stm_in_check()) {
+                    LOSS_TB[ix] = LOSS_IN(0);
+                    N_CHECKMATE++;
+                    N_LEVEL_POS++;
+                }
+            } else {
+                int16_t max_val = LOSS_IN(0);
+                bool has_eval = true;
+                for (Move move : movelist) {
+                    PieceType capture = pos.do_move(move);
+                    PieceType promotion = move.type_of() == PROMOTION ? move.promotion_type() : NO_PIECE_TYPE;
+                    if (!capture && !promotion) {
+                        // move stays in TB, cannot determine eval
+                        has_eval = false;
+                        break;
+                    }
+                    uint64_t fwd_ix = ix_from_pos(pos);
+                    max_val = std::max(max_val, (int16_t) -CAPTURE_TBs[promotion][capture][fwd_ix]);
+                    pos.undo_move(move, capture);
+                }
+                if (has_eval) {
+                    // all moves lead to dependent TB (cannot be stalemate since we have moves)
+                    if (max_val > 0) { max_val--; }
+                    if (max_val < 0) { max_val++; }
+                    LOSS_TB[ix] = max_val;
+                    N_LEVEL_POS++;
+                }
             }
+
         }
         std::cout << "Checkmate count: " << N_CHECKMATE << std::endl;
         std::cout << N_UNUSED << " unused indices" << std::endl;
@@ -379,6 +407,7 @@ void GenEGTB::gen() {
             for (PieceType capture_pt = NO_PIECE_TYPE; capture_pt <= QUEEN; ++capture_pt) {
                 if (promotion_pt == NO_PIECE_TYPE && capture_pt == NO_PIECE_TYPE) { continue; }
                 if (LOSS_TBs[promotion_pt][capture_pt] == NULL) { continue; }
+                std::cout << "Reverse from color=" << ((LOSS_COLOR == WHITE) ? "W" : "B")  << ", captured=" << PieceToChar[capture_pt] << ", promotion=" << PieceToChar[promotion_pt] << ", #positions=" << LOSS_TBs_NPOS[promotion_pt][capture_pt] << std::endl;
 
                 if (capture_pt) {
                     if (LOSS_COLOR == WHITE)
@@ -415,11 +444,13 @@ void GenEGTB::gen() {
                             transformed_pos.reset();
                             transform_to(pos, transformed_pos, H_FLIPS[t], V_FLIPS[t], SWAPS[t]);
 
+                            // if (ix == 558) { std::cout << transformed_pos << std::endl; }
+
                             for (Move move : EGMoveList<REVERSE>(transformed_pos, capture_pt, promotion_pt)) {
                                 transformed_pos.do_rev_move(move, capture_pt);
                                 uint64_t win_ix = ix_from_pos(transformed_pos);
 
-                                if (WIN_TB == WTM_TB && win_ix == 22700) std::cout << move_to_uci(move) << "x" << PieceToChar[capture_pt]  << " -> " << int(win_val) << std::endl;
+                                // if (WIN_TB == WTM_TB && win_ix == 22700) std::cout << move_to_uci(move) << "x" << PieceToChar[capture_pt]  << " -> " << int(win_val) << std::endl;
 
                                 if (!IS_SET(WIN_TB[win_ix]) || WIN_TB[win_ix] < win_val ) {
                                     WIN_TB[win_ix] = win_val;
