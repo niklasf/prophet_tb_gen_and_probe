@@ -17,11 +17,11 @@ uint64_t _number_of_ordered_tuples(uint64_t n_domain, uint64_t n_tuple) {
     return res / f;
 }
 
-uint64_t NUMBER_OF_ORDER_TUPLES[65][65];
+uint64_t NUMBER_OF_ORDER_TUPLES[65][8];
 
 void init_tril() {
     for (uint64_t i = 0; i <= 64; i++) {
-        for (uint64_t n = 0; n <= 64; n++) {
+        for (uint64_t n = 0; n < 8; n++) {
             NUMBER_OF_ORDER_TUPLES[i][n] = _number_of_ordered_tuples(i, n);
         }
     }
@@ -149,5 +149,28 @@ void test_tril_4(uint64_t n_domain) {
     }
     std::cout << "Checked " << count << " tril indexes" << std::endl;
 }
+
+// uint64_t n_domain = 64;
+
+// std::cout << "1: " << number_of_ordered_tuples(n_domain, 1) << std::endl;
+// std::cout << "2: " << number_of_ordered_tuples(n_domain, 2) << std::endl;
+// std::cout << "3: " << number_of_ordered_tuples(n_domain, 3) << std::endl;
+// std::cout << "4: " << number_of_ordered_tuples(n_domain, 4) << std::endl;
+
+// int ixs[4] = {4, 7, 8, 13};
+// uint64_t tril_ix = tril_to_linear(4, ixs);
+// std::cout << tril_ix << std::endl;
+// int ixs2[4] = {0, 0, 0, 0};
+// tril_from_linear(4, tril_ix, ixs2);
+// for (int i = 0; i < 4; i++) { std::cout << ixs2[i] << " "; }; std::cout << std::endl;
+
+// test_tril_1(n_domain);
+// test_tril(n_domain, 1);
+// test_tril_2(n_domain);
+// test_tril(n_domain, 2);
+// test_tril_3(n_domain);
+// test_tril(n_domain, 3);
+// test_tril_4(n_domain);
+// test_tril(n_domain, 4);
 
 #endif

@@ -5,6 +5,7 @@
 #include "kkx.h"
 #include "eg_position.h"
 #include "uci.h"
+#include "triangular_indexes.h"
 
 void pos_at_ix_kkx(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int bpieces[6]) {
     assert (wpieces[PAWN] + bpieces[PAWN] == 0);
@@ -32,45 +33,86 @@ void pos_at_ix_kkx(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int 
     pos.put_piece(make_piece(~stm, KING), kntm_sq);
 
     Piece pieces[4] = {NO_PIECE,NO_PIECE,NO_PIECE,NO_PIECE};
+    int piece_counts[4] = {0,0,0,0};
     int piece_count = 0;
+    int i = 0;
     for (Color c: {~stm, stm}) {
         for (PieceType p : {QUEEN, ROOK, BISHOP, KNIGHT}) {
             int* c_pieces = (c == WHITE) ? wpieces : bpieces;
-            if (c_pieces[p] > 1) { std::cout << "Mutliple pieces of same type not supported!\n"; assert(false); }
-            if (piece_count >= 4) { std::cout << "More than 6 pieces not supported!\n"; assert(false); }
             if (c_pieces[p] == 0) { continue; }
-            pieces[piece_count] = make_piece(c, p);
-            piece_count++;
+            pieces[i] = make_piece(c, p);
+            piece_counts[i] = c_pieces[p];
+            i++;
+            piece_count += piece_counts[i];
         }
     }
+    if (piece_count >= 4) { std::cout << "More than 6 pieces not supported!\n"; assert(false); }
+
 
     uint64_t n_available_squares = 62;
-    int i = 2;
+    i = 2;
+
+    int sqs_ixs[4];
 
     // this also generates position where first off-diagonal piece is not on bottom half
     // but these indexes are unused anyways
-    for (Piece p : pieces) {
+    for (int l = 0; l < 4; l++) {
+        Piece p = pieces[l];
+        piece_count = piece_counts[l];
         if (p == NO_PIECE) { break; }
-        // this assumes no two pieces of same kind
-        Square orig_sq = Square(ix % n_available_squares);
-        ix = ix / n_available_squares;
-        Square sq = orig_sq;
+        if (piece_count == 1) {
+            Square orig_sq = Square(ix % n_available_squares);
+            ix = ix / n_available_squares;
+            Square sq = orig_sq;
 
-        int k = 0;
-        for (int j = 0; j < i; j++) {
-            if (occupied_sqs[j] <= sq) {
-                ++sq;
-                k = j + 1;
+            int k = 0;
+            for (int j = 0; j < i; j++) {
+                if (occupied_sqs[j] <= sq) {
+                    ++sq;
+                    k = j + 1;
+                }
+            }
+            for (int j = i-1; j >= k; j--) {
+                occupied_sqs[j+1] = occupied_sqs[j];
+            }
+            i++;
+            occupied_sqs[k] = sq;
+
+            pos.put_piece(p, sq);
+            n_available_squares--;
+            
+        } else {
+          
+            uint64_t s = number_of_ordered_tuples(n_available_squares, piece_count);
+
+            uint64_t tril_ix = ix % s;
+            ix = ix / s;
+
+            tril_from_linear(piece_count, tril_ix, sqs_ixs);
+            // std::cout << tril_ix << " -> ";
+            // for (int ll = 0; ll < piece_count; ll++) { std::cout << sqs_ixs[ll] << " "; } std::cout << std::endl;
+            for (int ll = 0; ll < piece_count; ll++) {
+                Square orig_sq = Square(sqs_ixs[ll]-ll);
+                Square sq = orig_sq;
+
+                int k = 0;
+                for (int j = 0; j < i; j++) {
+                    if (occupied_sqs[j] <= sq) {
+                        ++sq;
+                        k = j + 1;
+                    }
+                }
+                for (int j = i-1; j >= k; j--) {
+                    occupied_sqs[j+1] = occupied_sqs[j];
+                }
+                i++;
+                occupied_sqs[k] = sq;
+
+                pos.put_piece(p, sq);
+                n_available_squares--;
+
             }
         }
-        for (int j = i-1; j >= k; j--) {
-            occupied_sqs[j+1] = occupied_sqs[j];
-        }
-        i++;
-        occupied_sqs[k] = sq;
-
-        pos.put_piece(p, sq);
-        n_available_squares--;
     }
 }
 
@@ -205,35 +247,76 @@ uint64_t ix_from_pos_kkx(EGPosition const &pos) {
     }
 
 
+    Square sqs[4];
+    int sqs_ixs[4];
     uint64_t n_available_squares = 62;
     int i = 2;
 
     for (Color c: {~stm, stm}) {
         for (PieceType p: {QUEEN, ROOK, BISHOP, KNIGHT}) {
             Bitboard pieceBB = pos.pieces(c, p);
-            assert(!more_than_one(pieceBB));
             if (pieceBB) {
-                Square orig_sq = lsb(pieceBB);
-                maybe_update_swap(orig_sq, flip, allondiag, swap);
-                Square sq = transform(orig_sq, flip, swap);
+                if (!more_than_one(pieceBB)) {
+                    Square orig_sq = lsb(pieceBB);
+                    maybe_update_swap(orig_sq, flip, allondiag, swap);
+                    Square sq = transform(orig_sq, flip, swap);
 
-                Square before_sq = sq;
-                int k = i;
-                for (int j = i-1; j >= 0; j--) {
-                    if (occupied_sqs[j] < sq) {
-                        --sq;
-                    } else {
-                        k = j;
-                        occupied_sqs[j+1] = occupied_sqs[j];
+                    Square before_sq = sq;
+                    int k = i;
+                    for (int j = i-1; j >= 0; j--) {
+                        if (occupied_sqs[j] < sq) {
+                            --sq;
+                        } else {
+                            k = j;
+                            occupied_sqs[j+1] = occupied_sqs[j];
+                        }
                     }
-                }
-                occupied_sqs[k] = before_sq;
-                i++;
+                    occupied_sqs[k] = before_sq;
+                    i++;
 
-           
-                ix += ((uint64_t) sq) * multiplier;
-                multiplier *= n_available_squares;
-                n_available_squares--;
+            
+                    ix += ((uint64_t) sq) * multiplier;
+                    multiplier *= n_available_squares;
+                    n_available_squares--;
+
+                } else {
+                    int piece_count = 0;
+                    while (pieceBB) {
+                        Square orig_sq = pop_lsb(pieceBB);
+                        maybe_update_swap(orig_sq, flip, allondiag, swap);
+                        Square sq = transform(orig_sq, flip, swap);
+
+                        // transform messes up order of pop_lsb
+                        int k = piece_count - 1;
+                        while (0 <= k && sq < sqs[k]) { sqs[k+1] = sqs[k]; k--; }
+                        sqs[k+1] = sq;
+                        piece_count++;
+                    }
+                    for (int ll = 0; ll < piece_count; ll++) {
+                        Square before_sq = sqs[ll];
+                        int k = i;
+                        for (int j = i-1; j >= 0; j--) {
+                            if (occupied_sqs[j] < sqs[ll]) {
+                                --sqs[ll];
+                            } else {
+                                k = j;
+                                occupied_sqs[j+1] = occupied_sqs[j];
+                            }
+                        }
+                        occupied_sqs[k] = before_sq;
+                        i++;
+                        sqs_ixs[ll] = sqs[ll] + ll;
+                        
+                    }
+
+                    // for (int ll = 0; ll < piece_count; ll++) { std::cout << sqs_ixs[ll] << " "; }
+                    uint64_t tril_ix = tril_to_linear(piece_count, sqs_ixs);
+                    // std::cout << " -> "  << tril_ix << std::endl;
+                    ix += tril_ix* multiplier;
+                    multiplier *= number_of_ordered_tuples(n_available_squares, piece_count);
+                    n_available_squares -= piece_count;
+                }
+                
             }
         }
     }
@@ -367,8 +450,8 @@ void transform_to_canoncial(const EGPosition &pos, EGPosition &pos2) {
     for (Color c: {~stm, stm}) {
         for (PieceType pt: {QUEEN, ROOK, BISHOP, KNIGHT, PAWN}) {
             Bitboard bb = pos.pieces(c, pt);
-            if (bb) {
-                Square sq = lsb(bb);
+            while (bb) {
+                Square sq = pop_lsb(bb);
                 maybe_update_swap(sq, flip, allondiag, swap);
                 pos2.put_piece(make_piece(c,pt), transform(sq, flip, swap));
             }
