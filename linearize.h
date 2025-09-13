@@ -59,22 +59,21 @@ void pos_at_ix_kkx(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int 
 
     Piece pieces[4] = {NO_PIECE,NO_PIECE,NO_PIECE,NO_PIECE};
     int piece_counts[4] = {0,0,0,0};
-    int piece_count = 0;
+    int total_piece_count = 0;
     int i = 0;
     for (Color c: {~stm, stm}) {
+        int* c_pieces = (c == WHITE) ? wpieces : bpieces;
         for (PieceType p : {QUEEN, ROOK, BISHOP, KNIGHT}) {
-            int* c_pieces = (c == WHITE) ? wpieces : bpieces;
             if (c_pieces[p] == 0) { continue; }
             pieces[i] = make_piece(c, p);
             piece_counts[i] = c_pieces[p];
             i++;
-            piece_count += piece_counts[i];
+            total_piece_count += piece_counts[i];
+            if (total_piece_count >= 4) { std::cout << "More than 6 pieces not supported!\n"; assert(false); }
         }
     }
-    if (piece_count >= 4) { std::cout << "More than 6 pieces not supported!\n"; assert(false); }
 
 
-    uint64_t n_available_squares = 62;
     int n_occupied_sqs = 2;
 
     int sqs_ixs[4];
@@ -83,34 +82,20 @@ void pos_at_ix_kkx(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int 
     // but these indexes are unused anyways
     for (int l = 0; l < 4; l++) {
         Piece p = pieces[l];
-        piece_count = piece_counts[l];
+        int piece_count = piece_counts[l];
         if (p == NO_PIECE) { break; }
-        if (piece_count == 1) {
-            Square sq = Square(ix % n_available_squares);
-            ix = ix / n_available_squares;
+        uint64_t s = number_of_ordered_tuples(64 - n_occupied_sqs, piece_count);
+
+        uint64_t tril_ix = ix % s;
+        ix = ix / s;
+
+        tril_from_linear(piece_count, tril_ix, sqs_ixs);
+        for (int j = 0; j < piece_count; j++) {
+            Square sq = Square(sqs_ixs[j]-j);
 
             insert_increment_sq(occupied_sqs, n_occupied_sqs, sq);
 
             pos.put_piece(p, sq);
-            n_available_squares--;
-            
-        } else {
-          
-            uint64_t s = number_of_ordered_tuples(n_available_squares, piece_count);
-
-            uint64_t tril_ix = ix % s;
-            ix = ix / s;
-
-            tril_from_linear(piece_count, tril_ix, sqs_ixs);
-            for (int ll = 0; ll < piece_count; ll++) {
-                Square sq = Square(sqs_ixs[ll]-ll);
-
-                insert_increment_sq(occupied_sqs, n_occupied_sqs, sq);
-
-                pos.put_piece(p, sq);
-                n_available_squares--;
-
-            }
         }
     }
 }
@@ -188,7 +173,7 @@ inline Square transform(const Square sq, int8_t flip, int8_t swap) {
     return Square(((sq_ix >> swap) | (sq_ix << swap)) & 63);
 }
 
-inline void maybe_update_swap(Square sq, int8_t flip, bool& is_diag_symmetric, int8_t& swap) {
+inline Square maybe_update_swap_and_transform(Square sq, int8_t flip, bool& is_diag_symmetric, int8_t& swap) {
     // if this changes swap, we do not need to swap previous pieces since they are all on diagonal anyways
     if (is_diag_symmetric) {
         if (!((sq ^ flip) & DiagBB)) {
@@ -196,17 +181,19 @@ inline void maybe_update_swap(Square sq, int8_t flip, bool& is_diag_symmetric, i
             swap = ((sq ^ flip) & AboveDiagBB) ? 3 : 0;
         }
     }
+    return transform(sq, flip, swap);
 }
 
-inline void maybe_update_swap_bb(Bitboard piecesBB, int8_t flip, bool& is_diag_symmetric, int8_t& swap) {
+inline Bitboard maybe_update_swap_and_transform_bb(Bitboard piecesBB, int8_t flip, bool& is_diag_symmetric, int8_t& swap) {
+    Bitboard b = 0;
+    Bitboard flipped_b = 0;
+    while (piecesBB) {
+        Square sq = pop_lsb(piecesBB);
+        b |= square_bb(transform(sq, flip, 0));
+        flipped_b |= square_bb(transform(sq, flip, 3));
+    }
+
     if (is_diag_symmetric) {
-        Bitboard b = 0;
-        Bitboard flipped_b = 0;
-        while (piecesBB) {
-            Square sq = pop_lsb(piecesBB);
-            b |= square_bb(transform(sq, flip, 0));
-            flipped_b |= square_bb(transform(sq, flip, 3));
-        }
 
         if (flipped_b != b) {
             is_diag_symmetric = false;
@@ -220,7 +207,12 @@ inline void maybe_update_swap_bb(Bitboard piecesBB, int8_t flip, bool& is_diag_s
                 swap = lsb(lower_flipped) < lsb(lower) ? 3 : 0;
             }
         }
-
+    }
+    
+    if (!swap) {
+        return b;
+    } else {
+        return flipped_b;
     }
 }
 
@@ -235,16 +227,16 @@ uint64_t ix_from_pos_kkx(EGPosition const &pos) {
 
     Square orig_ktm_sq = pos.square<KING>(stm);
 
+    // transformation to put king in left lower quadrant
     int8_t flip = ((orig_ktm_sq & RightHalfBB) ? 7 : 0) ^ ((orig_ktm_sq & TopHalfBB) ? 56 : 0);
+    // transformation to put first piece that breaks diagonal symmetry below diagonal
     int8_t swap = 0;
-    maybe_update_swap(orig_ktm_sq, flip, is_diag_symmetric, swap);
-    Square ktm_sq = transform(orig_ktm_sq, flip, swap);
 
+    Square ktm_sq = maybe_update_swap_and_transform(orig_ktm_sq, flip, is_diag_symmetric, swap);
 
     Square orig_kntm_sq = pos.square<KING>(~stm);
-    maybe_update_swap(orig_kntm_sq, flip, is_diag_symmetric, swap);
-    Square kntm_sq = transform(orig_kntm_sq, flip, swap);
-
+    Square kntm_sq = maybe_update_swap_and_transform(orig_kntm_sq, flip, is_diag_symmetric, swap);
+    
     int16_t kkx_ix = get_kkx_ix(orig_ktm_sq, orig_kntm_sq);
 
     uint64_t ix = kkx_ix;
@@ -260,7 +252,6 @@ uint64_t ix_from_pos_kkx(EGPosition const &pos) {
     }
 
 
-    Square sqs[4];
     int sqs_ixs[4];
     uint64_t n_available_squares = 62;
     int n_occupied_sqs = 2;
@@ -269,42 +260,18 @@ uint64_t ix_from_pos_kkx(EGPosition const &pos) {
         for (PieceType p: {QUEEN, ROOK, BISHOP, KNIGHT}) {
             Bitboard pieceBB = pos.pieces(c, p);
             if (pieceBB) {
-                if (!more_than_one(pieceBB)) {
-                    Square orig_sq = lsb(pieceBB);
-                    maybe_update_swap(orig_sq, flip, is_diag_symmetric, swap);
-                    Square sq = transform(orig_sq, flip, swap);
-
-                    uint64_t k = insert_count_lt_squares(occupied_sqs, n_occupied_sqs, sq);
-
-                    ix += ((uint64_t) sq - k) * multiplier;
-                    multiplier *= n_available_squares;
-                    n_available_squares--;
-
-                } else {
-                    int piece_count = 0;
-                    maybe_update_swap_bb(pieceBB, flip, is_diag_symmetric, swap);
-                    while (pieceBB) {
-                        Square orig_sq = pop_lsb(pieceBB);
-                        Square sq = transform(orig_sq, flip, swap);
-
-                        // transform messes up order of pop_lsb
-                        int k = piece_count - 1;
-                        while (0 <= k && sq < sqs[k]) { sqs[k+1] = sqs[k]; k--; }
-                        sqs[k+1] = sq;
-                        piece_count++;
-                    }
-                    for (int ll = 0; ll < piece_count; ll++) {
-                        int k = insert_count_lt_squares(occupied_sqs, n_occupied_sqs, sqs[ll]);
-                        sqs_ixs[ll] = sqs[ll] - k + ll;
-                        
-                    }
-
-                    uint64_t tril_ix = tril_to_linear(piece_count, sqs_ixs);
-                    ix += tril_ix* multiplier;
-                    multiplier *= number_of_ordered_tuples(n_available_squares, piece_count);
-                    n_available_squares -= piece_count;
+                Bitboard transformedBB = maybe_update_swap_and_transform_bb(pieceBB, flip, is_diag_symmetric, swap);
+                int piece_count = 0;
+                while (transformedBB) {
+                    Square sq = pop_lsb(transformedBB);
+                    int k = insert_count_lt_squares(occupied_sqs, n_occupied_sqs, sq);
+                    sqs_ixs[piece_count] = (int) sq - k + piece_count;
+                    piece_count++;
                 }
-                
+                uint64_t tril_ix = tril_to_linear(piece_count, sqs_ixs);
+                ix += tril_ix * multiplier;
+                multiplier *= number_of_ordered_tuples(n_available_squares, piece_count);
+                n_available_squares -= piece_count;                
             }
         }
     }
@@ -404,27 +371,20 @@ void transform_to_canoncial(const EGPosition &pos, EGPosition &pos2) {
         is_diag_symmetric = false; // disable diagonal symmetries
     }
 
-    maybe_update_swap(orig_ktm_sq, flip, is_diag_symmetric, swap);
-    pos2.put_piece(make_piece(stm, KING), transform(orig_ktm_sq, flip, swap));
+    Square ktm_sq = maybe_update_swap_and_transform(orig_ktm_sq, flip, is_diag_symmetric, swap);
+    pos2.put_piece(make_piece(stm, KING), ktm_sq);
 
     Square orig_kntm_sq = pos.square<KING>(~stm);
-    maybe_update_swap(orig_kntm_sq, flip, is_diag_symmetric, swap);
-    pos2.put_piece(make_piece(~stm, KING), transform(orig_kntm_sq, flip, swap));
+    Square ktnm_sq = maybe_update_swap_and_transform(orig_kntm_sq, flip, is_diag_symmetric, swap);
+    pos2.put_piece(make_piece(~stm, KING), ktnm_sq);
 
     for (Color c: {~stm, stm}) {
         for (PieceType pt: {QUEEN, ROOK, BISHOP, KNIGHT, PAWN}) {
             Bitboard bb = pos.pieces(c, pt);
             if (bb) {
-                if (more_than_one(bb)) {
-                    maybe_update_swap_bb(bb, flip, is_diag_symmetric, swap);
-                    while (bb) {
-                        Square sq = pop_lsb(bb);
-                        pos2.put_piece(make_piece(c,pt), transform(sq, flip, swap));
-                    }
-                } else {
-                    Square sq = lsb(bb);
-                    maybe_update_swap(sq, flip, is_diag_symmetric, swap);
-                    pos2.put_piece(make_piece(c,pt), transform(sq, flip, swap));
+                Bitboard transformedBB = maybe_update_swap_and_transform_bb(bb, flip, is_diag_symmetric, swap);
+                while (transformedBB) {
+                    pos2.put_piece(make_piece(c,pt), pop_lsb(transformedBB));
                 }
             }
         }
