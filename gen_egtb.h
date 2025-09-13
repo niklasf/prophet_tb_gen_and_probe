@@ -18,18 +18,18 @@ uint64_t compute_num_positions(const int stm_pieces[6], const int sntm_pieces[6]
     int n_pawns = stm_pieces[PAWN] + sntm_pieces[PAWN];
     if (n_pawns == 0) {
         uint64_t n = N_KKX;
+        uint64_t s = 62;
         
-        int n_pieces = 0;
-        for (PieceType i = PAWN; i < KING; ++i) {
-            n_pieces += stm_pieces[i] + sntm_pieces[i];
+        for (int stm = 0; stm <= 1; ++stm) {
+            const int* pieces = (stm) ? stm_pieces : sntm_pieces;
+            for (PieceType i = KNIGHT; i < KING; ++i) {
+                n *= number_of_ordered_tuples(s, pieces[i]);
+                s -= pieces[i];
+            }
         }
 
-        uint64_t s = 62;
-        for (int i = 0; i < n_pieces; i++) {
-            n *= s;
-            s--;
-        }
         return n;
+
     } else {
         uint64_t n = 24;
         n_pawns--;

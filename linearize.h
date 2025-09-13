@@ -7,6 +7,31 @@
 #include "uci.h"
 #include "triangular_indexes.h"
 
+void insert_increment_sq(Square occupied_sqs[6], int& n_occupied_sqs, Square& sq) {
+    int k = 0;
+    for (int j = 0; j < n_occupied_sqs; j++) {
+        if (occupied_sqs[j] <= sq) {
+            ++sq;
+            k = j + 1;
+        }
+    }
+    for (int j = n_occupied_sqs-1; j >= k; j--) {
+        occupied_sqs[j+1] = occupied_sqs[j];
+    }
+    n_occupied_sqs++;
+    occupied_sqs[k] = sq;
+}
+
+int insert_count_lt_squares(Square occupied_sqs[6], int& n_occupied_sqs, Square sq) {
+    int k = 0;
+    for (int j = 0; j < n_occupied_sqs; j++) {
+        k += (occupied_sqs[j] < sq);
+    }
+    occupied_sqs[n_occupied_sqs] = sq;
+    n_occupied_sqs++;
+    return k;
+}
+
 void pos_at_ix_kkx(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int bpieces[6]) {
     assert (wpieces[PAWN] + bpieces[PAWN] == 0);
     pos.set_side_to_move(stm);
@@ -50,7 +75,7 @@ void pos_at_ix_kkx(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int 
 
 
     uint64_t n_available_squares = 62;
-    i = 2;
+    int n_occupied_sqs = 2;
 
     int sqs_ixs[4];
 
@@ -61,22 +86,10 @@ void pos_at_ix_kkx(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int 
         piece_count = piece_counts[l];
         if (p == NO_PIECE) { break; }
         if (piece_count == 1) {
-            Square orig_sq = Square(ix % n_available_squares);
+            Square sq = Square(ix % n_available_squares);
             ix = ix / n_available_squares;
-            Square sq = orig_sq;
 
-            int k = 0;
-            for (int j = 0; j < i; j++) {
-                if (occupied_sqs[j] <= sq) {
-                    ++sq;
-                    k = j + 1;
-                }
-            }
-            for (int j = i-1; j >= k; j--) {
-                occupied_sqs[j+1] = occupied_sqs[j];
-            }
-            i++;
-            occupied_sqs[k] = sq;
+            insert_increment_sq(occupied_sqs, n_occupied_sqs, sq);
 
             pos.put_piece(p, sq);
             n_available_squares--;
@@ -89,24 +102,10 @@ void pos_at_ix_kkx(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int 
             ix = ix / s;
 
             tril_from_linear(piece_count, tril_ix, sqs_ixs);
-            // std::cout << tril_ix << " -> ";
-            // for (int ll = 0; ll < piece_count; ll++) { std::cout << sqs_ixs[ll] << " "; } std::cout << std::endl;
             for (int ll = 0; ll < piece_count; ll++) {
-                Square orig_sq = Square(sqs_ixs[ll]-ll);
-                Square sq = orig_sq;
+                Square sq = Square(sqs_ixs[ll]-ll);
 
-                int k = 0;
-                for (int j = 0; j < i; j++) {
-                    if (occupied_sqs[j] <= sq) {
-                        ++sq;
-                        k = j + 1;
-                    }
-                }
-                for (int j = i-1; j >= k; j--) {
-                    occupied_sqs[j+1] = occupied_sqs[j];
-                }
-                i++;
-                occupied_sqs[k] = sq;
+                insert_increment_sq(occupied_sqs, n_occupied_sqs, sq);
 
                 pos.put_piece(p, sq);
                 n_available_squares--;
@@ -149,39 +148,26 @@ void pos_at_ix_kkp(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int 
 
     uint64_t n_available_pawn_squares = 48;
     uint64_t n_available_squares = 64;
-    int i = 0;
+    int n_occupied_sqs = 0;
 
     for (Piece p : pieces) {
         if (p == NO_PIECE) { break; }
         // this assumes no two pieces of same kind
-        Square orig_sq;
-        if (i == 0) {
+        Square sq;
+        if (n_occupied_sqs == 0) {
             // first pawn
             uint64_t pix = ix % 24;
-            orig_sq = Square(pix + (pix >> 2) * 4 + 8); // put on left side of board
+            sq = Square(pix + (pix >> 2) * 4 + 8); // put on left side of board
             ix = ix / 24;
         } else if (type_of(p) == PAWN) {
-            orig_sq = Square(ix % n_available_pawn_squares + 8);
+            sq = Square(ix % n_available_pawn_squares + 8);
             ix = ix / n_available_pawn_squares;
         } else {
-            orig_sq = Square(ix % n_available_squares);
+            sq = Square(ix % n_available_squares);
             ix = ix / n_available_squares;
         }
-        
-        Square sq = orig_sq;
 
-        int k = 0;
-        for (int j = 0; j < i; j++) {
-            if (occupied_sqs[j] <= sq) {
-                ++sq;
-                k = j + 1;
-            }
-        }
-        for (int j = i-1; j >= k; j--) {
-            occupied_sqs[j+1] = occupied_sqs[j];
-        }
-        i++;
-        occupied_sqs[k] = sq;
+        insert_increment_sq(occupied_sqs, n_occupied_sqs, sq);
 
         pos.put_piece(p, sq);
         n_available_squares--;
@@ -277,7 +263,7 @@ uint64_t ix_from_pos_kkx(EGPosition const &pos) {
     Square sqs[4];
     int sqs_ixs[4];
     uint64_t n_available_squares = 62;
-    int i = 2;
+    int n_occupied_sqs = 2;
 
     for (Color c: {~stm, stm}) {
         for (PieceType p: {QUEEN, ROOK, BISHOP, KNIGHT}) {
@@ -288,21 +274,9 @@ uint64_t ix_from_pos_kkx(EGPosition const &pos) {
                     maybe_update_swap(orig_sq, flip, is_diag_symmetric, swap);
                     Square sq = transform(orig_sq, flip, swap);
 
-                    Square before_sq = sq;
-                    int k = i;
-                    for (int j = i-1; j >= 0; j--) {
-                        if (occupied_sqs[j] < sq) {
-                            --sq;
-                        } else {
-                            k = j;
-                            occupied_sqs[j+1] = occupied_sqs[j];
-                        }
-                    }
-                    occupied_sqs[k] = before_sq;
-                    i++;
+                    uint64_t k = insert_count_lt_squares(occupied_sqs, n_occupied_sqs, sq);
 
-            
-                    ix += ((uint64_t) sq) * multiplier;
+                    ix += ((uint64_t) sq - k) * multiplier;
                     multiplier *= n_available_squares;
                     n_available_squares--;
 
@@ -320,25 +294,12 @@ uint64_t ix_from_pos_kkx(EGPosition const &pos) {
                         piece_count++;
                     }
                     for (int ll = 0; ll < piece_count; ll++) {
-                        Square before_sq = sqs[ll];
-                        int k = i;
-                        for (int j = i-1; j >= 0; j--) {
-                            if (occupied_sqs[j] < sqs[ll]) {
-                                --sqs[ll];
-                            } else {
-                                k = j;
-                                occupied_sqs[j+1] = occupied_sqs[j];
-                            }
-                        }
-                        occupied_sqs[k] = before_sq;
-                        i++;
-                        sqs_ixs[ll] = sqs[ll] + ll;
+                        int k = insert_count_lt_squares(occupied_sqs, n_occupied_sqs, sqs[ll]);
+                        sqs_ixs[ll] = sqs[ll] - k + ll;
                         
                     }
 
-                    // for (int ll = 0; ll < piece_count; ll++) { std::cout << sqs_ixs[ll] << " "; }
                     uint64_t tril_ix = tril_to_linear(piece_count, sqs_ixs);
-                    // std::cout << " -> "  << tril_ix << std::endl;
                     ix += tril_ix* multiplier;
                     multiplier *= number_of_ordered_tuples(n_available_squares, piece_count);
                     n_available_squares -= piece_count;
@@ -372,34 +333,22 @@ uint64_t ix_from_pos_kkp(EGPosition const &pos) {
     bool first_pawn = true;
     uint64_t n_available_pawn_squares = 48;
     uint64_t n_available_squares = 64;
-    int i = 0;
+    int n_occupied_sqs = 0;
     for (Color c: {~stm, stm}) {
         Bitboard pieceBB = pos.pieces(c, PAWN);
         assert(!more_than_one(pieceBB));
         if (pieceBB) {
             Square sq = transform(lsb(pieceBB), flip, 0);
-
-            Square before_sq = sq;
-            int k = i;
-            for (int j = i-1; j >= 0; j--) {
-                if (occupied_sqs[j] < sq) {
-                    --sq;
-                } else {
-                    k = j;
-                    occupied_sqs[j+1] = occupied_sqs[j];
-                }
-            }
-            occupied_sqs[k] = before_sq;
-            i++;
+            uint64_t k = insert_count_lt_squares(occupied_sqs, n_occupied_sqs, sq);
 
             if (first_pawn) {
                 first_pawn = false;
-                uint64_t sq_ix = (uint64_t) sq - 8;
+                uint64_t sq_ix = (uint64_t) sq - k - 8;
                 sq_ix = sq_ix - (sq_ix >> 3) * 4; // map to 0,1,...,23
                 ix += sq_ix * multiplier;
                 multiplier *= 24;
             } else {
-                ix += ((uint64_t) sq - 8) * multiplier;
+                ix += ((uint64_t) sq - k - 8) * multiplier;
                 multiplier *= n_available_pawn_squares;
             }
             n_available_pawn_squares--;
@@ -415,21 +364,9 @@ uint64_t ix_from_pos_kkp(EGPosition const &pos) {
             if (pieceBB) {
                 Square sq = transform(lsb(pieceBB), flip, 0);
 
-                Square before_sq = sq;
+                uint64_t k = insert_count_lt_squares(occupied_sqs, n_occupied_sqs, sq);
 
-                int k = i;
-                for (int j = i-1; j >= 0; j--) {
-                    if (occupied_sqs[j] < sq) {
-                        --sq;
-                    } else {
-                        k = j;
-                        occupied_sqs[j+1] = occupied_sqs[j];
-                    }
-                }
-                occupied_sqs[k] = before_sq;
-                i++;
-
-                ix += ((uint64_t) sq) * multiplier;
+                ix += ((uint64_t) sq - k) * multiplier;
                 multiplier *= n_available_squares;
                 n_available_squares--;
             }

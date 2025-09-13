@@ -13,8 +13,8 @@ void test_index() {
     Color stm = BLACK;
 
     // 0, PAWN, KNIGHT, BISHOP, ROOK, QUEEN 
-    int stm_pieces[6]  = {0, 0, 0, 1, 0, 1};
-    int sntm_pieces[6] = {0, 0, 0, 0, 2, 0};
+    int stm_pieces[6]  = {0, 0, 0, 0, 2, 0};
+    int sntm_pieces[6] = {0, 0, 0, 0, 0, 0};
 
 
     PieceType pts[4] = {NO_PIECE_TYPE, NO_PIECE_TYPE, NO_PIECE_TYPE, NO_PIECE_TYPE};
@@ -50,10 +50,10 @@ void test_index() {
                 if (p1_sq == k1_sq || p1_sq == k2_sq) { continue; }
                 for (Square p2_sq = SQ_A1; p2_sq <= SQ_H8; ++p2_sq) {
                     if (p2_sq == k1_sq || p2_sq == k2_sq || p2_sq == p1_sq) { continue; }
-                    for (Square p3_sq = SQ_A1; p3_sq <= SQ_H8; ++p3_sq) {
-                        if (p3_sq == k1_sq || p3_sq == k2_sq || p3_sq == p1_sq || p3_sq == p2_sq) { continue; }
-                        for (Square p4_sq = SQ_A1; p4_sq <= SQ_H8; ++p4_sq) {
-                            if (p4_sq == k1_sq || p4_sq == k2_sq || p4_sq == p1_sq || p4_sq == p2_sq || p4_sq == p3_sq) { continue; }
+                    // for (Square p3_sq = SQ_A1; p3_sq <= SQ_H8; ++p3_sq) {
+                    //     if (p3_sq == k1_sq || p3_sq == k2_sq || p3_sq == p1_sq || p3_sq == p2_sq) { continue; }
+                    //     for (Square p4_sq = SQ_A1; p4_sq <= SQ_H8; ++p4_sq) {
+                    //         if (p4_sq == k1_sq || p4_sq == k2_sq || p4_sq == p1_sq || p4_sq == p2_sq || p4_sq == p3_sq) { continue; }
 
                             if ((PseudoAttacks[KING][k1_sq] & k2_sq) == 0) {
                                 pos1.reset();
@@ -64,12 +64,12 @@ void test_index() {
                                 pos1.put_piece(W_KING, k2_sq);
                                 if (pts[0] == PAWN && !(p1_sq & PawnSquaresBB)) { continue; }
                                 if (pts[1] == PAWN && !(p2_sq & PawnSquaresBB)) { continue; }
-                                if (pts[2] == PAWN && !(p3_sq & PawnSquaresBB)) { continue; }
-                                if (pts[3] == PAWN && !(p4_sq & PawnSquaresBB)) { continue; }
+                                // if (pts[2] == PAWN && !(p3_sq & PawnSquaresBB)) { continue; }
+                                // if (pts[3] == PAWN && !(p4_sq & PawnSquaresBB)) { continue; }
                                 pos1.put_piece(make_piece(cs[0],pts[0]), p1_sq);
                                 pos1.put_piece(make_piece(cs[1],pts[1]), p2_sq);
-                                pos1.put_piece(make_piece(cs[2],pts[2]), p3_sq);
-                                pos1.put_piece(make_piece(cs[3],pts[3]), p4_sq);
+                                // pos1.put_piece(make_piece(cs[2],pts[2]), p3_sq);
+                                // pos1.put_piece(make_piece(cs[3],pts[3]), p4_sq);
                                 pos1.set_side_to_move(stm);
 
                                 // std::cout << pos1;
@@ -99,8 +99,8 @@ void test_index() {
                                 count++;
                                 // std::cout << "\n";
                             }
-                        }
-                    }
+                    //     }
+                    // }
                 }
             }
         }
@@ -114,27 +114,32 @@ int main() {
     Bitboards::init();
     init_kkx_table();
     init_tril();
-    // test_index();
+    test_index();
 
     // exit(0);
 
     std::vector<int> pieces1(6);
     std::vector<int> pieces2(6);
     
-    // pieces1 = {0, 0, 0, 0, 0, 0};
-    // pieces2 = {0, 0, 0, 0, 0, 0};
-    // GenEGTB g = GenEGTB(&pieces1[0], &pieces2[0]);
-    // g.gen();
+    pieces1 = {0, 0, 0, 0, 0, 0};
+    pieces2 = {0, 0, 0, 0, 0, 0};
+    GenEGTB g = GenEGTB(&pieces1[0], &pieces2[0]);
+    g.gen();
     
     // 3 men, no pawns
-    /*
     for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt) {
         pieces1[pt]++;
         g = GenEGTB(&pieces1[0], &pieces2[0]);
         g.gen();
         pieces1[pt]--;
     }
-    */
+
+    // 3men, 1 pawn
+    pieces1 = {0, 1, 0, 0, 0, 0};
+    pieces2 = {0, 0, 0, 0, 0, 0};
+    g = GenEGTB(&pieces1[0], &pieces2[0]);
+    g.gen();
+    
 
 
     // pieces1 = {0, 0, 0, 0, 1, 0};
@@ -150,13 +155,13 @@ int main() {
     // exit(0);
 
     // 4 men
-    pieces1 = {0, 0, 0, 0, 0, 2};
+    pieces1 = {0, 0, 0, 0, 2, 0};
     pieces2 = {0, 0, 0, 0, 0, 0};
 
     // pieces1 = {0, 0, 0, 0, 0, 1};
     // pieces2 = {0, 0, 0, 0, 1, 0};
 
-    GenEGTB g = GenEGTB(&pieces1[0], &pieces2[0]);
+    g = GenEGTB(&pieces1[0], &pieces2[0]);
     g.gen();
 
     return 0;
