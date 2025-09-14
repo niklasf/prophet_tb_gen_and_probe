@@ -59,7 +59,7 @@ void pos_at_ix_kkx(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int 
 
     Piece pieces[4] = {NO_PIECE,NO_PIECE,NO_PIECE,NO_PIECE};
     int piece_counts[4] = {0,0,0,0};
-    int total_piece_count = 0;
+    int total_piece_count = 2;
     int i = 0;
     for (Color c: {~stm, stm}) {
         int* c_pieces = (c == WHITE) ? wpieces : bpieces;
@@ -69,7 +69,7 @@ void pos_at_ix_kkx(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int 
             piece_counts[i] = c_pieces[p];
             i++;
             total_piece_count += piece_counts[i];
-            if (total_piece_count >= 4) { std::cout << "More than 6 pieces not supported!\n"; assert(false); }
+            if (total_piece_count >= 6) { std::cout << "More than 6 pieces not supported!\n"; assert(false); }
         }
     }
 
@@ -107,56 +107,79 @@ void pos_at_ix_kkp(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int 
     Square occupied_sqs[6];
 
     Piece pieces[6] = {NO_PIECE,NO_PIECE,NO_PIECE,NO_PIECE,NO_PIECE,NO_PIECE};
-    int piece_count = 0;
-    for (Color c: {~stm, stm}) {
-        PieceType p = PAWN;
+    int piece_counts[6] = {0,0,0,0,0,0};
+    int total_piece_count = 0;
+    int i = 0;
+
+    Color STM[12] =        {~stm,  stm, ~stm,  ~stm, ~stm,   ~stm,   ~stm,  stm,   stm,  stm,    stm,    stm};
+    PieceType PIECES[12] = {PAWN, PAWN, KING, QUEEN, ROOK, BISHOP, KNIGHT, KING, QUEEN, ROOK, BISHOP, KNIGHT};
+
+    for (int j = 0; j < 12; j++) {
+        Color c = STM[j];
+        PieceType p = PIECES[j];
         int* c_pieces = (c == WHITE) ? wpieces : bpieces;
-        if (c_pieces[p] > 1) { std::cout << "Mutliple pieces of same type not supported!\n"; assert(false); }
-        if (piece_count >= 6) { std::cout << "More than 6 pieces not supported!\n"; assert(false); }
-        if (c_pieces[p] == 0) { continue; }
-        pieces[piece_count] = make_piece(c, p);
-        piece_count++;
-    }
-    for (Color c: {~stm, stm}) {
-        pieces[piece_count] = make_piece(c, KING);
-        piece_count++;
-        for (PieceType p : {QUEEN, ROOK, BISHOP, KNIGHT}) {
-            int* c_pieces = (c == WHITE) ? wpieces : bpieces;
-            if (c_pieces[p] > 1) { std::cout << "Mutliple pieces of same type not supported!\n"; assert(false); }
-            if (piece_count >= 6) { std::cout << "More than 6 pieces not supported!\n"; assert(false); }
-            if (c_pieces[p] == 0) { continue; }
-            pieces[piece_count] = make_piece(c, p);
-            piece_count++;
-        }
+        if (p == KING)
+            piece_counts[i] = 1;
+        else
+            piece_counts[i] = c_pieces[p];
+        if (piece_counts[i] == 0) { continue; }
+        pieces[i] = make_piece(c, p);
+        i++;
+        total_piece_count += piece_counts[i];
+        if (total_piece_count >= 6) { std::cout << "More than 6 pieces not supported!\n"; assert(false); }
     }
 
-
-    uint64_t n_available_pawn_squares = 48;
-    uint64_t n_available_squares = 64;
     int n_occupied_sqs = 0;
 
-    for (Piece p : pieces) {
+    int sqs_ixs[4];
+
+    for (int l = 0; l < 6; l++) {
+        Piece p = pieces[l];
+        int piece_count = piece_counts[l];
         if (p == NO_PIECE) { break; }
-        // this assumes no two pieces of same kind
-        Square sq;
+
+        int offset = 0;
         if (n_occupied_sqs == 0) {
+            assert(type_of(p) == PAWN);
             // first pawn
-            uint64_t pix = ix % 24;
-            sq = Square(pix + (pix >> 2) * 4 + 8); // put on left side of board
-            ix = ix / 24;
+            uint64_t s = number_of_ordered_tuples_with_first_pawn(piece_count);
+
+            uint64_t tril_ix = ix % s;
+            ix = ix / s;
+
+            int first_pawn_ix;
+            pawn_tril_from_linear(piece_count, tril_ix, first_pawn_ix, sqs_ixs);
+            // std::cout << "pos_at_ix first_pawn_ix: " << first_pawn_ix << std::endl;
+
+            Square sq = Square(first_pawn_ix + (first_pawn_ix >> 2) * 4 + 8); // put on left side of board
+            insert_increment_sq(occupied_sqs, n_occupied_sqs, sq);
+            pos.put_piece(p, sq);
+            piece_count--;
+            offset = 8 - 1;
+
         } else if (type_of(p) == PAWN) {
-            sq = Square(ix % n_available_pawn_squares + 8);
-            ix = ix / n_available_pawn_squares;
+            uint64_t s = number_of_ordered_tuples(48 - n_occupied_sqs, piece_count);
+
+            uint64_t tril_ix = ix % s;
+            ix = ix / s;
+            tril_from_linear(piece_count, tril_ix, sqs_ixs);
+            offset = 8;
+
         } else {
-            sq = Square(ix % n_available_squares);
-            ix = ix / n_available_squares;
+            uint64_t s = number_of_ordered_tuples(64 - n_occupied_sqs, piece_count);
+            
+            uint64_t tril_ix = ix % s;
+            ix = ix / s;
+            tril_from_linear(piece_count, tril_ix, sqs_ixs);
         }
 
-        insert_increment_sq(occupied_sqs, n_occupied_sqs, sq);
+        for (int j = 0; j < piece_count; j++) {
+            Square sq = Square(sqs_ixs[j]-j+offset);
 
-        pos.put_piece(p, sq);
-        n_available_squares--;
-        n_available_pawn_squares--;
+            insert_increment_sq(occupied_sqs, n_occupied_sqs, sq);
+
+            pos.put_piece(p, sq);
+        }
     }
 }
 
@@ -186,25 +209,25 @@ inline Square maybe_update_swap_and_transform(Square sq, int8_t flip, bool& is_d
 
 inline Bitboard maybe_update_swap_and_transform_bb(Bitboard piecesBB, int8_t flip, bool& is_diag_symmetric, int8_t& swap) {
     Bitboard b = 0;
-    Bitboard flipped_b = 0;
+    Bitboard swapped_b = 0;
     while (piecesBB) {
         Square sq = pop_lsb(piecesBB);
         b |= square_bb(transform(sq, flip, 0));
-        flipped_b |= square_bb(transform(sq, flip, 3));
+        swapped_b |= square_bb(transform(sq, flip, 3));
     }
 
     if (is_diag_symmetric) {
 
-        if (flipped_b != b) {
+        if (swapped_b != b) {
             is_diag_symmetric = false;
-            Bitboard lower = (b & BelowDiagBB) & ~(flipped_b & BelowDiagBB);
-            Bitboard lower_flipped = (flipped_b & BelowDiagBB) & ~(b & BelowDiagBB);
-            if (lower_flipped == 0) {
+            Bitboard lower = (b & BelowDiagBB) & ~(swapped_b & BelowDiagBB);
+            Bitboard lower_swapped = (swapped_b & BelowDiagBB) & ~(b & BelowDiagBB);
+            if (lower_swapped == 0) {
                 swap = 0;
             } else if (lower == 0) {
                 swap = 3;
             } else {
-                swap = lsb(lower_flipped) < lsb(lower) ? 3 : 0;
+                swap = lsb(lower_swapped) < lsb(lower) ? 3 : 0;
             }
         }
     }
@@ -212,7 +235,7 @@ inline Bitboard maybe_update_swap_and_transform_bb(Bitboard piecesBB, int8_t fli
     if (!swap) {
         return b;
     } else {
-        return flipped_b;
+        return swapped_b;
     }
 }
 
@@ -278,6 +301,38 @@ uint64_t ix_from_pos_kkx(EGPosition const &pos) {
     return ix;
 }
 
+inline Bitboard maybe_update_flip_and_transform_bb(Bitboard piecesBB, bool& is_horizontal_symmetric, int8_t& flip) {
+    Bitboard b = 0;
+    Bitboard flipped_b = 0;
+    while (piecesBB) {
+        Square sq = pop_lsb(piecesBB);
+        b |= square_bb(transform(sq, 0, 0));
+        flipped_b |= square_bb(transform(sq, 7, 0));
+    }
+
+    if (is_horizontal_symmetric) {
+
+        if (flipped_b != b) {
+            is_horizontal_symmetric = false;
+            Bitboard left = (b & LeftHalfBB) & ~(flipped_b & LeftHalfBB);
+            Bitboard left_flipped = (flipped_b & LeftHalfBB) & ~(b & LeftHalfBB);
+            if (left_flipped == 0) {
+                flip = 0;
+            } else if (left == 0) {
+                flip = 7;
+            } else {
+                flip = lsb(left_flipped) < lsb(left) ? 7 : 0;
+            }
+        }
+    }
+    
+    if (!flip) {
+        return b;
+    } else {
+        return flipped_b;
+    }
+}
+
 uint64_t ix_from_pos_kkp(EGPosition const &pos) {
     assert (pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK) > 0);
     Color stm = pos.side_to_move();
@@ -285,41 +340,56 @@ uint64_t ix_from_pos_kkp(EGPosition const &pos) {
     Square occupied_sqs[6];
 
     int8_t flip  = 0;
-
-    // first pawn constrained to left side of board, no vertical symmetry
-    for (Color c: {~stm, stm}) {
-        if (pos.count<PAWN>(c) > 0) {
-            flip = pos.square<PAWN>(c) & RightHalfBB ? 7 : 0;
-            break;
-        }
-    }
+    bool is_horizontal_symmetric = true;
 
     uint64_t ix = 0;
     uint64_t multiplier = 1;
-
+    int first_pawn_ix = 0;
+    int sqs_ixs[4];
     bool first_pawn = true;
     uint64_t n_available_pawn_squares = 48;
     uint64_t n_available_squares = 64;
     int n_occupied_sqs = 0;
+
     for (Color c: {~stm, stm}) {
         Bitboard pieceBB = pos.pieces(c, PAWN);
-        assert(!more_than_one(pieceBB));
         if (pieceBB) {
-            Square sq = transform(lsb(pieceBB), flip, 0);
-            uint64_t k = insert_count_lt_squares(occupied_sqs, n_occupied_sqs, sq);
+            Bitboard transformed_bb = maybe_update_flip_and_transform_bb(pieceBB, is_horizontal_symmetric, flip);
+            int n_sq_ixs = 0;
+            int piece_count = 0;
+            while (transformed_bb) {
+                Square sq = pop_lsb(transformed_bb);
+                uint64_t k = insert_count_lt_squares(occupied_sqs, n_occupied_sqs, sq);
 
-            if (first_pawn) {
-                first_pawn = false;
-                uint64_t sq_ix = (uint64_t) sq - k - 8;
-                sq_ix = sq_ix - (sq_ix >> 3) * 4; // map to 0,1,...,23
-                ix += sq_ix * multiplier;
-                multiplier *= 24;
-            } else {
-                ix += ((uint64_t) sq - k - 8) * multiplier;
-                multiplier *= n_available_pawn_squares;
+                if (first_pawn) {
+                    first_pawn = false;
+                    int sq_ix = (int) sq - k - 8;
+                    sq_ix = sq_ix - (sq_ix >> 3) * 4; // map to 0,1,...,23
+                    first_pawn_ix = sq_ix;
+                    // std::cout << "ix_from_pos first_pawn_ix: " << first_pawn_ix << " " << square_to_uci(sq) << std::endl;
+                } else {
+                    sqs_ixs[n_sq_ixs] = (int) sq - k - 8 + piece_count;
+                    // std::cout << "ix_from_pos pawn_ix: " << sqs_ixs[n_sq_ixs] << " " << square_to_uci(sq) << std::endl;
+                    n_sq_ixs++;
+                }
+                piece_count++;
             }
-            n_available_pawn_squares--;
-            n_available_squares--;
+
+            if (n_sq_ixs < piece_count) {
+                // we must have first_pawn
+                uint64_t tril_ix = pawn_tril_to_linear(piece_count, first_pawn_ix, sqs_ixs);
+                // std::cout << "ix_from_pos tril_ix: " << tril_ix << " piece_count=" << piece_count << std::endl;
+                ix += tril_ix * multiplier;
+                multiplier *= number_of_ordered_tuples_with_first_pawn(piece_count);
+
+            } else {
+                // this has to be the second pawn set (from stm), where first pawn belongs to ~stm
+                uint64_t tril_ix = tril_to_linear(piece_count, sqs_ixs);
+                ix += tril_ix * multiplier;
+                multiplier *= number_of_ordered_tuples(n_available_pawn_squares, piece_count);
+            }
+            n_available_squares -= piece_count;
+            n_available_pawn_squares -= piece_count;
         }
     }
 
@@ -327,15 +397,19 @@ uint64_t ix_from_pos_kkp(EGPosition const &pos) {
     for (Color c: {~stm, stm}) {
         for (PieceType p: {KING, QUEEN, ROOK, BISHOP, KNIGHT}) {
             Bitboard pieceBB = pos.pieces(c, p);
-            assert(!more_than_one(pieceBB));
             if (pieceBB) {
-                Square sq = transform(lsb(pieceBB), flip, 0);
-
-                uint64_t k = insert_count_lt_squares(occupied_sqs, n_occupied_sqs, sq);
-
-                ix += ((uint64_t) sq - k) * multiplier;
-                multiplier *= n_available_squares;
-                n_available_squares--;
+                Bitboard transformedBB = maybe_update_flip_and_transform_bb(pieceBB, is_horizontal_symmetric, flip);
+                int piece_count = 0;
+                while (transformedBB) {
+                    Square sq = pop_lsb(transformedBB);
+                    int k = insert_count_lt_squares(occupied_sqs, n_occupied_sqs, sq);
+                    sqs_ixs[piece_count] = (int) sq - k + piece_count;
+                    piece_count++;
+                }
+                uint64_t tril_ix = tril_to_linear(piece_count, sqs_ixs);
+                ix += tril_ix * multiplier;
+                multiplier *= number_of_ordered_tuples(n_available_squares, piece_count);
+                n_available_squares -= piece_count;                
             }
         }
     }
@@ -354,35 +428,44 @@ void transform_to_canoncial(const EGPosition &pos, EGPosition &pos2) {
     Color stm = pos.side_to_move();
 
     bool is_diag_symmetric = true;
+    bool is_horizontal_symmetric = true;
     int8_t flip = 0;
     int8_t swap = 0;
 
     Square orig_ktm_sq = pos.square<KING>(stm);
 
-    if (pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK) == 0) {
+    bool has_pawns = pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK) > 0;
+    if (!has_pawns) {
         flip = ((orig_ktm_sq & RightHalfBB) ? 7 : 0) ^ ((orig_ktm_sq & TopHalfBB) ? 56 : 0);
     } else {
         for (Color c: {~stm, stm}) {
-            if (pos.count<PAWN>(c) > 0) {
-                flip = pos.square<PAWN>(c) & RightHalfBB ? 7 : 0;
-                break;
+            Bitboard transformedBB = maybe_update_flip_and_transform_bb(pos.pieces(c, PAWN), is_horizontal_symmetric, flip);
+            while (transformedBB) {
+                pos2.put_piece(make_piece(c,PAWN), pop_lsb(transformedBB));
             }
         }
-        is_diag_symmetric = false; // disable diagonal symmetries
     }
 
-    Square ktm_sq = maybe_update_swap_and_transform(orig_ktm_sq, flip, is_diag_symmetric, swap);
-    pos2.put_piece(make_piece(stm, KING), ktm_sq);
+    if (!has_pawns) {
+        Square ktm_sq = maybe_update_swap_and_transform(orig_ktm_sq, flip, is_diag_symmetric, swap);
+        pos2.put_piece(make_piece(stm, KING), ktm_sq);
 
-    Square orig_kntm_sq = pos.square<KING>(~stm);
-    Square ktnm_sq = maybe_update_swap_and_transform(orig_kntm_sq, flip, is_diag_symmetric, swap);
-    pos2.put_piece(make_piece(~stm, KING), ktnm_sq);
+        Square orig_kntm_sq = pos.square<KING>(~stm);
+        Square ktnm_sq = maybe_update_swap_and_transform(orig_kntm_sq, flip, is_diag_symmetric, swap);
+        pos2.put_piece(make_piece(~stm, KING), ktnm_sq);
+    }
 
     for (Color c: {~stm, stm}) {
-        for (PieceType pt: {QUEEN, ROOK, BISHOP, KNIGHT, PAWN}) {
+        for (PieceType pt: {KING, QUEEN, ROOK, BISHOP, KNIGHT, PAWN}) {
+            if (!has_pawns && pt == KING) continue; // already placed
+            if ( has_pawns && pt == PAWN) continue; // already placed
             Bitboard bb = pos.pieces(c, pt);
             if (bb) {
-                Bitboard transformedBB = maybe_update_swap_and_transform_bb(bb, flip, is_diag_symmetric, swap);
+                Bitboard transformedBB;
+                if (!has_pawns)
+                    transformedBB = maybe_update_swap_and_transform_bb(bb, flip, is_diag_symmetric, swap);
+                else
+                    transformedBB = maybe_update_flip_and_transform_bb(bb, is_horizontal_symmetric, flip);
                 while (transformedBB) {
                     pos2.put_piece(make_piece(c,pt), pop_lsb(transformedBB));
                 }

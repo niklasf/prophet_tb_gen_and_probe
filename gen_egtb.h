@@ -31,16 +31,28 @@ uint64_t compute_num_positions(const int stm_pieces[6], const int sntm_pieces[6]
         return n;
 
     } else {
-        uint64_t n = 24;
-        n_pawns--;
+        uint64_t n = 1;
+        uint64_t s = 64;
 
-        uint64_t p = 47;
-        uint64_t s = 63;
-        for (int i = 0; i < n_pawns; i++) {
-            n *= p; // TODO
-            p--;
-            s--;
+        // pawns
+        uint64_t sp = 48;
+        bool first_pawn = true;
+        if (sntm_pieces[PAWN] > 0) {
+            n *= number_of_ordered_tuples_with_first_pawn(sntm_pieces[PAWN]);
+            s -= sntm_pieces[PAWN];
+            sp -= sntm_pieces[PAWN];
+            first_pawn = false;
         }
+        if (stm_pieces[PAWN] > 0) {
+            if (first_pawn) {
+                n *= number_of_ordered_tuples_with_first_pawn(stm_pieces[PAWN]);
+            } else {
+                n *= number_of_ordered_tuples(sp, stm_pieces[PAWN]);
+            }
+            s -= stm_pieces[PAWN];
+        }
+
+
         // kings
         n *= s;
         s--;
@@ -122,6 +134,7 @@ class GenEGTB {
 
 public:
     GenEGTB(int wpieces[6], int bpieces[6]) {
+        // std::cout << "GenEGTB\n";
         this->n_pieces = 0;
         for (int i = 0; i < 6; i++) {
             this->wpieces[i] = wpieces[i];
@@ -229,6 +242,23 @@ public:
             }
         }
         
+    }
+    ~GenEGTB() {
+        // std::cout << "~GenEGTB\n";
+        // is freed below
+        // free(WTM_TB);
+        // free(BTM_TB);
+
+        for (PieceType promotion_pt = NO_PIECE_TYPE; promotion_pt <= QUEEN; ++promotion_pt) {
+            for (PieceType capture_pt = NO_PIECE_TYPE; capture_pt <= QUEEN; ++capture_pt) {
+                if (WTM_TBs[promotion_pt][capture_pt] != NULL) {
+                    free(WTM_TBs[promotion_pt][capture_pt]);
+                }
+                if (BTM_TBs[promotion_pt][capture_pt] != NULL) {
+                    free(BTM_TBs[promotion_pt][capture_pt]);
+                }
+            }
+        }
     }
 
 

@@ -114,66 +114,62 @@ int main() {
     Bitboards::init();
     init_kkx_table();
     init_tril();
-    // test_index();
+    test_index();
+    // exit(0);
 
-    // uint64_t n_domain = 64;
-
-    // std::cout << "1: " << number_of_ordered_tuples(n_domain, 1) << std::endl;
-    // std::cout << "2: " << number_of_ordered_tuples(n_domain, 2) << std::endl;
-    // std::cout << "3: " << number_of_ordered_tuples(n_domain, 3) << std::endl;
-    // std::cout << "4: " << number_of_ordered_tuples(n_domain, 4) << std::endl;
-
-    // int ixs[4] = {4, 7, 8, 13};
-    // uint64_t tril_ix = tril_to_linear(4, ixs);
-    // std::cout << tril_ix << std::endl;
-    // int ixs2[4] = {0, 0, 0, 0};
-    // tril_from_linear(4, tril_ix, ixs2);
-    // for (int i = 0; i < 4; i++) { std::cout << ixs2[i] << " "; }; std::cout << std::endl;
-
-    // test_tril_1(n_domain);
-    // test_tril(n_domain, 1);
-    // test_tril_2(n_domain);
-    // test_tril(n_domain, 2);
-    // test_tril_3(n_domain);
-    // test_tril(n_domain, 3);
-    // test_tril_4(n_domain);
-    // test_tril(n_domain, 4);
-
-    std::cout << number_of_ordered_tuples_with_first_pawn(1) << std::endl;
-    std::cout << number_of_ordered_tuples_with_first_pawn(2) << std::endl;
-    std::cout << number_of_ordered_tuples_with_first_pawn(3) << std::endl;
-    test_pawn_tril_1();
-    test_pawn_tril(1);
-    test_pawn_tril_2();
-    test_pawn_tril(2);
-    test_pawn_tril_3();
-    test_pawn_tril(3);
-    test_pawn_tril_4();
-    test_pawn_tril(4);
-    exit(0);
 
     std::vector<int> pieces1(6);
     std::vector<int> pieces2(6);
     
     pieces1 = {0, 0, 0, 0, 0, 0};
     pieces2 = {0, 0, 0, 0, 0, 0};
-    GenEGTB g = GenEGTB(&pieces1[0], &pieces2[0]);
-    g.gen();
-    
+    GenEGTB* g = new GenEGTB(&pieces1[0], &pieces2[0]);
+    g->gen();
+    g->~GenEGTB();
+ 
     // 3 men, no pawns
     for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt) {
         pieces1[pt]++;
-        g = GenEGTB(&pieces1[0], &pieces2[0]);
-        g.gen();
+        g = new GenEGTB(&pieces1[0], &pieces2[0]);
+        g->gen();
+        g->~GenEGTB();
         pieces1[pt]--;
     }
 
     // 3men, 1 pawn
     pieces1 = {0, 1, 0, 0, 0, 0};
     pieces2 = {0, 0, 0, 0, 0, 0};
-    g = GenEGTB(&pieces1[0], &pieces2[0]);
-    g.gen();
+    g = new GenEGTB(&pieces1[0], &pieces2[0]);
+    g->gen();
+    g->~GenEGTB();
     
+
+    // 4 men, no pawns
+    pieces1 = {0, 0, 0, 0, 0, 0};
+    pieces2 = {0, 0, 0, 0, 0, 0};
+    for (PieceType pt1 = KNIGHT; pt1 <= QUEEN; ++pt1) {
+        for (PieceType pt2 = KNIGHT; pt2 <= QUEEN; ++pt2) {
+            pieces1[pt1]++;
+            pieces1[pt2]++;
+            g = new GenEGTB(&pieces1[0], &pieces2[0]);
+            g->gen();
+            g->~GenEGTB();
+            pieces1[pt1]--;
+            pieces1[pt2]--;
+        }
+    }
+    for (PieceType pt1 = KNIGHT; pt1 <= QUEEN; ++pt1) {
+        for (PieceType pt2 = KNIGHT; pt2 <= QUEEN; ++pt2) {
+            pieces1[pt1]++;
+            pieces2[pt2]++;
+            g = new GenEGTB(&pieces1[0], &pieces2[0]);
+            g->gen();
+            g->~GenEGTB();
+            pieces1[pt1]--;
+            pieces2[pt2]--;
+        }
+    }
+
 
 
     // pieces1 = {0, 0, 0, 0, 1, 0};
@@ -189,14 +185,14 @@ int main() {
     // exit(0);
 
     // 4 men
-    pieces1 = {0, 0, 0, 0, 2, 0};
-    pieces2 = {0, 0, 0, 0, 0, 0};
+    // pieces1 = {0, 0, 0, 0, 2, 0};
+    // pieces2 = {0, 0, 0, 0, 0, 0};
 
     // pieces1 = {0, 0, 0, 0, 0, 1};
     // pieces2 = {0, 0, 0, 0, 1, 0};
 
-    g = GenEGTB(&pieces1[0], &pieces2[0]);
-    g.gen();
+    // g = GenEGTB(&pieces1[0], &pieces2[0]);
+    // g.gen();
 
     return 0;
 }
