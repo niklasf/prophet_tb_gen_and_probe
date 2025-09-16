@@ -183,24 +183,29 @@ Move* generate<FORWARD>(const EGPosition& pos, Move* moveList, PieceType capture
 }
 
 template<Color Us,EGGenType Type>
-Move* generate_rev_pawn_moves(const EGPosition& pos, Move* moveList) {
+Move* generate_rev_pawn_moves(const EGPosition& pos, Move* moveList, PieceType captured) {
 
-    // constexpr Color     Them     = ~Us;
-    constexpr Bitboard  TRank2BB = (Us == WHITE ? Rank2BB : Rank7BB);
-    constexpr Bitboard  TRank3BB = (Us == WHITE ? Rank3BB : Rank6BB);
-    constexpr Direction Down     = (Us == WHITE ? SOUTH: NORTH);
+    constexpr Bitboard  TRank2BB  = (Us == WHITE ? Rank2BB : Rank7BB);
+    constexpr Bitboard  TRank3BB  = (Us == WHITE ? Rank3BB : Rank6BB);
+    constexpr Direction Down      = (Us == WHITE ? SOUTH : NORTH);
+    constexpr Direction DownLeft  = (Us == WHITE ? SOUTH_WEST : NORTH_EAST);
+    constexpr Direction DownRight = (Us == WHITE ? SOUTH_EAST: NORTH_WEST);
 
     const Bitboard emptySquares = ~pos.pieces();
     Bitboard pawnsNotOn2 = pos.pieces(Us, PAWN) & ~TRank2BB;
 
 
     // Single and double pawn pushes, no promotions
-    {
+    if (!captured) {
         Bitboard b1 = shift<Down>(pawnsNotOn2) & emptySquares;
         Bitboard b2 = shift<Down>(b1 & TRank3BB) & emptySquares;
-
         moveList = splat_pawn_moves<Down, Type>(moveList, b1);
         moveList = splat_pawn_moves<Down + Down, Type>(moveList, b2);
+    } else {
+        Bitboard b1 = shift<DownLeft>(pawnsNotOn2) & emptySquares;
+        Bitboard b2 = shift<DownRight>(pawnsNotOn2) & emptySquares;
+        moveList = splat_pawn_moves<DownLeft, Type>(moveList, b1);
+        moveList = splat_pawn_moves<DownRight, Type>(moveList, b2);
     }
 
     // no captures
@@ -209,12 +214,12 @@ Move* generate_rev_pawn_moves(const EGPosition& pos, Move* moveList) {
 }
 
 template<Color Us, EGGenType Type>
-Move* generate_all_rev(const EGPosition& pos, Move* moveList) {
+Move* generate_all_rev(const EGPosition& pos, Move* moveList, PieceType captured) {
     Square   ksq    = pos.square<KING>(Us);
 
     Bitboard target = ~pos.pieces(); // non-captures
 
-    moveList = generate_rev_pawn_moves<Us, Type>(pos, moveList);
+    moveList = generate_rev_pawn_moves<Us, Type>(pos, moveList, captured);
     moveList = generate_moves<Us, KNIGHT, Type>(pos, moveList, target);
     moveList = generate_moves<Us, BISHOP, Type>(pos, moveList, target);
     moveList = generate_moves<Us, ROOK, Type>(pos, moveList, target);
@@ -288,7 +293,7 @@ Move* generate<REVERSE>(const EGPosition& pos, Move* moveList, PieceType capture
     Square their_ksq = pos.square<KING>(~us);
 
     if (!promotion)
-        moveList = (us == WHITE) ? generate_all_rev<WHITE, REVERSE>(pos, moveList) : generate_all_rev<BLACK, REVERSE>(pos, moveList);
+        moveList = (us == WHITE) ? generate_all_rev<WHITE, REVERSE>(pos, moveList, captured) : generate_all_rev<BLACK, REVERSE>(pos, moveList, captured);
     else
         moveList = (us == WHITE) ? generate_promotions_rev<WHITE, REVERSE>(pos, moveList, captured, promotion) : generate_promotions_rev<BLACK, REVERSE>(pos, moveList, captured, promotion);
 
@@ -304,7 +309,11 @@ Move* generate<REVERSE>(const EGPosition& pos, Move* moveList, PieceType capture
         Square to = cur->to_sq();
         PieceType pt = type_of(pos.piece_on(to));
         // std::cout << move_to_uci(*cur) << std::endl;
-        if (promotion && (promotion != pt)) {   
+        if (promotion && (promotion != pt)) { 
+            *cur = *(--moveList);
+            continue;
+        }
+        if (captured == PAWN && (to & (Rank1BB | Rank8BB))) {
             *cur = *(--moveList);
             continue;
         }

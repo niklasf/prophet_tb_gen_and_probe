@@ -489,20 +489,23 @@ void GenEGTB::gen() {
                             transformed_pos.reset();
                             transform_to(pos, transformed_pos, H_FLIPS[t], V_FLIPS[t], SWAPS[t]);
 
-                            // if (promotion_pt == BISHOP && capture_pt == NO_PIECE_TYPE && ix == 96) {
+                            // if (promotion_pt == NO_PIECE_TYPE && capture_pt == PAWN && ix == 260) {
                             //     std::cout << transformed_pos;
                             // }
+                            // std::cout << ix << transformed_pos;
 
                             for (Move move : EGMoveList<REVERSE>(transformed_pos, capture_pt, promotion_pt)) {
-                                // if (promotion_pt == BISHOP && capture_pt == NO_PIECE_TYPE && ix == 96) {
+                                // if (promotion_pt == NO_PIECE_TYPE && capture_pt == KNIGHT && ix == 260) {
                                 //     std::cout << move_to_uci(move) << "x" << PieceToChar[capture_pt]  << " -> " << int(win_val) << std::endl;
                                 // }
+                                // std::cout << move_to_uci(move) << "x" << PieceToChar[capture_pt]  << " -> " << int(win_val) << std::endl;
                                 transformed_pos.do_rev_move(move, capture_pt);
                                 uint64_t win_ix = ix_from_pos(transformed_pos);
-
+                                // std::cout << transformed_pos;
 
                                 if (IS_UNSET(WIN_TB[win_ix]) || WIN_TB[win_ix] < win_val ) {
                                     // assert (!transformed_pos.sntm_in_check());
+                                    // if (WIN_TB == BTM_TB && win_ix == 24553) { std::cout << transformed_pos << "Here from " << ix << " with move" << move_to_uci(move) << "x" << PieceToChar[capture_pt] << " and score " << win_val << std::endl; }
                                     WIN_TB[win_ix] = win_val;
                                 }
                                 transformed_pos.undo_rev_move(move);
@@ -573,7 +576,10 @@ void GenEGTB::gen() {
                 if (WIN_TB[win_ix] == WIN_IN(LEVEL)) {
                     pos.reset();
                     pos_at_ix(pos, win_ix, ~LOSS_COLOR, wpieces, bpieces); // not much slower
-                    assert (!pos.sntm_in_check());
+                    if (pos.sntm_in_check()) {
+                        std::cout << win_ix << pos;
+                        assert (!pos.sntm_in_check());
+                    }
                     if (N_LEVEL_POS == 0) { std::cout << "WIN in " <<  LEVEL << ": " << pos.fen() << ", ix: " << win_ix << std::endl; }
                     N_LEVEL_POS++;
 
