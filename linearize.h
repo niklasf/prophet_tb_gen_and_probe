@@ -104,6 +104,8 @@ void pos_at_ix_kkp(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int 
     assert (wpieces[PAWN] + bpieces[PAWN] > 0);
     pos.set_side_to_move(stm);
 
+    int8_t flip = stm == BLACK ? 56 : 0;
+
     Square occupied_sqs[6];
 
     Piece pieces[6] = {NO_PIECE,NO_PIECE,NO_PIECE,NO_PIECE,NO_PIECE,NO_PIECE};
@@ -153,7 +155,7 @@ void pos_at_ix_kkp(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int 
 
             Square sq = Square(first_pawn_ix + (first_pawn_ix >> 2) * 4 + 8); // put on left side of board
             insert_increment_sq(occupied_sqs, n_occupied_sqs, sq);
-            pos.put_piece(p, sq);
+            pos.put_piece(p, sq ^ flip);
             piece_count--;
             offset = 8 - 1;
 
@@ -178,7 +180,7 @@ void pos_at_ix_kkp(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int 
 
             insert_increment_sq(occupied_sqs, n_occupied_sqs, sq);
 
-            pos.put_piece(p, sq);
+            pos.put_piece(p, sq ^ flip);
         }
     }
 }
@@ -306,10 +308,11 @@ inline Bitboard maybe_update_flip_and_transform_bb(Bitboard piecesBB, bool& is_h
     Bitboard flipped_b = 0;
     while (piecesBB) {
         Square sq = pop_lsb(piecesBB);
-        b |= square_bb(transform(sq, 0, 0));
-        flipped_b |= square_bb(transform(sq, 7, 0));
+        b |= square_bb(transform(sq, flip, 0));
+        flipped_b |= square_bb(transform(sq, flip ^ 7, 0));
     }
 
+    int8_t horizontal_flip = 0;
     if (is_horizontal_symmetric) {
 
         if (flipped_b != b) {
@@ -317,18 +320,19 @@ inline Bitboard maybe_update_flip_and_transform_bb(Bitboard piecesBB, bool& is_h
             Bitboard left = (b & LeftHalfBB) & ~(flipped_b & LeftHalfBB);
             Bitboard left_flipped = (flipped_b & LeftHalfBB) & ~(b & LeftHalfBB);
             if (left_flipped == 0) {
-                flip = 0;
+                horizontal_flip = 0;
             } else if (left == 0) {
-                flip = 7;
+                horizontal_flip = 7;
             } else {
-                flip = lsb(left_flipped) < lsb(left) ? 7 : 0;
+                horizontal_flip = lsb(left_flipped) < lsb(left) ? 7 : 0;
             }
         }
     }
     
-    if (!flip) {
+    if (!horizontal_flip) {
         return b;
     } else {
+        flip ^= horizontal_flip;
         return flipped_b;
     }
 }
@@ -339,7 +343,7 @@ uint64_t ix_from_pos_kkp(EGPosition const &pos) {
 
     Square occupied_sqs[6];
 
-    int8_t flip  = 0;
+    int8_t flip = stm == BLACK ? 56 : 0;
     bool is_horizontal_symmetric = true;
 
     uint64_t ix = 0;
@@ -438,6 +442,7 @@ void transform_to_canoncial(const EGPosition &pos, EGPosition &pos2) {
     if (!has_pawns) {
         flip = ((orig_ktm_sq & RightHalfBB) ? 7 : 0) ^ ((orig_ktm_sq & TopHalfBB) ? 56 : 0);
     } else {
+        flip = stm == BLACK ? 56 : 0;
         for (Color c: {~stm, stm}) {
             Bitboard transformedBB = maybe_update_flip_and_transform_bb(pos.pieces(c, PAWN), is_horizontal_symmetric, flip);
             while (transformedBB) {

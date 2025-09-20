@@ -14,7 +14,7 @@ void test_index() {
     // 0, PAWN, KNIGHT, BISHOP, ROOK, QUEEN 
     int wpieces[6] = {0, 1, 1, 0, 0, 0};
     int bpieces[6] = {0, 0, 0, 0, 0, 0};
-    Color stm = BLACK;
+    Color stm = WHITE;
 
 
     PieceType pts[4] = {NO_PIECE_TYPE, NO_PIECE_TYPE, NO_PIECE_TYPE, NO_PIECE_TYPE};
@@ -135,11 +135,12 @@ int main() {
     std::vector<int> pieces1(6);
     std::vector<int> pieces2(6);
 
-    // pieces1 = {0, 1, 1, 0, 0, 0};
-    // pieces2 = {0, 0, 0, 0, 0, 0};
+    // pieces1 = {0, 1, 0, 0, 0, 0};
+    // pieces2 = {0, 0, 0, 0, 1, 0};
     // EGPosition pos;
     // pos.reset();
-    // pos_at_ix(pos, 749972, BLACK, &pieces1[0], &pieces2[0]);
+    // // pos_at_ix(pos, 1, WHITE, &pieces1[0], &pieces2[0]);
+    // pos_at_ix(pos, 1, BLACK, &pieces2[0], &pieces1[0]);
     // uint64_t ix = ix_from_pos(pos);
     // std::cout << pos << ix << std::endl;
 
