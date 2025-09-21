@@ -12,8 +12,8 @@
 void test_index() {
 
     // 0, PAWN, KNIGHT, BISHOP, ROOK, QUEEN 
-    int wpieces[6] = {0, 1, 1, 0, 0, 0};
-    int bpieces[6] = {0, 0, 0, 0, 0, 0};
+    int wpieces[6] = {0, 2, 0, 0, 0, 0};
+    int bpieces[6] = {0, 1, 0, 0, 0, 0};
     Color stm = WHITE;
 
 
@@ -47,8 +47,8 @@ void test_index() {
                 if (p1_sq == k1_sq || p1_sq == k2_sq) { continue; }
                 for (Square p2_sq = SQ_A1; p2_sq <= SQ_H8; ++p2_sq) {
                     if (p2_sq == k1_sq || p2_sq == k2_sq || p2_sq == p1_sq) { continue; }
-                    // for (Square p3_sq = SQ_A1; p3_sq <= SQ_H8; ++p3_sq) {
-                    //     if (p3_sq == k1_sq || p3_sq == k2_sq || p3_sq == p1_sq || p3_sq == p2_sq) { continue; }
+                    for (Square p3_sq = SQ_A1; p3_sq <= SQ_H8; ++p3_sq) {
+                        if (p3_sq == k1_sq || p3_sq == k2_sq || p3_sq == p1_sq || p3_sq == p2_sq) { continue; }
                     //     for (Square p4_sq = SQ_A1; p4_sq <= SQ_H8; ++p4_sq) {
                     //         if (p4_sq == k1_sq || p4_sq == k2_sq || p4_sq == p1_sq || p4_sq == p2_sq || p4_sq == p3_sq) { continue; }
 
@@ -61,11 +61,11 @@ void test_index() {
                                 pos1.put_piece(make_piece(~stm,KING), k2_sq);
                                 if (pts[0] == PAWN && !(p1_sq & PawnSquaresBB)) { continue; }
                                 if (pts[1] == PAWN && !(p2_sq & PawnSquaresBB)) { continue; }
-                                // if (pts[2] == PAWN && !(p3_sq & PawnSquaresBB)) { continue; }
+                                if (pts[2] == PAWN && !(p3_sq & PawnSquaresBB)) { continue; }
                                 // if (pts[3] == PAWN && !(p4_sq & PawnSquaresBB)) { continue; }
                                 pos1.put_piece(make_piece(cs[0],pts[0]), p1_sq);
                                 pos1.put_piece(make_piece(cs[1],pts[1]), p2_sq);
-                                // pos1.put_piece(make_piece(cs[2],pts[2]), p3_sq);
+                                pos1.put_piece(make_piece(cs[2],pts[2]), p3_sq);
                                 // pos1.put_piece(make_piece(cs[3],pts[3]), p4_sq);
                                 pos1.set_side_to_move(stm);
 
@@ -107,7 +107,7 @@ void test_index() {
                                 // std::cout << "\n";
                             }
                     //     }
-                    // }
+                    }
                 }
             }
         }
@@ -129,7 +129,7 @@ int main() {
     Bitboards::init();
     init_kkx_table();
     init_tril();
-    test_index();
+    // test_index();
 
 
     std::vector<int> pieces1(6);
@@ -169,7 +169,7 @@ int main() {
     g->~GenEGTB();
     
 
-    // 4 men, no pawns
+    // 4 men
     pieces1 = {0, 0, 0, 0, 0, 0};
     pieces2 = {0, 0, 0, 0, 0, 0};
 
@@ -192,6 +192,36 @@ int main() {
                 unplace_piece(p1, &pieces1[0], &pieces2[0]);
                 unplace_piece(p2, &pieces1[0], &pieces2[0]);
 
+            }
+        }
+    }
+
+    // 5 men
+    pieces1 = {0, 0, 0, 0, 0, 0};
+    pieces2 = {0, 0, 0, 0, 0, 0};
+
+
+    for (int pawn_count = 0; pawn_count <= 3; pawn_count++ ) {
+        for (Piece p1 : PIECES_ARR) {
+            for (Piece p2 : PIECES_ARR) {
+                for (Piece p3 : PIECES_ARR) {
+                    if ((type_of(p1) == PAWN) + (type_of(p2) == PAWN) + (type_of(p3) == PAWN) != pawn_count) {
+                        continue;
+                    }
+
+                    place_piece(p1, &pieces1[0], &pieces2[0]);
+                    place_piece(p2, &pieces1[0], &pieces2[0]);
+                    place_piece(p3, &pieces1[0], &pieces2[0]);
+
+                    g = new GenEGTB(&pieces1[0], &pieces2[0]);
+                    g->gen();
+                    g->~GenEGTB();
+                    
+                    unplace_piece(p1, &pieces1[0], &pieces2[0]);
+                    unplace_piece(p2, &pieces1[0], &pieces2[0]);
+                    unplace_piece(p3, &pieces1[0], &pieces2[0]);
+
+                }
             }
         }
     }
