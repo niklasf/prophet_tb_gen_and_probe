@@ -107,13 +107,15 @@ void store_egtb(int16_t* TB, int stm_pieces[6], int sntm_pieces[6]) {
         outputFileStream.write((char*) &TB[i], sizeof(int16_t));
 }
 
-void load_egtb(int16_t* TB, int stm_pieces[6], int sntm_pieces[6]) {
-    uint64_t NPOS = compute_num_positions(stm_pieces, sntm_pieces);
+int16_t* load_egtb(int stm_pieces[6], int sntm_pieces[6]) {
+    uint64_t NPOS = compute_num_positions(stm_pieces, sntm_pieces); 
+    int16_t* TB = (int16_t*) calloc(sizeof(int16_t), NPOS);
     std::string filename = get_filename(stm_pieces, sntm_pieces);
     std::ifstream inputFileStream;
     inputFileStream.open(filename, std::ios::in|std::ios::binary);
     for(uint64_t i=0; i<NPOS; i++)
         inputFileStream.read((char*) &TB[i], sizeof(int16_t));
+    return TB;
 }
 
 bool egtb_exists(int stm_pieces[6], int sntm_pieces[6]) {
@@ -202,8 +204,7 @@ void GenEGTB::allocate_and_load() {
             wpieces[capture_pt]--;
             uint64_t n = compute_num_positions(wpieces, bpieces);
             this->WTM_TBs_NPOS[NO_PIECE_TYPE][capture_pt] = n;
-            this->WTM_TBs[NO_PIECE_TYPE][capture_pt] = (int16_t*) calloc(sizeof(int16_t), n);
-            load_egtb(this->WTM_TBs[NO_PIECE_TYPE][capture_pt], wpieces, bpieces);
+            this->WTM_TBs[NO_PIECE_TYPE][capture_pt] = load_egtb(wpieces, bpieces);
             std::cout << "Load " << get_egtb_identifier(wpieces, bpieces) << " for white " << PieceToChar[capture_pt] << " captured, white to move" << std::endl;
             wpieces[capture_pt]++;
         }
@@ -211,8 +212,7 @@ void GenEGTB::allocate_and_load() {
             bpieces[capture_pt]--;
             uint64_t n = compute_num_positions(wpieces, bpieces);
             this->BTM_TBs_NPOS[NO_PIECE_TYPE][capture_pt] = n;
-            this->BTM_TBs[NO_PIECE_TYPE][capture_pt] = (int16_t*) calloc(sizeof(int16_t), n);
-            load_egtb(this->BTM_TBs[NO_PIECE_TYPE][capture_pt], bpieces, wpieces); 
+            this->BTM_TBs[NO_PIECE_TYPE][capture_pt] = load_egtb(bpieces, wpieces); 
             std::cout << "Load " << get_egtb_identifier(bpieces, wpieces) << " for black " << PieceToChar[capture_pt] << " captured, black to move"  << std::endl;
             bpieces[capture_pt]++;
         }
@@ -225,8 +225,7 @@ void GenEGTB::allocate_and_load() {
             bpieces[promote_pt]++;
             uint64_t n = compute_num_positions(wpieces, bpieces);
             this->WTM_TBs_NPOS[promote_pt][NO_PIECE_TYPE] = n;
-            this->WTM_TBs[promote_pt][NO_PIECE_TYPE] = (int16_t*) calloc(sizeof(int16_t), n);
-            load_egtb(this->WTM_TBs[promote_pt][NO_PIECE_TYPE], wpieces, bpieces);
+            this->WTM_TBs[promote_pt][NO_PIECE_TYPE] = load_egtb(wpieces, bpieces);
             std::cout << "Load " << get_egtb_identifier(wpieces, bpieces) << " for black promotion to " << PieceToChar[promote_pt] << ", white to move" << std::endl;
             bpieces[PAWN]++;
             bpieces[promote_pt]--;
@@ -236,8 +235,7 @@ void GenEGTB::allocate_and_load() {
             wpieces[promote_pt]++;
             uint64_t n = compute_num_positions(wpieces, bpieces);
             this->BTM_TBs_NPOS[promote_pt][NO_PIECE_TYPE] = n;
-            this->BTM_TBs[promote_pt][NO_PIECE_TYPE] = (int16_t*) calloc(sizeof(int16_t), n);
-            load_egtb(this->BTM_TBs[promote_pt][NO_PIECE_TYPE], bpieces, wpieces); 
+            this->BTM_TBs[promote_pt][NO_PIECE_TYPE] = load_egtb(bpieces, wpieces); 
             std::cout << "Load " << get_egtb_identifier(bpieces, wpieces) << " for white promotion to " << PieceToChar[promote_pt] << ", black to move" << std::endl;
             wpieces[PAWN]++;
             wpieces[promote_pt]--;
@@ -253,8 +251,7 @@ void GenEGTB::allocate_and_load() {
                 bpieces[promote_pt]++;
                 uint64_t n = compute_num_positions(wpieces, bpieces);
                 this->WTM_TBs_NPOS[promote_pt][capture_pt] = n;
-                this->WTM_TBs[promote_pt][capture_pt] = (int16_t*) calloc(sizeof(int16_t), n);
-                load_egtb(this->WTM_TBs[promote_pt][capture_pt], wpieces, bpieces);
+                this->WTM_TBs[promote_pt][capture_pt] = load_egtb(wpieces, bpieces);
                 std::cout << "Load " << get_egtb_identifier(wpieces, bpieces) << " for white " << PieceToChar[capture_pt] << " captured with black promotion to " << PieceToChar[promote_pt] << ", white to move" << std::endl;
                 wpieces[capture_pt]++;
                 bpieces[PAWN]++;
@@ -266,8 +263,7 @@ void GenEGTB::allocate_and_load() {
                 wpieces[promote_pt]++;
                 uint64_t n = compute_num_positions(wpieces, bpieces);
                 this->BTM_TBs_NPOS[promote_pt][capture_pt] = n;
-                this->BTM_TBs[promote_pt][capture_pt] = (int16_t*) calloc(sizeof(int16_t), n);
-                load_egtb(this->BTM_TBs[promote_pt][capture_pt], bpieces, wpieces); 
+                this->BTM_TBs[promote_pt][capture_pt] = load_egtb(bpieces, wpieces); 
                 std::cout << "Load " << get_egtb_identifier(bpieces, wpieces) << " for black " << PieceToChar[capture_pt] << " captured with white promotion to " << PieceToChar[promote_pt] << ", black to move" << std::endl;
                 bpieces[capture_pt]++;
                 wpieces[PAWN]++;

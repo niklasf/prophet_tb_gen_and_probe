@@ -8,6 +8,7 @@
 #include "eg_movegen.h"
 #include "gen_egtb.h"
 #include "triangular_indexes.h"
+#include <unordered_set>
 
 void test_index() {
 
@@ -148,83 +149,86 @@ int main() {
     
     pieces1 = {0, 0, 0, 0, 0, 0};
     pieces2 = {0, 0, 0, 0, 0, 0};
-    GenEGTB* g = new GenEGTB(&pieces1[0], &pieces2[0]);
-    g->gen();
-    g->~GenEGTB();
- 
-    // 3 men, no pawns
-    for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt) {
-        pieces1[pt]++;
-        g = new GenEGTB(&pieces1[0], &pieces2[0]);
-        g->gen();
-        g->~GenEGTB();
-        pieces1[pt]--;
-    }
 
-    // 3men, 1 pawn
-    pieces1 = {0, 1, 0, 0, 0, 0};
-    pieces2 = {0, 0, 0, 0, 0, 0};
-    g = new GenEGTB(&pieces1[0], &pieces2[0]);
-    g->gen();
-    g->~GenEGTB();
+    Piece PIECES_ARR[] = {NO_PIECE, W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN};
+
+    GenEGTB* g;
+    EGPosition pos;
+    int16_t longest_overall_mate = WIN_IN(0) + 1;
+    std::string longest_overall_mate_str;
+
+    std::unordered_set<std::string> egtbs = {};
     
 
-    // 4 men
-    pieces1 = {0, 0, 0, 0, 0, 0};
-    pieces2 = {0, 0, 0, 0, 0, 0};
+    for (int piece_count = 0; piece_count <= 2; piece_count++) {
+        for (int pawn_count = 0; pawn_count <= 3; pawn_count++ ) {
+            for (Piece p1 : PIECES_ARR) {
+                for (Piece p2 : PIECES_ARR) {
+                    for (Piece p3 : PIECES_ARR) {
+                        if ((p1 != NO_PIECE) + (p2 != NO_PIECE) + (p3 != NO_PIECE) != piece_count) continue;
+                        if ((piece_count == 0) && (p1 != NO_PIECE) + (p2 != NO_PIECE) + (p3 != NO_PIECE) > 0) continue;
+                        if ((piece_count == 1) && (p2 != NO_PIECE) + (p3 != NO_PIECE) > 0) continue;
+                        if ((piece_count == 2) && (p3 != NO_PIECE) > 0) continue;
 
-    Piece PIECES_ARR[] = {W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN};
+                        if ((type_of(p1) == PAWN) + (type_of(p2) == PAWN) + (type_of(p3) == PAWN) != pawn_count) {
+                            continue;
+                        }
 
-    for (int pawn_count = 0; pawn_count <= 2; pawn_count++ ) {
-        for (Piece p1 : PIECES_ARR) {
-            for (Piece p2 : PIECES_ARR) {
-                if ((type_of(p1) == PAWN) + (type_of(p2) == PAWN) != pawn_count) {
-                    continue;
-                }
+                        if (p1 != NO_PIECE) place_piece(p1, &pieces1[0], &pieces2[0]);
+                        if (p2 != NO_PIECE) place_piece(p2, &pieces1[0], &pieces2[0]);
+                        if (p3 != NO_PIECE) place_piece(p3, &pieces1[0], &pieces2[0]);
 
-                place_piece(p1, &pieces1[0], &pieces2[0]);
-                place_piece(p2, &pieces1[0], &pieces2[0]);
+                        std::string id = get_egtb_identifier(&pieces1[0], &pieces2[0]);
+                        auto p = egtbs.insert(id);
 
-                g = new GenEGTB(&pieces1[0], &pieces2[0]);
-                g->gen();
-                g->~GenEGTB();
-                
-                unplace_piece(p1, &pieces1[0], &pieces2[0]);
-                unplace_piece(p2, &pieces1[0], &pieces2[0]);
+                        if (p.second) { // true if inserted
+                            g = new GenEGTB(&pieces1[0], &pieces2[0]);
+                            g->gen();
+                            g->~GenEGTB();
+                            
+                            uint64_t NPOS = compute_num_positions(&pieces1[0], &pieces2[0]);
+                            int16_t* TB = load_egtb(&pieces1[0], &pieces2[0]);
+                            int16_t longest_mate = WIN_IN(0) + 1;
+                            uint64_t longest_mate_ix = 0;
+                            for (uint64_t win_ix = 0; win_ix < NPOS; win_ix++) {
+                                if (IS_SET(TB[win_ix]) && TB[win_ix] > 0 && TB[win_ix] < longest_mate) {
+                                    longest_mate = TB[win_ix];
+                                    longest_mate_ix = win_ix;
+                                }
+                            }
+                            std::cout << id << ": ";
+                            if (longest_mate == WIN_IN(0) + 1) {
+                                std::cout << "no win." << std::endl;
+                            } else {
+                                pos.reset();
+                                pos_at_ix(pos, longest_mate_ix, WHITE, &pieces1[0], &pieces2[0]);
+                                std::cout << pos.fen() << " " << WIN_IN(0) - TB[longest_mate_ix];
+                                if (longest_mate < longest_overall_mate) {
+                                    longest_overall_mate = longest_mate;
+                                    std::cout << "*";
 
-            }
-        }
-    }
+                                    std::ostringstream oss;
+                                    oss << get_egtb_identifier(&pieces1[0], &pieces2[0]) << ": " << pos.fen() << " " << WIN_IN(0) - TB[longest_mate_ix];
+                                    longest_overall_mate_str = oss.str();
+                                }
+                                std::cout << std::endl;
+                            }
 
-    // 5 men
-    pieces1 = {0, 0, 0, 0, 0, 0};
-    pieces2 = {0, 0, 0, 0, 0, 0};
+                            free(TB);
+                        }
 
+                        if (p1 != NO_PIECE) unplace_piece(p1, &pieces1[0], &pieces2[0]);
+                        if (p2 != NO_PIECE) unplace_piece(p2, &pieces1[0], &pieces2[0]);
+                        if (p3 != NO_PIECE) unplace_piece(p3, &pieces1[0], &pieces2[0]);
 
-    for (int pawn_count = 0; pawn_count <= 3; pawn_count++ ) {
-        for (Piece p1 : PIECES_ARR) {
-            for (Piece p2 : PIECES_ARR) {
-                for (Piece p3 : PIECES_ARR) {
-                    if ((type_of(p1) == PAWN) + (type_of(p2) == PAWN) + (type_of(p3) == PAWN) != pawn_count) {
-                        continue;
                     }
-
-                    place_piece(p1, &pieces1[0], &pieces2[0]);
-                    place_piece(p2, &pieces1[0], &pieces2[0]);
-                    place_piece(p3, &pieces1[0], &pieces2[0]);
-
-                    g = new GenEGTB(&pieces1[0], &pieces2[0]);
-                    g->gen();
-                    g->~GenEGTB();
-                    
-                    unplace_piece(p1, &pieces1[0], &pieces2[0]);
-                    unplace_piece(p2, &pieces1[0], &pieces2[0]);
-                    unplace_piece(p3, &pieces1[0], &pieces2[0]);
-
                 }
             }
         }
     }
+
+    std::cout << "Longest mate: " << longest_overall_mate_str << std::endl;
+
 
     return 0;
 }
