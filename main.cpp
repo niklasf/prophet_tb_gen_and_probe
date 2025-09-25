@@ -9,6 +9,7 @@
 #include "gen_egtb.h"
 #include "triangular_indexes.h"
 #include <unordered_set>
+#include <omp.h>
 
 void test_index() {
 
@@ -126,12 +127,15 @@ void unplace_piece(Piece p, int* pieces1, int* pieces2) {
     pieces[type_of(p)]--;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+    // single threaded: 3m15s
     Bitboards::init();
     init_kkx_table();
     init_tril();
     // test_index();
 
+    assert (argc > 0);
+    int nthreads = atoi(argv[1]);
 
     std::vector<int> pieces1(6);
     std::vector<int> pieces2(6);
@@ -160,7 +164,7 @@ int main() {
     std::unordered_set<std::string> egtbs = {};
     
 
-    for (int piece_count = 0; piece_count <= 2; piece_count++) {
+    for (int piece_count = 0; piece_count <= 3; piece_count++) {
         for (int pawn_count = 0; pawn_count <= 3; pawn_count++ ) {
             for (Piece p1 : PIECES_ARR) {
                 for (Piece p2 : PIECES_ARR) {
@@ -183,7 +187,7 @@ int main() {
 
                         if (p.second) { // true if inserted
                             g = new GenEGTB(&pieces1[0], &pieces2[0]);
-                            g->gen();
+                            g->gen(nthreads);
                             g->~GenEGTB();
                             
                             uint64_t NPOS = compute_num_positions(&pieces1[0], &pieces2[0]);
