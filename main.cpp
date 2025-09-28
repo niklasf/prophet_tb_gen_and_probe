@@ -134,6 +134,9 @@ int main(int argc, char *argv[]) {
     init_tril();
     // test_index();
 
+
+    exit(1);
+
     assert (argc > 0);
     int nthreads = atoi(argv[1]);
 

@@ -70,12 +70,16 @@ public:
 
     void reset();
 
+    Square ep_square() const;
+
+
 private:
         Piece      board[SQUARE_NB];
         Bitboard   byTypeBB[PIECE_TYPE_NB];
         Bitboard   byColorBB[COLOR_NB];
         Color      sideToMove;
         int        pieceCount[PIECE_NB];
+        Square     epSquare;
 
         bool has_king_evasions(Color c) const;
         template<PieceType Pt>
@@ -98,6 +102,8 @@ inline int EGPosition::count(Color c) const {
 // }
 
 bool EGPosition::is_equal(const EGPosition& pos) const {
+    if (sideToMove != pos.sideToMove) { return false; }
+    if (epSquare != pos.epSquare) { return false; }
     for (int i = 0; i < SQUARE_NB; i++) {
         if (board[i] != pos.board[i]) { return false; }
     }
@@ -107,7 +113,6 @@ bool EGPosition::is_equal(const EGPosition& pos) const {
     for (int i = 0; i < COLOR_NB; i++) {
         if (byColorBB[i] != pos.byColorBB[i]) { return false; }
     }
-    if (sideToMove != pos.sideToMove) { return false; }
     return true;
 }
 
@@ -162,9 +167,7 @@ std::string EGPosition::fen() const {
 
     ss << '-';
 
-    // ss << (ep_square() == SQ_NONE ? " - " : " " + square_to_uci(ep_square()) + " ")
-    //    << st->rule50 << " " << 1 + (gamePly - (sideToMove == BLACK)) / 2;
-
+    ss << (ep_square() == SQ_NONE ? " - " : " " + square_to_uci(ep_square()) + " ");
     return ss.str();
 }
 
@@ -206,16 +209,54 @@ inline PieceType EGPosition::do_move(Move m) {
     Square from     = m.from_sq();
     Square to       = m.to_sq();
     Piece  captured = piece_on(to);
+    Color  us       = sideToMove;
 
     if (captured) {
-        remove_piece(to);
+        Square capsq = (m.type_of() == EN_PASSANT) ? to - pawn_push(us) : to;
+        remove_piece(capsq);
     }
     move_piece(from, to);
     if (m.type_of() == PROMOTION) {
         remove_piece(to);
-        put_piece(make_piece(sideToMove,m.promotion_type()), to);
+        put_piece(make_piece(us,m.promotion_type()), to);
     }
+
+    if (type_of(pc) == PAWN){
+        bool checkEP = ((int(to) ^ int(from)) == 16);
+        while (checkEP) {
+            Bitboard pawns = attacks_bb<PAWN>(to - pawn_push(us), us) & pieces(them, PAWN);
+            if (!pawns)
+                break;
+
+            if (checkers() & ~square_bb(to))
+                break;
+
+            if (more_than_one(pawns)) {
+                if (!more_than_one(blockers_for_king(them) & pawns)) {
+                    epSquare = to - pawn_push(us);
+                    break;
+                }
+                if (!(file_bb(square<KING>(them)) & pawns))
+                    break;
+
+                pawns &= ~file_bb(square<KING>(them));
+            }
+
+            Square   ksq      = square<KING>(them);
+            Square   capsq    = to;
+            Bitboard occupied = (pieces() ^ lsb(pawns) ^ capsq) | (to - pawn_push(us));
+
+            // If our king is not attacked after making the move, ep is legal.
+            if (!(attacks_bb<ROOK>(ksq, occupied) & pieces(us, QUEEN, ROOK))
+                && !(attacks_bb<BISHOP>(ksq, occupied) & pieces(us, QUEEN, BISHOP)))
+                epSquare = to - pawn_push(us);
+
+            break;
+        }
+    }
+
     sideToMove = ~sideToMove;
+
     return type_of(captured);
 }
 
@@ -225,13 +266,21 @@ inline void EGPosition::undo_move(Move m, PieceType captured) {
 
     sideToMove = ~sideToMove;
 
+    Color  us       = sideToMove;
+
     if (m.type_of() == PROMOTION) {
         remove_piece(to);
-        put_piece(make_piece(sideToMove,PAWN), to);
+        put_piece(make_piece(us,PAWN), to);
     }
     move_piece(to, from);
+    epSquare = SQ_NONE;
     if (captured) {
-        put_piece(make_piece(~sideToMove, captured), to);
+        Square capsq = to;
+        if (m.type_of() == EN_PASSANT) {
+            capsq -= pawn_push(us);
+            epSquare = capsq;
+        }
+        put_piece(make_piece(~us, captured), capsq);
     }
 }
 
@@ -243,8 +292,9 @@ inline void EGPosition::undo_rev_move(Move m) {
     do_move(m);
 }
 
-
 inline Color EGPosition::side_to_move() const { return sideToMove; }
+
+inline Square EGPosition::ep_square() const { return epSquare; }
 
 inline void EGPosition::set_side_to_move(Color c) { sideToMove = c; }
 
