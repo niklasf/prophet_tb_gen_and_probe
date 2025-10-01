@@ -155,7 +155,7 @@ int main(int argc, char *argv[]) {
         std::cout << move_to_uci(m) << " " << int(m.type_of()>>14) << std::endl;
     }
 
-    exit(1);
+    // exit(1);
 
     assert (argc > 0);
     int nthreads = atoi(argv[1]);
@@ -172,6 +172,31 @@ int main(int argc, char *argv[]) {
     // uint64_t ix = ix_from_pos(pos);
     // std::cout << pos << ix << std::endl;
 
+    // pieces1 = {0, 2, 0, 0, 0, 0};
+    // pieces2 = {0, 0, 0, 0, 0, 0};
+
+    // uint64_t LOSS_NPOS = compute_num_positions(&pieces1[0], &pieces2[0]);
+    // uint64_t N_UNUSED = 0;
+    // uint64_t N_SNTM_IN_CHECK = 0;
+
+    // for (uint64_t ix = 0; ix < LOSS_NPOS; ix++) {
+    //     pos.reset();
+    //     pos_at_ix(pos, ix, BLACK, &pieces1[0], &pieces2[0]);
+    //     if (ix_from_pos(pos) != ix && !pos.sntm_in_check()) {
+    //         N_UNUSED++;
+    //         std::cout << pos << ix << " unused" << std::endl;
+    //         EGPosition pos2;
+    //         pos2.reset();
+    //         pos_at_ix(pos2, ix_from_pos(pos), BLACK, &pieces1[0], &pieces2[0]);
+    //         std::cout << pos2 << ix_from_pos(pos) << "\n\n";
+    //     }
+    //     if (pos.sntm_in_check()) {
+    //         N_SNTM_IN_CHECK++;
+    //     }
+    //     if (N_UNUSED > 100) { break; }
+    // }
+    // std::cout << N_UNUSED << std::endl;
+
     // exit(0);
     
     pieces1 = {0, 0, 0, 0, 0, 0};
@@ -186,9 +211,11 @@ int main(int argc, char *argv[]) {
 
     std::unordered_set<std::string> egtbs = {};
     
+    uint64_t val_count[512] = {0};
+    uint64_t total_poscount = 0;
 
     for (int piece_count = 0; piece_count <= 3; piece_count++) {
-        for (int pawn_count = 0; pawn_count <= 3; pawn_count++ ) {
+        for (int pawn_count = 0; pawn_count <= piece_count; pawn_count++ ) {
             for (Piece p1 : PIECES_ARR) {
                 for (Piece p2 : PIECES_ARR) {
                     for (Piece p3 : PIECES_ARR) {
@@ -217,9 +244,22 @@ int main(int argc, char *argv[]) {
                             int16_t* TB = load_egtb(&pieces1[0], &pieces2[0]);
                             int16_t longest_mate = WIN_IN(0) + 1;
                             uint64_t longest_mate_ix = 0;
+                            uint64_t unused_count = 0;
+                            total_poscount += NPOS;
                             for (uint64_t win_ix = 0; win_ix < NPOS; win_ix++) {
-                                if (IS_SET(TB[win_ix]) && TB[win_ix] > 0 && TB[win_ix] < longest_mate) {
-                                    longest_mate = TB[win_ix];
+                                int16_t val = TB[win_ix];
+                                if (val != UNUSEDIX) {
+                                    if (val == 0) {
+                                        val_count[0]++;
+                                    } else {
+                                        val_count[WIN_IN(0) - abs(val) + 1]++;
+                                    }
+                                } else {
+                                    unused_count++;
+                                    val_count[511]++;
+                                }
+                                if (IS_SET(val) && val > 0 && val < longest_mate) {
+                                    longest_mate = val;
                                     longest_mate_ix = win_ix;
                                 }
                             }
@@ -240,6 +280,7 @@ int main(int argc, char *argv[]) {
                                 }
                                 std::cout << std::endl;
                             }
+                            std::cout << "#unused " << unused_count << " (" << (double) unused_count / NPOS * 100 << "%)" << std::endl;
 
                             free(TB);
                         }
@@ -256,6 +297,11 @@ int main(int argc, char *argv[]) {
 
     std::cout << "Longest mate: " << longest_overall_mate_str << std::endl;
 
+    for (int i = 0; i < 512; i++) {
+        printf("%3d: %10lu,\n", i, val_count[i]);
+    }
+
+    std::cout << "unused: " << (double) val_count[511] / total_poscount * 100 << "%" << std::endl;
 
     return 0;
 }

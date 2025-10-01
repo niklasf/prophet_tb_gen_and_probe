@@ -1,6 +1,7 @@
 *.o
 main
 tmp.txt
+tmp*
 .vscode
 *.egtb
 *.zip

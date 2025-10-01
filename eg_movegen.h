@@ -104,15 +104,15 @@ Move* generate_pawn_moves(const EGPosition& pos, Move* moveList, Bitboard target
         moveList = splat_pawn_moves<UpRight, Type>(moveList, b1);
         moveList = splat_pawn_moves<UpLeft, Type>(moveList, b2);
 
-        if (pos.ep_square() != SQ_NONE) {
-            // An en passant capture cannot resolve a discovered check
-            if (Type == FWD_EVASIONS && (target & (pos.ep_square() + Up)))
-                return moveList;
+        // if (pos.ep_square() != SQ_NONE) {
+        //     // An en passant capture cannot resolve a discovered check
+        //     if (Type == FWD_EVASIONS && (target & (pos.ep_square() + Up)))
+        //         return moveList;
 
-            b1 = pawnsNotOn7 & attacks_bb<PAWN>(pos.ep_square(), Them);
-            while (b1)
-                *moveList++ = Move::make<EN_PASSANT>(pop_lsb(b1), pos.ep_square());
-        }
+        //     b1 = pawnsNotOn7 & attacks_bb<PAWN>(pos.ep_square(), Them);
+        //     while (b1)
+        //         *moveList++ = Move::make<EN_PASSANT>(pop_lsb(b1), pos.ep_square());
+        // }
     }
 
     return moveList;

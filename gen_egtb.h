@@ -369,6 +369,7 @@ void GenEGTB::gen(int nthreads) {
             CAPTURE_TBs = WTM_TBs;
         }
         uint64_t N_UNUSED = 0;
+        uint64_t N_SNTM_IN_CHECK = 0;
         uint64_t N_CHECKMATE = 0;
 
         #pragma omp parallel for num_threads(nthreads) schedule(static,64) reduction(+:N_LEVEL_POS) reduction(+:N_UNUSED) reduction(+:N_CHECKMATE)
@@ -376,9 +377,11 @@ void GenEGTB::gen(int nthreads) {
             EGPosition pos;
             pos.reset();
             pos_at_ix(pos, ix, LOSS_COLOR, wpieces, bpieces);
-            if (ix_from_pos(pos) != ix || pos.sntm_in_check()) {
+            bool sntm_in_check = pos.sntm_in_check();
+            if (ix_from_pos(pos) != ix || sntm_in_check) {
                 LOSS_TB[ix] = UNUSEDIX;
                 N_UNUSED++;
+                N_SNTM_IN_CHECK += sntm_in_check;
                 continue;
             }
             EGMoveList movelist = EGMoveList<FORWARD>(pos);
@@ -413,8 +416,10 @@ void GenEGTB::gen(int nthreads) {
             }
 
         }
+        std::cout << "Stats for " << ((wtm) ? get_egtb_identifier(wpieces, bpieces) : get_egtb_identifier(bpieces, wpieces)) << ":\n";
         std::cout << "Checkmate count: " << N_CHECKMATE << std::endl;
-        std::cout << N_UNUSED << " unused indices" << std::endl;
+        std::cout << N_UNUSED << " unused indices (" << (double) N_UNUSED / LOSS_NPOS * 100 << "%)" << std::endl;
+        std::cout << N_SNTM_IN_CHECK << " of which sntm in check (" << (double) N_SNTM_IN_CHECK / LOSS_NPOS * 100 << "%)" << std::endl;
     }
  
     int16_t MIN_LEVEL = 0;
@@ -733,8 +738,7 @@ void GenEGTB::gen(int nthreads) {
 
     store_egtb(WTM_TB, wpieces, bpieces);
     store_egtb(BTM_TB, bpieces, wpieces);
-    std::cout << "\n\n" << std::endl;
-
+    std::cout << "Stored " << get_egtb_identifier(wpieces, bpieces) << " and " << get_egtb_identifier(bpieces, wpieces) << std::endl;
 }
 
 #endif
