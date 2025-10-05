@@ -178,32 +178,38 @@ int main(int argc, char *argv[]) {
     // uint64_t ix = ix_from_pos(pos);
     // std::cout << pos << ix << std::endl;
 
-    // pieces1 = {0, 1, 0, 0, 0, 0};
-    // pieces2 = {0, 0, 0, 0, 0, 0};
+    /*
+    pieces1 = {0, 2, 0, 0, 0, 0};
+    pieces2 = {0, 0, 0, 0, 0, 0};
 
-    // uint64_t LOSS_NPOS = compute_num_positions(&pieces1[0], &pieces2[0]);
-    // uint64_t N_UNUSED = 0;
-    // uint64_t N_SNTM_IN_CHECK = 0;
+    uint64_t LOSS_NPOS = compute_num_positions(&pieces1[0], &pieces2[0]);
+    uint64_t N_UNUSED = 0;
+    uint64_t N_SNTM_IN_CHECK = 0;
 
-    // for (uint64_t ix = 0; ix < LOSS_NPOS; ix++) {
-    //     pos.reset();
-    //     pos_at_ix(pos, ix, BLACK, &pieces1[0], &pieces2[0]);
-    //     if (ix_from_pos(pos) != ix && !pos.sntm_in_check()) {
-    //         N_UNUSED++;
-    //         std::cout << pos << ix << " unused" << std::endl;
-    //         EGPosition pos2;
-    //         pos2.reset();
-    //         pos_at_ix(pos2, ix_from_pos(pos), BLACK, &pieces1[0], &pieces2[0]);
-    //         std::cout << pos2 << ix_from_pos(pos) << "\n\n";
-    //     }
-    //     if (pos.sntm_in_check()) {
-    //         N_SNTM_IN_CHECK++;
-    //     }
-    //     if (N_UNUSED > 100) { break; }
-    // }
-    // std::cout << N_UNUSED << std::endl;
+    for (uint64_t ix = 0; ix < LOSS_NPOS; ix++) {
+        pos.reset();
+        pos_at_ix(pos, ix, WHITE, &pieces1[0], &pieces2[0]);
+        if (ix_from_pos(pos) != ix && !pos.sntm_in_check()) {
+            N_UNUSED++;
+            // EGPosition pos2;
+            // pos2.reset();
+            // pos_at_ix(pos2, ix_from_pos(pos), BLACK, &pieces1[0], &pieces2[0]);
+            // std::cout << pos << ix << " unused" << std::endl;
+            // std::cout << pos2 << ix_from_pos(pos) << "\n\n";
+        }
+        if (pos.sntm_in_check()) {
+            // std::cout << pos << ix << " sntm_in_check" << std::endl;
+            N_UNUSED++;
+            N_SNTM_IN_CHECK++;
+        }
+        // if (N_UNUSED > 100) { break; }
+        // if (N_SNTM_IN_CHECK > 100) { break; }
+    }
+    std::cout << N_UNUSED << std::endl;
+    std::cout << N_SNTM_IN_CHECK << std::endl;
 
-    // exit(0);
+    exit(0);
+    */
     
     pieces1 = {0, 0, 0, 0, 0, 0};
     pieces2 = {0, 0, 0, 0, 0, 0};
@@ -220,7 +226,7 @@ int main(int argc, char *argv[]) {
     uint64_t val_count[512] = {0};
     uint64_t total_poscount = 0;
 
-    for (int piece_count = 0; piece_count <= 2; piece_count++) {
+    for (int piece_count = 0; piece_count <= 3; piece_count++) {
         for (int pawn_count = 0; pawn_count <= piece_count; pawn_count++ ) {
             for (Piece p1 : PIECES_ARR) {
                 for (Piece p2 : PIECES_ARR) {
@@ -242,12 +248,14 @@ int main(int argc, char *argv[]) {
                         auto p = egtbs.insert(id);
 
                         if (p.second) { // true if inserted
-                            g = new GenEGTB(&pieces1[0], &pieces2[0]);
+                            g = new GenEGTB(&pieces1[0], &pieces2[0], "egtbs/");
                             g->gen(nthreads);
                             g->~GenEGTB();
                             
+                            std::cout << id << ": ";
+                            
                             uint64_t NPOS = compute_num_positions(&pieces1[0], &pieces2[0]);
-                            int16_t* TB = load_egtb(&pieces1[0], &pieces2[0], true);
+                            int16_t* TB = load_egtb(&pieces1[0], &pieces2[0], "egtbs/", true);
 
                             int16_t longest_mate = WIN_IN(0) + 1;
                             uint64_t longest_mate_ix = 0;
@@ -255,6 +263,7 @@ int main(int argc, char *argv[]) {
                             total_poscount += NPOS;
                             for (uint64_t win_ix = 0; win_ix < NPOS; win_ix++) {
                                 int16_t val = TB[win_ix];
+                                assert (IS_SET(val) || val == UNUSED);
                                 if (val != UNUSED) {
                                     if (val == 0) {
                                         val_count[0]++;
@@ -270,7 +279,7 @@ int main(int argc, char *argv[]) {
                                     longest_mate_ix = win_ix;
                                 }
                             }
-                            std::cout << id << ": ";
+
                             if (longest_mate == WIN_IN(0) + 1) {
                                 std::cout << "no win." << std::endl;
                             } else {
@@ -289,7 +298,10 @@ int main(int argc, char *argv[]) {
                             }
                             std::cout << "#unused " << unused_count << " (" << (double) unused_count / NPOS * 100 << "%)" << std::endl;
 
-                            free_egtb(TB, &pieces1[0], &pieces2[0], true);
+                            if (!egtb_exists(&pieces1[0], &pieces2[0], "egtbs8/")) {
+                                store_egtb_8bit(TB, &pieces1[0], &pieces2[0], "egtbs8/");
+                            }
+                            free_egtb(TB, &pieces1[0], &pieces2[0], "egtbs/", true);
                         }
 
                         if (p1 != NO_PIECE) unplace_piece(p1, &pieces1[0], &pieces2[0]);
