@@ -22,108 +22,189 @@ void test_index() {
     // 0, PAWN, KNIGHT, BISHOP, ROOK, QUEEN 
     int wpieces[6] = {0, 1, 0, 0, 0, 0};
     int bpieces[6] = {0, 1, 0, 0, 0, 0};
-    Color stm = WHITE;
-
-    EGTB egtb = stm == WHITE ? EGTB(wpieces, bpieces) : EGTB(bpieces, wpieces);
-
-
-    PieceType pts[4] = {NO_PIECE_TYPE, NO_PIECE_TYPE, NO_PIECE_TYPE, NO_PIECE_TYPE};
-    Color cs[4] = {stm, stm, stm, stm};
-
-    int i = 0;
-    for (Color c: {~stm, stm}) {
-        int* c_pieces = (c == WHITE) ? wpieces : bpieces;
-        for (PieceType pt = QUEEN; pt >= PAWN; --pt) {
-            for (int j = 0; j < c_pieces[pt]; ++j) {
-                if (i >= 4) { std::cout << "Too many pieces!\n"; assert(false); }
-                pts[i] = pt;
-                cs[i] = c;
-                i++;
-            }
-        }
-    }
-
-    EGPosition pos1;
-    EGPosition pos2;
-    EGPosition pos3;
-    EGPosition pos4;
 
     uint64_t count = 0;
+    for (Color stm: {WHITE, BLACK}) {
 
-    for (Square k1_sq = SQ_A1; k1_sq <= SQ_H8; ++k1_sq) {
-        for (Square k2_sq = SQ_A1; k2_sq <= SQ_H8; ++k2_sq) {
-            if (k2_sq == k1_sq) { continue; }
-            for (Square p1_sq = SQ_A1; p1_sq <= SQ_H8; ++p1_sq) {
-                if (p1_sq == k1_sq || p1_sq == k2_sq) { continue; }
-                for (Square p2_sq = SQ_A1; p2_sq <= SQ_H8; ++p2_sq) {
-                    if (p2_sq == k1_sq || p2_sq == k2_sq || p2_sq == p1_sq) { continue; }
-                    // for (Square p3_sq = SQ_A1; p3_sq <= SQ_H8; ++p3_sq) {
-                    //     if (p3_sq == k1_sq || p3_sq == k2_sq || p3_sq == p1_sq || p3_sq == p2_sq) { continue; }
-                    //     for (Square p4_sq = SQ_A1; p4_sq <= SQ_H8; ++p4_sq) {
-                    //         if (p4_sq == k1_sq || p4_sq == k2_sq || p4_sq == p1_sq || p4_sq == p2_sq || p4_sq == p3_sq) { continue; }
+        EGTB egtb = stm == WHITE ? EGTB(wpieces, bpieces) : EGTB(bpieces, wpieces);
+        std::cout << egtb.id << ": nonep: " << egtb.num_nonep_pos << ", ep: " << egtb.num_ep_pos << std::endl;
 
-                            if ((PseudoAttacks[KING][k1_sq] & k2_sq) == 0) {
-                                pos1.reset();
-                                pos2.reset();
-                                pos3.reset();
-                                pos4.reset();
-                                pos1.put_piece(make_piece(stm, KING), k1_sq);
-                                pos1.put_piece(make_piece(~stm,KING), k2_sq);
-                                if (pts[0] == PAWN && !(p1_sq & PawnSquaresBB)) { continue; }
-                                pos1.put_piece(make_piece(cs[0],pts[0]), p1_sq);
-                                if (pts[1] == PAWN && !(p2_sq & PawnSquaresBB)) { continue; }
-                                pos1.put_piece(make_piece(cs[1],pts[1]), p2_sq);
-                                // if (pts[2] == PAWN && !(p3_sq & PawnSquaresBB)) { continue; }
-                                // pos1.put_piece(make_piece(cs[2],pts[2]), p3_sq);
-                                // if (pts[3] == PAWN && !(p4_sq & PawnSquaresBB)) { continue; }
-                                // pos1.put_piece(make_piece(cs[3],pts[3]), p4_sq);
-                                pos1.set_side_to_move(stm);
 
-                                uint64_t ix = ix_from_pos(pos1, egtb.num_nonep_pos, egtb.num_ep_pos);
+        PieceType pts[4] = {NO_PIECE_TYPE, NO_PIECE_TYPE, NO_PIECE_TYPE, NO_PIECE_TYPE};
+        Color cs[4] = {stm, stm, stm, stm};
 
-                                // bool verbose = true;
-                                bool verbose = false;
-                                // bool verbose = (ix == 1772);
-                                // bool verbose = (p1_sq == SQ_B1 && p2_sq == SQ_A7 && k2_sq == SQ_A1 && k1_sq == SQ_C2);
+        int i = 0;
+        for (Color c: {~stm, stm}) {
+            int* c_pieces = (c == WHITE) ? wpieces : bpieces;
+            for (PieceType pt = QUEEN; pt >= PAWN; --pt) {
+                for (int j = 0; j < c_pieces[pt]; ++j) {
+                    if (i >= 4) { std::cout << "Too many pieces!\n"; assert(false); }
+                    pts[i] = pt;
+                    cs[i] = c;
+                    i++;
+                }
+            }
+        }
 
-                                // bool debug = true;
-                                bool debug = false;
-                                // bool debug = verbose;
+        EGPosition pos1;
+        EGPosition pos2;
+        EGPosition pos3;
+        EGPosition pos4;
 
-                                if (verbose) std::cout << pos1;
 
-                                if (verbose) std::cout << "A ix from pos\n";
-                                if (verbose) std::cout << "B pos at ix " << ix << "\n";
-                                pos_at_ix(pos2, ix, stm, wpieces, bpieces, egtb.num_nonep_pos, egtb.num_ep_pos);
-                                if (verbose) std::cout << "C transform to canonical\n";
-                                transform_to_canoncial(pos1, pos3);
-                                if (verbose) std::cout << "D ix from canonical\n";
-                                uint64_t ix2 = ix_from_pos(pos3, egtb.num_nonep_pos, egtb.num_ep_pos);
-                                if (verbose) std::cout << "E transformed pos at ix " << ix2 << "\n";
-                                pos_at_ix(pos4, ix2, stm, wpieces, bpieces, egtb.num_nonep_pos, egtb.num_ep_pos);
-                                if (verbose) std::cout << "F\n";
+        for (Square k1_sq = SQ_A1; k1_sq <= SQ_H8; ++k1_sq) {
+            for (Square k2_sq = SQ_A1; k2_sq <= SQ_H8; ++k2_sq) {
+                if (k2_sq == k1_sq) { continue; }
+                for (Square p1_sq = SQ_A1; p1_sq <= SQ_H8; ++p1_sq) {
+                    if (p1_sq == k1_sq || p1_sq == k2_sq) { continue; }
+                    for (Square p2_sq = SQ_A1; p2_sq <= SQ_H8; ++p2_sq) {
+                        if (p2_sq == k1_sq || p2_sq == k2_sq || p2_sq == p1_sq) { continue; }
+                        // for (Square p3_sq = SQ_A1; p3_sq <= SQ_H8; ++p3_sq) {
+                        //     if (p3_sq == k1_sq || p3_sq == k2_sq || p3_sq == p1_sq || p3_sq == p2_sq) { continue; }
+                        //     for (Square p4_sq = SQ_A1; p4_sq <= SQ_H8; ++p4_sq) {
+                        //         if (p4_sq == k1_sq || p4_sq == k2_sq || p4_sq == p1_sq || p4_sq == p2_sq || p4_sq == p3_sq) { continue; }
 
-                                if (!pos2.is_equal(pos3) || ix != ix2 || !pos3.is_equal(pos4) || debug) {
-                                    std::cout << pos1 << std::endl;
-                                    std::cout << "vs at ix " << ix << std::endl;
-                                    std::cout << pos2 << std::endl;
-                                    std::cout << "vs transformed " << std::endl;
-                                    std::cout << pos3 << std::endl;
-                                    std::cout << "vs at ix " << ix2 << std::endl;
-                                    std::cout << pos4 << std::endl;
-                                    exit(1);
+                                if ((PseudoAttacks[KING][k1_sq] & k2_sq) == 0) {
+                                    pos1.reset();
+                                    pos2.reset();
+                                    pos3.reset();
+                                    pos4.reset();
+                                    pos1.put_piece(make_piece(stm, KING), k1_sq);
+                                    pos1.put_piece(make_piece(~stm,KING), k2_sq);
+                                    if (pts[0] == PAWN && !(p1_sq & PawnSquaresBB)) { continue; }
+                                    pos1.put_piece(make_piece(cs[0],pts[0]), p1_sq);
+                                    if (pts[1] == PAWN && !(p2_sq & PawnSquaresBB)) { continue; }
+                                    pos1.put_piece(make_piece(cs[1],pts[1]), p2_sq);
+                                    // if (pts[2] == PAWN && !(p3_sq & PawnSquaresBB)) { continue; }
+                                    // pos1.put_piece(make_piece(cs[2],pts[2]), p3_sq);
+                                    // if (pts[3] == PAWN && !(p4_sq & PawnSquaresBB)) { continue; }
+                                    // pos1.put_piece(make_piece(cs[3],pts[3]), p4_sq);
+                                    pos1.set_side_to_move(stm);
+
+                                    uint64_t ix = ix_from_pos(pos1, egtb.num_nonep_pos, egtb.num_ep_pos);
+
+                                    // bool verbose = true;
+                                    bool verbose = false;
+                                    // bool verbose = (ix == 1772);
+                                    // bool verbose = (p1_sq == SQ_B1 && p2_sq == SQ_A7 && k2_sq == SQ_A1 && k1_sq == SQ_C2);
+
+                                    // bool debug = true;
+                                    bool debug = false;
+                                    // bool debug = verbose;
+
+                                    if (verbose) std::cout << pos1;
+
+                                    if (verbose) std::cout << "A ix from pos\n";
+                                    if (verbose) std::cout << "B pos at ix " << ix << "\n";
+                                    pos_at_ix(pos2, ix, stm, wpieces, bpieces, egtb.num_nonep_pos, egtb.num_ep_pos);
+                                    if (verbose) std::cout << "C transform to canonical\n";
+                                    transform_to_canoncial(pos1, pos3);
+                                    if (verbose) std::cout << "D ix from canonical\n";
+                                    uint64_t ix2 = ix_from_pos(pos3, egtb.num_nonep_pos, egtb.num_ep_pos);
+                                    if (verbose) std::cout << "E transformed pos at ix " << ix2 << "\n";
+                                    pos_at_ix(pos4, ix2, stm, wpieces, bpieces, egtb.num_nonep_pos, egtb.num_ep_pos);
+                                    if (verbose) std::cout << "F\n";
+
+                                    if (!pos2.is_equal(pos3) || ix != ix2 || !pos3.is_equal(pos4) || debug) {
+                                        std::cout << pos1 << std::endl;
+                                        std::cout << "vs at ix " << ix << std::endl;
+                                        std::cout << pos2 << std::endl;
+                                        std::cout << "vs transformed " << std::endl;
+                                        std::cout << pos3 << std::endl;
+                                        std::cout << "vs at ix " << ix2 << std::endl;
+                                        std::cout << pos4 << std::endl;
+                                        exit(1);
+                                    }
+                                    count++;
+                                    // std::cout << "\n";
                                 }
-                                count++;
-                                // std::cout << "\n";
-                            }
-                    //     }
-                    // }
+                        //     }
+                        // }
+                    }
                 }
             }
         }
     }
     std::cout << "Checked " << count << " kkx positions" << std::endl;
     
+}
+
+
+void test_ep_index() {
+
+    // 0, PAWN, KNIGHT, BISHOP, ROOK, QUEEN 
+    int wpieces[6] = {0, 1, 0, 0, 0, 0};
+    int bpieces[6] = {0, 1, 0, 0, 0, 0};
+
+    uint64_t count = 0;
+
+    for (Color stm: {WHITE, BLACK}) {
+        EGTB egtb = stm == WHITE ? EGTB(wpieces, bpieces) : EGTB(bpieces, wpieces);
+        std::cout << egtb.id << ": nonep: " << egtb.num_nonep_pos << ", ep: " << egtb.num_ep_pos << std::endl;
+
+        EGPosition pos1;
+        EGPosition pos2;
+        EGPosition pos3;
+        EGPosition pos4;
+
+        for (Square p1_sq = SQ_A1; p1_sq <= SQ_H8; ++p1_sq) {
+            if (!(square_bb(p1_sq) & (Rank4BB | Rank5BB))) continue;
+            for (Square p2_sq = SQ_A1; p2_sq <= SQ_H8; ++p2_sq) {
+                if (!(square_bb(p2_sq) & (Rank4BB | Rank5BB))) continue;
+                if (p2_sq == p1_sq) continue;
+                for (Square ep_sq = SQ_A1; ep_sq <= SQ_H8; ++ep_sq) {
+                    if (!(square_bb(ep_sq) & (Rank3BB | Rank6BB))) continue;
+
+                    pos1.reset();
+                    pos2.reset();
+                    pos3.reset();
+                    pos4.reset();
+                    pos1.put_piece(make_piece(WHITE, KING), SQ_A1);
+                    pos1.put_piece(make_piece(BLACK,KING), SQ_A8);
+                    pos1.put_piece(make_piece(stm,PAWN), p1_sq);
+                    pos1.put_piece(make_piece(~stm,PAWN), p2_sq);
+                    pos1.set_side_to_move(stm);
+
+                    if (!pos1.check_ep(ep_sq)) { continue;}
+                    pos1.set_ep_square(ep_sq);
+
+
+                    bool verbose = true;
+                    bool debug = false;
+
+                    // if (verbose) std::cout << pos1;
+                    std::cout << pos1;
+
+
+                    if (verbose) std::cout << "A ix from pos\n";
+                    uint64_t ix = ix_from_pos(pos1, egtb.num_nonep_pos, egtb.num_ep_pos);
+                    if (verbose) std::cout << "B pos at ix " << ix << "\n";
+                    pos_at_ix(pos2, ix, stm, wpieces, bpieces, egtb.num_nonep_pos, egtb.num_ep_pos);
+                    if (verbose) std::cout << "C transform to canonical\n";
+                    transform_to_canoncial(pos1, pos3);
+                    if (verbose) std::cout << "D ix from canonical\n";
+                    uint64_t ix2 = ix_from_pos(pos3, egtb.num_nonep_pos, egtb.num_ep_pos);
+                    if (verbose) std::cout << "E transformed pos at ix " << ix2 << "\n";
+                    pos_at_ix(pos4, ix2, stm, wpieces, bpieces, egtb.num_nonep_pos, egtb.num_ep_pos);
+                    if (verbose) std::cout << "F\n";
+
+                    if (!pos2.is_equal(pos3) || ix != ix2 || !pos3.is_equal(pos4) || debug) {
+                        std::cout << pos1 << std::endl;
+                        std::cout << "vs at ix " << ix << std::endl;
+                        std::cout << pos2 << std::endl;
+                        std::cout << "vs transformed " << std::endl;
+                        std::cout << pos3 << std::endl;
+                        std::cout << "vs at ix " << ix2 << std::endl;
+                        std::cout << pos4 << std::endl;
+                        exit(1);
+                    }
+
+                    count++;
+                }
+            }
+        }
+    }    
+    std::cout << "Checked " << count << " ep positions" << std::endl;
 }
 
 void place_piece(Piece p, int* pieces1, int* pieces2) {
@@ -141,7 +222,8 @@ int main(int argc, char *argv[]) {
     init_kkx_table();
     init_tril();
     // test_index();
-    // exit(0);
+    test_ep_index();
+    exit(0);
 
 
     EGPosition pos;
@@ -155,16 +237,16 @@ int main(int argc, char *argv[]) {
     pos.put_piece(B_PAWN, SQ_D4);
     pos.put_piece(B_PAWN, SQ_F4);
 
-    // pos.do_move(Move(SQ_A2, SQ_A4));
-    // pos.do_move(Move(SQ_E2, SQ_E4));
-    pos.do_move(Move(SQ_H2, SQ_H4));
+    pos.do_move(Move(SQ_A2, SQ_A4)); // one pe
+    // pos.do_move(Move(SQ_E2, SQ_E4)); // two ep
+    // pos.do_move(Move(SQ_H2, SQ_H4)); // no ep
 
-    // std::cout << pos;
-    // for (Move m: EGMoveList<FORWARD>(pos)) {
-    //     std::cout << move_to_uci(m) << " " << int(m.type_of()>>14) << std::endl;
-    // }
+    std::cout << pos;
+    for (Move m: EGMoveList<FORWARD>(pos)) {
+        std::cout << move_to_uci(m) << " " << int(m.type_of()>>14) << std::endl;
+    }
 
-    // exit(1);
+    exit(0);
 
     assert (argc > 0);
     int nthreads = atoi(argv[1]);

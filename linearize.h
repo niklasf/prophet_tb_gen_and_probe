@@ -223,16 +223,25 @@ void pos_at_ix_kkp(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int 
 
     Color STM[12] =        {~stm,  stm, ~stm,  ~stm, ~stm,   ~stm,   ~stm,  stm,   stm,  stm,    stm,    stm};
     PieceType PIECES[12] = {PAWN, PAWN, KING, QUEEN, ROOK, BISHOP, KNIGHT, KING, QUEEN, ROOK, BISHOP, KNIGHT};
+    
+    int n_occupied_sqs = 0;
 
-    bool EP = false;
-    /*
     bool EP = ix > num_nonep_pos;
-    uint64_t ep_ix = ix % 7;
-    ix = ix / 7;
-    pos.put_piece(make_piece(~stm, PAWN), EP_PAWN[ep_ix]);
-    pos.put_piece(make_piece(stm, PAWN), EP_CAP_PAWN[ep_ix]);
-    pos.set_ep_square(EP_PAWN[ep_ix] + NORTH);
-    */
+    if (EP) {
+        ix -= num_nonep_pos;
+        uint64_t ep_ix = ix % 7;
+        ix = ix / 7;
+        Square ep_pawn = EP_PAWN[ep_ix] ^ flip;
+        Square ep_cap_pawn = EP_CAP_PAWN[ep_ix] ^ flip;
+        pos.put_piece(make_piece(~stm, PAWN), ep_pawn);
+        pos.put_piece(make_piece(stm, PAWN), ep_cap_pawn);
+        pos.set_ep_square((EP_PAWN[ep_ix] + NORTH) ^ flip);
+        occupied_sqs[0] = ep_pawn;
+        occupied_sqs[1] = ep_cap_pawn;
+        n_occupied_sqs += 2;
+        // std::cout << "ep_ix: " << ep_ix << ", ep_pawn_sq: " << square_to_uci(ep_pawn) << ", ep_cap_pawn: " << square_to_uci(ep_cap_pawn) << std::endl;
+    }
+    
 
     for (int j = 0; j < 12; j++) {
         Color c = STM[j];
@@ -249,7 +258,6 @@ void pos_at_ix_kkp(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int 
         if (total_piece_count >= 6) { std::cout << "More than 6 pieces not supported!\n"; assert(false); }
     }
 
-    int n_occupied_sqs = 0;
 
     int sqs_ixs[4];
 
@@ -475,41 +483,47 @@ uint64_t ix_from_pos_kkp(EGPosition const &pos, uint64_t num_nonep_pos) {
     int n_occupied_sqs = 0;
 
     bool EP = pos.ep_square() != SQ_NONE;
-    Square ep_cap_pawn;
+    Square ep_pawn_sq;
+    Square ep_cap_pawn_sq;
     if (EP) {
-        /*
         ix += num_nonep_pos;
 
-
         Square ep_sq = pos.ep_square() ^ flip;
-        if (ep_sq >= SQ_E5) {
+        if (ep_sq & RightHalfBB) {
             flip ^= 7;
             ep_sq = ep_sq ^ 7;
-            is_horizontal_symmetric = false;
         }
+        is_horizontal_symmetric = false;
+
+        ep_pawn_sq = ((pos.ep_square()) ^ flip) - NORTH;
+
         Bitboard pieceBB = pos.pieces(stm, PAWN);
         assert (pieceBB);
-        Bitboard transformed_bb = maybe_update_flip_and_transform_bb(pieceBB, is_horizontal_symmetric, flip) & attacks_bb<PAWN>(ep_sq, ~stm);
-        ep_cap_pawn = pop_lsb(transformed_bb);
-
-        uint64_t ep_ix = EP_IX[ep_sq - SQ_A5][ep_cap_pawn - ep_sq + 1];
-        ix += ep_ix;
-        multiplier *= 7;
+        Bitboard transformed_bb = maybe_update_flip_and_transform_bb(pieceBB, is_horizontal_symmetric, flip) & attacks_bb<PAWN>(ep_sq, BLACK);
+        ep_cap_pawn_sq = pop_lsb(transformed_bb);
 
         first_pawn = false;
         n_available_pawn_squares -= 2,
         n_available_squares -= 2;
-        occupied_sqs[0] = pos.ep_square() + NORTH;
-        occupied_sqs[1] = ep_cap_pawn;
+        occupied_sqs[0] = ep_pawn_sq;
+        occupied_sqs[1] = ep_cap_pawn_sq;
         n_occupied_sqs += 2;
-        */
+
+
+        uint64_t ep_ix = EP_IX[ep_sq - SQ_A6][ep_cap_pawn_sq - ep_pawn_sq + 1];
+        ix += ep_ix;
+        multiplier *= 7;
+
+
+        // std::cout << "ep_sq: " << square_to_uci(ep_sq) << ", ep_pawn_sq: " << square_to_uci(ep_pawn_sq) << ", ep_cap_pawn: " << square_to_uci(ep_cap_pawn_sq);
+        // std::cout << ", i: "<< ep_sq - SQ_A6 << ", j: " << ep_cap_pawn_sq - ep_pawn_sq + 1 <<  ", ep_ix: " << ep_ix << std::endl;
     }
 
     for (Color c: {~stm, stm}) {
         Bitboard pieceBB = pos.pieces(c, PAWN);
         if (pieceBB) {
             Bitboard transformed_bb = maybe_update_flip_and_transform_bb(pieceBB, is_horizontal_symmetric, flip);
-            if (EP) transformed_bb = transformed_bb & ~(square_bb(pos.ep_square() + NORTH) | square_bb(ep_cap_pawn));
+            if (EP) transformed_bb = transformed_bb & ~(square_bb(ep_pawn_sq) | square_bb(ep_cap_pawn_sq));
             int n_sq_ixs = 0;
             int piece_count = 0;
             while (transformed_bb) {
@@ -548,7 +562,6 @@ uint64_t ix_from_pos_kkp(EGPosition const &pos, uint64_t num_nonep_pos) {
         }
     }
 
-
     for (Color c: {~stm, stm}) {
         for (PieceType p: {KING, QUEEN, ROOK, BISHOP, KNIGHT}) {
             Bitboard pieceBB = pos.pieces(c, p);
@@ -568,6 +581,9 @@ uint64_t ix_from_pos_kkp(EGPosition const &pos, uint64_t num_nonep_pos) {
             }
         }
     }
+    
+    // std::cout << ix << " " << std::max(ix, num_nonep_pos) - num_nonep_pos << std::endl;
+
     return ix;
 }
 
@@ -597,7 +613,18 @@ void transform_to_canoncial(const EGPosition &pos, EGPosition &pos2) {
     if (!has_pawns) {
         flip = ((orig_ktm_sq & RightHalfBB) ? 7 : 0) ^ ((orig_ktm_sq & TopHalfBB) ? 56 : 0);
     } else {
-        flip = stm == BLACK ? 56 : 0;
+        flip = 0; 
+        // do not use stm == BLACK ? 56 : 0;
+        // pos_at_ix flips back such that black pawns move south, internally a black pawn moving south is equivalent to a white pawn moving up
+        if (pos.ep_square() != SQ_NONE) {
+            Square ep_sq = pos.ep_square() ^ flip;
+            if (ep_sq & RightHalfBB) {
+                flip ^= 7;
+                ep_sq = ep_sq ^ 7;
+                is_horizontal_symmetric = false;
+            }
+            pos2.set_ep_square(ep_sq);
+        }
         for (Color c: {~stm, stm}) {
             Bitboard transformedBB = maybe_update_flip_and_transform_bb(pos.pieces(c, PAWN), is_horizontal_symmetric, flip);
             while (transformedBB) {

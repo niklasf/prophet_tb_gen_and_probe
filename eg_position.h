@@ -210,9 +210,13 @@ inline void EGPosition::move_piece(Square from, Square to) {
 }
 
 inline bool EGPosition::check_ep(Square ep_sq) const {
-    Color  us       = sideToMove;
+    Color  us       = ~sideToMove;
     Color  them     = ~us;
     Square to = ep_sq + pawn_push(us);
+
+    if (piece_on(to) != make_piece(us, PAWN)) {
+        return false;
+    }
 
     Bitboard pawns = attacks_bb<PAWN>(ep_sq, us) & pieces(them, PAWN);
     if (!pawns)
@@ -260,6 +264,8 @@ inline PieceType EGPosition::do_move(Move m) {
         put_piece(make_piece(us,m.promotion_type()), to);
     }
 
+    sideToMove = ~sideToMove;
+
     if (type_of(pc) == PAWN){
         bool checkEP = ((int(to) ^ int(from)) == 16);
         if (checkEP && check_ep(to - pawn_push(us))) {
@@ -267,7 +273,6 @@ inline PieceType EGPosition::do_move(Move m) {
         }
     }
 
-    sideToMove = ~sideToMove;
 
     return type_of(captured);
 }
