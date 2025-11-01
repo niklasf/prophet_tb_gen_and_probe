@@ -87,6 +87,29 @@ void store_egtb(EGTB* egtb, std::string folder) {
     }
 }
 
+void zip_egtb(EGTB* egtb, std::string folder) {
+    std::string filename = folder + egtb->id + ".egtb";
+    std::string cmd = "zip -m " + filename + ".zip " + filename;
+    system(cmd.c_str());
+}
+
+void unzip_egtb(EGTB* egtb, std::string folder) {
+    std::string filename = folder + egtb->id + ".egtb.zip";
+    std::string cmd = "unzip -n " + filename;
+    system(cmd.c_str());
+}
+
+void rm_unzipped_egtb(EGTB* egtb, std::string folder) {
+    std::string filename = folder + egtb->id + ".egtb";
+    std::string cmd = "rm " + filename;
+    system(cmd.c_str());
+}
+void rm_all_unzipped_egtbs(std::string folder) {
+    std::string filename = folder + "*.egtb";
+    std::string cmd = "rm " + filename;
+    system(cmd.c_str());
+}
+
 void store_egtb_8bit(EGTB* egtb, std::string folder) {
     std::string filename = folder + egtb->id + ".egtb";
     std::ofstream outputFileStream;
@@ -175,6 +198,7 @@ void load_egtb(EGTB* egtb, std::string folder, bool mmap) {
         load_egtb_in_memory(egtb, folder);
 }
 
+
 void free_egtb(EGTB* egtb) {
     if (egtb->mmaped)
         free_egtb_mmap(egtb);
@@ -182,11 +206,24 @@ void free_egtb(EGTB* egtb) {
         free_egtb_in_memory(egtb);
 }
 
+bool egtb_exists_zipped(EGTB* egtb, std::string folder) {
+    std::string filename = folder + egtb->id + ".egtb.zip";
+    return std::ifstream(filename).good();
+}
+
+bool egtb_exists_unzipped(EGTB* egtb, std::string folder) {
+    std::string filename = folder + egtb->id + ".egtb";
+    return std::ifstream(filename).good();
+}
 
 bool egtb_exists(EGTB* egtb, std::string folder) {
-    std::string filename = folder + egtb->id + ".egtb";
-    std::ifstream inputFileStream = std::ifstream(filename);
-    return inputFileStream.good();
+    return egtb_exists_unzipped(egtb, folder) || egtb_exists_zipped(egtb, folder);
+}
+
+void unzip_and_load_egtb(EGTB* egtb, std::string folder, bool mmap) {
+    if (!egtb_exists_unzipped(egtb, folder))
+        unzip_egtb(egtb, folder);
+    load_egtb(egtb, folder, mmap);
 }
 
 class GenEGTB {
@@ -203,8 +240,10 @@ class GenEGTB {
 
     bool allocated;
 
+    bool zip;
+
 public:
-    GenEGTB(int wpieces[6], int bpieces[6], std::string folder) {
+    GenEGTB(int wpieces[6], int bpieces[6], std::string folder, bool zip) {
         // std::cout << "GenEGTB\n";
         this->folder = folder;
         this->n_pieces = 0;
@@ -225,6 +264,8 @@ public:
         this->BTM_EGTB = new EGTB(bpieces, wpieces);
 
         allocated = false;
+
+        this->zip = zip;
     }
     void allocate_and_load();
 
@@ -274,14 +315,14 @@ void GenEGTB::allocate_and_load() {
     for (PieceType capture_pt = PAWN; capture_pt <= QUEEN; ++capture_pt) {
         if (wpieces[capture_pt] > 0) {
             wpieces[capture_pt]--;
-            EGTB* egtb = new EGTB(wpieces, bpieces); load_egtb(egtb, folder, true);
+            EGTB* egtb = new EGTB(wpieces, bpieces); unzip_and_load_egtb(egtb, folder, true);
             std::cout << "Loaded " << egtb->id << " for white " << PieceToChar[capture_pt] << " captured, white to move" << std::endl;
             this->WTM_EGTBs[NO_PIECE_TYPE][capture_pt] = egtb;
             wpieces[capture_pt]++;
         }
         if (bpieces[capture_pt] > 0) {
             bpieces[capture_pt]--;
-            EGTB* egtb = new EGTB(bpieces, wpieces); load_egtb(egtb, folder, true); 
+            EGTB* egtb = new EGTB(bpieces, wpieces); unzip_and_load_egtb(egtb, folder, true); 
             std::cout << "Loaded " << egtb->id << " for black " << PieceToChar[capture_pt] << " captured, black to move"  << std::endl;
             this->BTM_EGTBs[NO_PIECE_TYPE][capture_pt] = egtb;
             bpieces[capture_pt]++;
@@ -293,7 +334,7 @@ void GenEGTB::allocate_and_load() {
         if (bpieces[PAWN] > 0) {
             bpieces[PAWN]--;
             bpieces[promote_pt]++;
-            EGTB* egtb = new EGTB(wpieces, bpieces); load_egtb(egtb, folder, true);
+            EGTB* egtb = new EGTB(wpieces, bpieces); unzip_and_load_egtb(egtb, folder, true);
             std::cout << "Loaded " << egtb->id << " for black promotion to " << PieceToChar[promote_pt] << ", white to move" << std::endl;
             this->WTM_EGTBs[promote_pt][NO_PIECE_TYPE] = egtb;
             bpieces[PAWN]++;
@@ -302,7 +343,7 @@ void GenEGTB::allocate_and_load() {
         if (wpieces[PAWN] > 0) {
             wpieces[PAWN]--;
             wpieces[promote_pt]++;
-            EGTB* egtb = new EGTB(bpieces, wpieces); load_egtb(egtb, folder, true); 
+            EGTB* egtb = new EGTB(bpieces, wpieces); unzip_and_load_egtb(egtb, folder, true); 
             std::cout << "Loaded " << egtb->id << " for white promotion to " << PieceToChar[promote_pt] << ", black to move" << std::endl;
             this->BTM_EGTBs[promote_pt][NO_PIECE_TYPE] = egtb;
             wpieces[PAWN]++;
@@ -317,7 +358,7 @@ void GenEGTB::allocate_and_load() {
                 wpieces[capture_pt]--;
                 bpieces[PAWN]--;
                 bpieces[promote_pt]++;
-                EGTB* egtb = new EGTB(wpieces, bpieces); load_egtb(egtb, folder, true);
+                EGTB* egtb = new EGTB(wpieces, bpieces); unzip_and_load_egtb(egtb, folder, true);
                 std::cout << "Loaded " << egtb->id << " for white " << PieceToChar[capture_pt] << " captured with black promotion to " << PieceToChar[promote_pt] << ", white to move" << std::endl;
                 this->WTM_EGTBs[promote_pt][capture_pt] = egtb;
                 wpieces[capture_pt]++;
@@ -328,7 +369,7 @@ void GenEGTB::allocate_and_load() {
                 bpieces[capture_pt]--;
                 wpieces[PAWN]--;
                 wpieces[promote_pt]++;
-                EGTB* egtb = new EGTB(bpieces, wpieces); load_egtb(egtb, folder, true); 
+                EGTB* egtb = new EGTB(bpieces, wpieces); unzip_and_load_egtb(egtb, folder, true); 
                 std::cout << "Load " << egtb->id << " for black " << PieceToChar[capture_pt] << " captured with white promotion to " << PieceToChar[promote_pt] << ", black to move" << std::endl;
                 this->BTM_EGTBs[promote_pt][capture_pt] = egtb;
                 bpieces[capture_pt]++;
@@ -785,6 +826,15 @@ void GenEGTB::gen(int nthreads) {
     store_egtb(WTM_EGTB, folder);
     store_egtb(BTM_EGTB, folder);
     std::cout << "Stored " << WTM_EGTB->id << " and " << BTM_EGTB->id << std::endl;
+
+    if (zip) {
+        zip_egtb(WTM_EGTB, folder);
+        zip_egtb(BTM_EGTB, folder);
+
+        std::cout << "Zipped " << WTM_EGTB->id << ".zip and " << BTM_EGTB->id << ".zip" << std::endl;
+
+        rm_all_unzipped_egtbs(folder);
+    }
 }
 
 #endif

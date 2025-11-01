@@ -405,7 +405,7 @@ int main(int argc, char *argv[]) {
                         auto p = egtbs.insert(id);
 
                         if (p.second) { // true if inserted
-                            g = new GenEGTB(&pieces1[0], &pieces2[0], "egtbs/");
+                            g = new GenEGTB(&pieces1[0], &pieces2[0], "egtbs/", true);
                             g->gen(nthreads);
                             g->~GenEGTB();
 
@@ -413,15 +413,16 @@ int main(int argc, char *argv[]) {
                                 std::cout << id << ": ";
                                 
                                 EGTB egtb = EGTB(&pieces1[0], &pieces2[0]);
-                                load_egtb(&egtb, "egtbs/", true);
+                                unzip_and_load_egtb(&egtb, "egtbs/", true);
 
                                 int16_t longest_mate = WIN_IN(0) + 1;
                                 uint64_t longest_mate_ix = 0;
-                                uint64_t unused_count = 0;
                                 total_poscount += egtb.num_pos;
+                                bool corrupt = false;
                                 for (uint64_t win_ix = 0; win_ix < egtb.num_pos; win_ix++) {
                                     int16_t val = egtb.TB[win_ix];
-                                    assert (IS_SET(val));
+                                    if (!(IS_SET(val))) { std::cout << "CORRUPT: " << win_ix << ": " << val << std::endl; corrupt = true; };
+                                    // if (id == "KNPKQ" && win_ix == 289181868) { std::cout << "CORRUPT: " << win_ix << ": " << val << std::endl; corrupt = true; };
                                     if (val == 0) {
                                         val_count[0]++;
                                     } else {
@@ -432,6 +433,7 @@ int main(int argc, char *argv[]) {
                                         longest_mate_ix = win_ix;
                                     }
                                 }
+                                if (corrupt) exit(1);
 
                                 if (longest_mate == WIN_IN(0) + 1) {
                                     std::cout << "no win." << std::endl;
@@ -449,12 +451,15 @@ int main(int argc, char *argv[]) {
                                     }
                                     std::cout << std::endl;
                                 }
-                                std::cout << "#unused " << unused_count << " (" << (double) unused_count / egtb.num_pos * 100 << "%)" << std::endl;
 
-                                if (!egtb_exists(&egtb, "egtbs8/")) {
-                                    store_egtb_8bit(&egtb, "egtbs8/");
-                                }
+                                // if (!egtb_exists(&egtb, "egtbs8/")) {
+                                //     store_egtb_8bit(&egtb, "egtbs8/");
+                                // }
+
                                 free_egtb(&egtb);
+
+                                if (egtb_exists_zipped(&egtb, "egtbs/"))
+                                    rm_unzipped_egtb(&egtb, "egtbs/"); // TODO: add full path to egtb
                             }
                         }
 
