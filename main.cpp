@@ -377,96 +377,132 @@ int main(int argc, char *argv[]) {
     int16_t longest_overall_mate = WIN_IN(0) + 1;
     std::string longest_overall_mate_str;
     bool check_longest_mate = true;
+    bool generate_missing = true;
 
     std::unordered_set<std::string> egtbs = {};
     
     uint64_t val_count[512] = {0};
     uint64_t total_poscount = 0;
 
-    for (int piece_count = 0; piece_count <= 3; piece_count++) {
-        for (int pawn_count = 0; pawn_count <= piece_count; pawn_count++ ) {
+    int MIN_PIECE_COUNT = 4;
+    int MAX_PIECE_COUNT = 4;
+
+    int MIN_PAWN_COUNT = 0;
+    int MAX_PAWN_COUNT = 0;
+
+    for (int piece_count = MIN_PIECE_COUNT; piece_count <= MAX_PIECE_COUNT; piece_count++) {
+        for (int pawn_count = MIN_PAWN_COUNT; pawn_count <= std::min(piece_count,MAX_PAWN_COUNT); pawn_count++ ) {
             for (Piece p1 : PIECES_ARR) {
                 for (Piece p2 : PIECES_ARR) {
                     for (Piece p3 : PIECES_ARR) {
-                        if ((p1 != NO_PIECE) + (p2 != NO_PIECE) + (p3 != NO_PIECE) != piece_count) continue;
-                        if ((piece_count == 0) && (p1 != NO_PIECE) + (p2 != NO_PIECE) + (p3 != NO_PIECE) > 0) continue;
-                        if ((piece_count == 1) && (p2 != NO_PIECE) + (p3 != NO_PIECE) > 0) continue;
-                        if ((piece_count == 2) && (p3 != NO_PIECE) > 0) continue;
+                        for (Piece p4 : PIECES_ARR) {
+                            if ((p1 != NO_PIECE) + (p2 != NO_PIECE) + (p3 != NO_PIECE) + (p4 != NO_PIECE) != piece_count) continue;
+                            if ((piece_count == 0) && (p1 != NO_PIECE) + (p2 != NO_PIECE) + (p3 != NO_PIECE) + (p4 != NO_PIECE) > 0) continue;
+                            if ((piece_count == 1) && (p2 != NO_PIECE) + (p3 != NO_PIECE) + (p4 != NO_PIECE) > 0) continue;
+                            if ((piece_count == 2) && (p3 != NO_PIECE) + (p4 != NO_PIECE) > 0) continue;
+                            if ((piece_count == 3) && (p4 != NO_PIECE) > 0) continue;
 
-                        if ((type_of(p1) == PAWN) + (type_of(p2) == PAWN) + (type_of(p3) == PAWN) != pawn_count) {
-                            continue;
-                        }
-
-                        if (p1 != NO_PIECE) place_piece(p1, &pieces1[0], &pieces2[0]);
-                        if (p2 != NO_PIECE) place_piece(p2, &pieces1[0], &pieces2[0]);
-                        if (p3 != NO_PIECE) place_piece(p3, &pieces1[0], &pieces2[0]);
-
-                        std::string id = get_egtb_identifier(&pieces1[0], &pieces2[0]);
-                        auto p = egtbs.insert(id);
-
-                        if (p.second) { // true if inserted
-                            g = new GenEGTB(&pieces1[0], &pieces2[0], "egtbs/", true);
-                            g->gen(nthreads);
-                            g->~GenEGTB();
-
-                            if (check_longest_mate) {
-                                std::cout << id << ": ";
-                                
-                                EGTB egtb = EGTB(&pieces1[0], &pieces2[0]);
-                                unzip_and_load_egtb(&egtb, "egtbs/", true);
-
-                                int16_t longest_mate = WIN_IN(0) + 1;
-                                uint64_t longest_mate_ix = 0;
-                                total_poscount += egtb.num_pos;
-                                bool corrupt = false;
-                                for (uint64_t win_ix = 0; win_ix < egtb.num_pos; win_ix++) {
-                                    int16_t val = egtb.TB[win_ix];
-                                    if (!(IS_SET(val))) { std::cout << "CORRUPT: " << win_ix << ": " << val << std::endl; corrupt = true; };
-                                    // if (id == "KNPKQ" && win_ix == 289181868) { std::cout << "CORRUPT: " << win_ix << ": " << val << std::endl; corrupt = true; };
-                                    if (val == 0) {
-                                        val_count[0]++;
-                                    } else {
-                                        val_count[WIN_IN(0) - abs(val) + 1]++;
-                                    }
-                                    if (0 < val && val < longest_mate) {
-                                        longest_mate = val;
-                                        longest_mate_ix = win_ix;
-                                    }
-                                }
-                                if (corrupt) exit(1);
-
-                                if (longest_mate == WIN_IN(0) + 1) {
-                                    std::cout << "no win." << std::endl;
-                                } else {
-                                    pos.reset();
-                                    pos_at_ix(pos, longest_mate_ix, WHITE, &pieces1[0], &pieces2[0], egtb.num_nonep_pos, egtb.num_nonep_pos);
-                                    std::cout << pos.fen() << " " << WIN_IN(0) - egtb.TB[longest_mate_ix];
-                                    if (longest_mate < longest_overall_mate) {
-                                        longest_overall_mate = longest_mate;
-                                        std::cout << "*";
-
-                                        std::ostringstream oss;
-                                        oss << get_egtb_identifier(&pieces1[0], &pieces2[0]) << ": " << pos.fen() << " " << WIN_IN(0) - egtb.TB[longest_mate_ix];
-                                        longest_overall_mate_str = oss.str();
-                                    }
-                                    std::cout << std::endl;
-                                }
-
-                                // if (!egtb_exists(&egtb, "egtbs8/")) {
-                                //     store_egtb_8bit(&egtb, "egtbs8/");
-                                // }
-
-                                free_egtb(&egtb);
-
-                                if (egtb_exists_zipped(&egtb, "egtbs/"))
-                                    rm_unzipped_egtb(&egtb, "egtbs/"); // TODO: add full path to egtb
+                            if ((type_of(p1) == PAWN) + (type_of(p2) == PAWN) + (type_of(p3) == PAWN) + (type_of(p4) == PAWN) != pawn_count) {
+                                continue;
                             }
+
+                            if (p1 != NO_PIECE) place_piece(p1, &pieces1[0], &pieces2[0]);
+                            if (p2 != NO_PIECE) place_piece(p2, &pieces1[0], &pieces2[0]);
+                            if (p3 != NO_PIECE) place_piece(p3, &pieces1[0], &pieces2[0]);
+                            if (p4 != NO_PIECE) place_piece(p4, &pieces1[0], &pieces2[0]);
+
+                            std::string id = get_egtb_identifier(&pieces1[0], &pieces2[0]);
+                            auto p = egtbs.insert(id);
+
+                            if (p.second) { // true if inserted
+                                EGTB egtb = EGTB(&pieces1[0], &pieces2[0]);
+
+                                if (generate_missing) {
+                                    g = new GenEGTB(&pieces1[0], &pieces2[0], "egtbs/", true);
+                                    g->gen(nthreads);
+                                    g->~GenEGTB();
+                                }
+
+                                check_longest_mate = (
+                                    (id == "KNKRBN") ||
+                                    (id == "KBKQRB") ||
+                                    (id == "KBKQQB") ||
+                                    (id == "KBKQQQ") ||
+                                    (id == "KRKRBN") ||
+                                    (id == "KRKQQB") ||
+                                    (id == "KKQRRR")
+                                );
+
+                                if (egtb_exists(&egtb, "egtbs/") && check_longest_mate) {
+                                    std::cout << id << ": ";
+                                    
+                                    unzip_and_load_egtb(&egtb, "egtbs/", true);
+
+                                    int16_t longest_mate = WIN_IN(0) + 1;
+                                    uint64_t longest_mate_ix = 0;
+                                    total_poscount += egtb.num_pos;
+                                    bool corrupt = false;
+                                    for (uint64_t win_ix = 0; win_ix < egtb.num_pos; win_ix++) {
+                                        int16_t val = egtb.TB[win_ix];
+                                        if (!(IS_SET(val))) { std::cout << "CORRUPT: " << win_ix << ": " << val << std::endl; corrupt = true; };
+                                        if (
+                                            (id == "KNKRBN" && win_ix == 3834976428) ||
+                                            (id == "KBKQRB" && win_ix == 787988652) ||
+                                            (id == "KBKQQB" && win_ix == 1167485100) ||
+                                            (id == "KBKQQQ" && win_ix == 120180908) ||
+                                            (id == "KRKRBN" && win_ix == 2460803244) ||
+                                            (id == "KRKQQB" && win_ix == 2381426860) ||
+                                            (id == "KKQRRR" && win_ix == 72179884)
+                                        ) {
+                                            std::cout << "PREV CORRUPT: " << win_ix << ": " << val << std::endl; corrupt = true;
+                                        };
+                                        if (val == 0) {
+                                            val_count[0]++;
+                                        } else {
+                                            val_count[WIN_IN(0) - abs(val) + 1]++;
+                                        }
+                                        if (0 < val && val < longest_mate) {
+                                            longest_mate = val;
+                                            longest_mate_ix = win_ix;
+                                        }
+                                    }
+                                    if (!corrupt) {
+                                        if (longest_mate == WIN_IN(0) + 1) {
+                                            std::cout << "no win." << std::endl;
+                                        } else {
+                                            pos.reset();
+                                            pos_at_ix(pos, longest_mate_ix, WHITE, &pieces1[0], &pieces2[0], egtb.num_nonep_pos, egtb.num_nonep_pos);
+                                            std::cout << pos.fen() << " " << WIN_IN(0) - egtb.TB[longest_mate_ix];
+                                            if (longest_mate < longest_overall_mate) {
+                                                longest_overall_mate = longest_mate;
+                                                std::cout << "*";
+
+                                                std::ostringstream oss;
+                                                oss << get_egtb_identifier(&pieces1[0], &pieces2[0]) << ": " << pos.fen() << " " << WIN_IN(0) - egtb.TB[longest_mate_ix];
+                                                longest_overall_mate_str = oss.str();
+                                            }
+                                            std::cout << std::endl;
+                                        }
+                                    }
+
+
+                                    // if (!egtb_exists(&egtb, "egtbs8/")) {
+                                    //     store_egtb_8bit(&egtb, "egtbs8/");
+                                    // }
+
+                                    free_egtb(&egtb);
+
+                                    if (egtb_exists_zipped(&egtb, "egtbs/"))
+                                        rm_unzipped_egtb(&egtb, "egtbs/"); // TODO: add full path to egtb
+                                }
+                            }
+
+                            if (p1 != NO_PIECE) unplace_piece(p1, &pieces1[0], &pieces2[0]);
+                            if (p2 != NO_PIECE) unplace_piece(p2, &pieces1[0], &pieces2[0]);
+                            if (p3 != NO_PIECE) unplace_piece(p3, &pieces1[0], &pieces2[0]);
+                            if (p4 != NO_PIECE) unplace_piece(p4, &pieces1[0], &pieces2[0]);
+
                         }
-
-                        if (p1 != NO_PIECE) unplace_piece(p1, &pieces1[0], &pieces2[0]);
-                        if (p2 != NO_PIECE) unplace_piece(p2, &pieces1[0], &pieces2[0]);
-                        if (p3 != NO_PIECE) unplace_piece(p3, &pieces1[0], &pieces2[0]);
-
                     }
                 }
             }

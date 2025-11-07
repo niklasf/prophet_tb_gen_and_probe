@@ -1,0 +1,249 @@
+init_kkx_table count: 3612
+KNNNNK and KKNNNN already exist.
+KBNNNK and KKBNNN already exist.
+KRNNNK and KKRNNN already exist.
+KQNNNK and KKQNNN already exist.
+KNNNKN and KNKNNN already exist.
+KNNNKB and KBKNNN already exist.
+KNNNKR and KRKNNN already exist.
+KNNNKQ and KQKNNN already exist.
+KBBNNK and KKBBNN already exist.
+KRBNNK and KKRBNN already exist.
+KQBNNK and KKQBNN already exist.
+KBNNKN and KNKBNN already exist.
+KBNNKB and KBKBNN already exist.
+KBNNKR and KRKBNN already exist.
+KBNNKQ and KQKBNN already exist.
+KRRNNK and KKRRNN already exist.
+KQRNNK and KKQRNN already exist.
+KRNNKN and KNKRNN already exist.
+KRNNKB and KBKRNN already exist.
+KRNNKR and KRKRNN already exist.
+KRNNKQ and KQKRNN already exist.
+KQQNNK and KKQQNN already exist.
+KQNNKN and KNKQNN already exist.
+KQNNKB and KBKQNN already exist.
+KQNNKR and KRKQNN already exist.
+KQNNKQ and KQKQNN already exist.
+KNNKNN and KNNKNN already exist.
+KNNKBN and KBNKNN already exist.
+KNNKRN and KRNKNN already exist.
+KNNKQN and KQNKNN already exist.
+KNNKBB and KBBKNN already exist.
+KNNKRB and KRBKNN already exist.
+KNNKQB and KQBKNN already exist.
+KNNKRR and KRRKNN already exist.
+KNNKQR and KQRKNN already exist.
+KNNKQQ and KQQKNN already exist.
+KBBBNK and KKBBBN already exist.
+KRBBNK and KKRBBN already exist.
+KQBBNK and KKQBBN already exist.
+KBBNKN and KNKBBN already exist.
+KBBNKB and KBKBBN already exist.
+KBBNKR and KRKBBN already exist.
+KBBNKQ and KQKBBN already exist.
+KRRBNK and KKRRBN already exist.
+KQRBNK and KKQRBN already exist.
+KRBNKN and KNKRBN already exist.
+KRBNKB and KBKRBN already exist.
+KRBNKR and KRKRBN already exist.
+KRBNKQ and KQKRBN already exist.
+KQQBNK and KKQQBN already exist.
+KQBNKN and KNKQBN already exist.
+KQBNKB and KBKQBN already exist.
+KQBNKR and KRKQBN already exist.
+KQBNKQ and KQKQBN already exist.
+KBNKNN and KNNKBN already exist.
+KBNKBN and KBNKBN already exist.
+KBNKRN and KRNKBN already exist.
+KBNKQN and KQNKBN already exist.
+KBNKBB and KBBKBN already exist.
+KBNKRB and KRBKBN already exist.
+KBNKQB and KQBKBN already exist.
+KBNKRR and KRRKBN already exist.
+KBNKQR and KQRKBN already exist.
+KBNKQQ and KQQKBN already exist.
+KRRRNK and KKRRRN already exist.
+KQRRNK and KKQRRN already exist.
+KRRNKN and KNKRRN already exist.
+KRRNKB and KBKRRN already exist.
+KRRNKR and KRKRRN already exist.
+KRRNKQ and KQKRRN already exist.
+KQQRNK and KKQQRN already exist.
+KQRNKN and KNKQRN already exist.
+KQRNKB and KBKQRN already exist.
+KQRNKR and KRKQRN already exist.
+KQRNKQ and KQKQRN already exist.
+KRNKNN and KNNKRN already exist.
+KRNKBN and KBNKRN already exist.
+KRNKRN and KRNKRN already exist.
+KRNKQN and KQNKRN already exist.
+KRNKBB and KBBKRN already exist.
+KRNKRB and KRBKRN already exist.
+KRNKQB and KQBKRN already exist.
+KRNKRR and KRRKRN already exist.
+KRNKQR and KQRKRN already exist.
+KRNKQQ and KQQKRN already exist.
+KQQQNK and KKQQQN already exist.
+KQQNKN and KNKQQN already exist.
+KQQNKB and KBKQQN already exist.
+KQQNKR and KRKQQN already exist.
+KQQNKQ and KQKQQN already exist.
+KQNKNN and KNNKQN already exist.
+KQNKBN and KBNKQN already exist.
+KQNKRN and KRNKQN already exist.
+KQNKQN and KQNKQN already exist.
+KQNKBB and KBBKQN already exist.
+KQNKRB and KRBKQN already exist.
+KQNKQB and KQBKQN already exist.
+KQNKRR and KRRKQN already exist.
+KQNKQR and KQRKQN already exist.
+KQNKQQ and KQQKQN already exist.
+KNKNNN and KNNNKN already exist.
+KNKBNN and KBNNKN already exist.
+KNKRNN and KRNNKN already exist.
+KNKQNN and KQNNKN already exist.
+KNKBBN and KBBNKN already exist.
+KNKRBN and KRBNKN already exist.
+Archive:  egtbs/KNKRBN.egtb.zip
+  inflating: egtbs/KNKRBN.egtb       
+KNKRBN: PREV CORRUPT: 3834976428: -980
+KNKQBN and KQBNKN already exist.
+KNKRRN and KRRNKN already exist.
+KNKQRN and KQRNKN already exist.
+KNKQQN and KQQNKN already exist.
+KNKBBB and KBBBKN already exist.
+KNKRBB and KRBBKN already exist.
+KNKQBB and KQBBKN already exist.
+KNKRRB and KRRBKN already exist.
+KNKQRB and KQRBKN already exist.
+KNKQQB and KQQBKN already exist.
+KNKRRR and KRRRKN already exist.
+KNKQRR and KQRRKN already exist.
+KNKQQR and KQQRKN already exist.
+KNKQQQ and KQQQKN already exist.
+KBBBBK and KKBBBB already exist.
+KRBBBK and KKRBBB already exist.
+KQBBBK and KKQBBB already exist.
+KBBBKN and KNKBBB already exist.
+KBBBKB and KBKBBB already exist.
+KBBBKR and KRKBBB already exist.
+KBBBKQ and KQKBBB already exist.
+KRRBBK and KKRRBB already exist.
+KQRBBK and KKQRBB already exist.
+KRBBKN and KNKRBB already exist.
+KRBBKB and KBKRBB already exist.
+KRBBKR and KRKRBB already exist.
+KRBBKQ and KQKRBB already exist.
+KQQBBK and KKQQBB already exist.
+KQBBKN and KNKQBB already exist.
+KQBBKB and KBKQBB already exist.
+KQBBKR and KRKQBB already exist.
+KQBBKQ and KQKQBB already exist.
+KBBKNN and KNNKBB already exist.
+KBBKBN and KBNKBB already exist.
+KBBKRN and KRNKBB already exist.
+KBBKQN and KQNKBB already exist.
+KBBKBB and KBBKBB already exist.
+KBBKRB and KRBKBB already exist.
+KBBKQB and KQBKBB already exist.
+KBBKRR and KRRKBB already exist.
+KBBKQR and KQRKBB already exist.
+KBBKQQ and KQQKBB already exist.
+KRRRBK and KKRRRB already exist.
+KQRRBK and KKQRRB already exist.
+KRRBKN and KNKRRB already exist.
+KRRBKB and KBKRRB already exist.
+KRRBKR and KRKRRB already exist.
+KRRBKQ and KQKRRB already exist.
+KQQRBK and KKQQRB already exist.
+KQRBKN and KNKQRB already exist.
+Generate 6185385360 KQRBKB and 6185385360 KBKQRB
+White pieces: KQRB
+Black pieces: KB
+Loaded KQRKB for white B captured, white to move
+Loaded KKQRB for black B captured, black to move
+Loaded KQBKB for white R captured, white to move
+Loaded KRBKB for white Q captured, white to move
+Stats for KBKQRB:
+    # Non-EP positions: 6185385360 (100%)
+    # EP positions: 0 (0%)
+    Checkmate count: 100330750 (1.62206%)
+    913921956 unused indices (14.7755%)
+    788896182 of which sntm in check (12.7542%)
+Stats for KQRBKB:
+    # Non-EP positions: 6185385360 (100%)
+    # EP positions: 0 (0%)
+    Checkmate count: 5095 (8.23716e-05%)
+    3392641354 unused indices (54.8493%)
+    3325659728 of which sntm in check (53.7664%)
+MIN_LEVEL = 60
+349496803 positions at level 1
+228883357 positions at level 2
+577874355 positions at level 3
+492707599 positions at level 4
+880761004 positions at level 5
+1015871884 positions at level 6
+LEVEL=7, LOSS_EGTB->TB[maybe_loss_ix]=-15090
+ +---+---+---+---+---+---+---+---+
+ |   |   |   |   |   |   |   |   | 8
+ +---+---+---+---+---+---+---+---+
+ |   |   |   |   |   |   | b |   | 7
+ +---+---+---+---+---+---+---+---+
+ |   |   |   |   |   |   |   |   | 6
+ +---+---+---+---+---+---+---+---+
+ |   | k | B |   |   |   |   |   | 5
+ +---+---+---+---+---+---+---+---+
+ |   |   |   |   |   |   |   |   | 4
+ +---+---+---+---+---+---+---+---+
+ |   |   |   |   |   |   |   |   | 3
+ +---+---+---+---+---+---+---+---+
+ |   |   | Q |   |   |   |   |   | 2
+ +---+---+---+---+---+---+---+---+
+ |   | K |   | R |   |   |   |   | 1
+ +---+---+---+---+---+---+---+---+
+   a   b   c   d   e   f   g   h    STM: WHITE - 
+8/6b1/8/1kB5/8/8/2Q5/1K1R4 w - - 
+  c5g1 -10992 at ix: 4807589857
+  c5f2 -10992 at ix: 4687027261
+  c5a3 -10992 at ix: 4622377753
+  c5e3 -10992 at ix: 4671301705
+  c5b4 -10992 at ix: 4632861457
+  c5d4 -10992 at ix: 4657323433
+  c5b6 -10992 at ix: 4631114173
+  c5d6 1110 at ix: 4653828865
+  c5a7 1110 at ix: 4615388617
+  c5e7 1110 at ix: 4664312569
+  c5f8 -10990 at ix: 4676543557
+  d1c1 -10992 at ix: 4643116009
+  d1e1 -10992 at ix: 4643574313
+  d1f1 -10992 at ix: 4643803465
+  d1g1 -10992 at ix: 4748869657
+  d1h1 -10992 at ix: 4749098809
+  d1d2 -10992 at ix: 4643316517
+  d1d3 -10992 at ix: 4643287873
+  d1d4 -10992 at ix: 4643259229
+  d1d5 1110 at ix: 4643230585
+  d1d6 -994 at ix: 4643201941
+  d1d7 1110 at ix: 4643173297
+  d1d8 1110 at ix: 4643144653
+  c2c1 -10992 at ix: 4643345623
+  c2a2 -10990 at ix: 4641591409
+  c2b2 -10980 at ix: 4641594643
+  c2d2 -10990 at ix: 4643348857
+  c2e2 -10988 at ix: 4643381197
+  c2f2 -10992 at ix: 4643384893
+  c2g2 -10990 at ix: 4748225629
+  c2h2 -10990 at ix: 4748229325
+  c2b3 -10992 at ix: 4641594181
+  c2c3 -10966 at ix: 4643344699
+  c2d3 -10990 at ix: 4643348395
+  c2a4 -10968 at ix: 4641590485
+  c2c4 -10960 at ix: 4643344237
+  c2e4 -10992 at ix: 4643380273
+  c2f5 -10992 at ix: 4643383507
+  c2g6 -10990 at ix: 4748223781
+  c2h7 -10990 at ix: 4748227015
+  b1a2 -10992 at ix: 4643345155
+  b1c1 -10992 at ix: 4645092912
+INCONSISTENCY: at ix 3148887648 max_val: 10991 vs tb_val:993

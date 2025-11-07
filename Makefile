@@ -2,14 +2,15 @@
 #-NDEBUG
 # -fno-exceptions
 # -O3
+# -flto=full
 fast:
-	clang++ -g -Wall -Wcast-qual -fno-exceptions -std=c++17  -pedantic -Wextra -Wshadow -Wmissing-declarations -m64  -O2 -funroll-loops -DIS_64BIT -DUSE_POPCNT     -flto=full  -fopenmp -c -o main.o main.cpp
-	clang++ -g -o main bitboard.o main.o uci.o -m64 -lpthread  -Wall -Wcast-qual -fno-exceptions -std=c++17  -pedantic -Wextra -Wshadow -Wmissing-declarations -m64  -DNDEBUG -O2 -funroll-loops -DIS_64BIT -DUSE_POPCNT     -flto=full   -fopenmp
+	g++ -g -Wall -Wcast-qual -fno-exceptions -std=c++17  -pedantic -Wextra -Wshadow -Wmissing-declarations -m64  -O2 -funroll-loops -DIS_64BIT -DUSE_POPCNT       -fopenmp -c -o main.o main.cpp
+	g++ -g -o main bitboard.o main.o uci.o -m64 -lpthread  -Wall -Wcast-qual -fno-exceptions -std=c++17  -pedantic -Wextra -Wshadow -Wmissing-declarations -m64  -DNDEBUG -O2 -funroll-loops -DIS_64BIT -DUSE_POPCNT      -fopenmp
 
 
 build:
-	clang++ -g -Wall -Wcast-qual -fno-exceptions -std=c++17  -pedantic -Wextra -Wshadow -Wmissing-declarations -m64   -O2 -funroll-loops -DIS_64BIT -DUSE_POPCNT     -flto=full  -fopenmp  -c -o bitboard.o bitboard.cpp
-	clang++ -g -Wall -Wcast-qual -fno-exceptions -std=c++17  -pedantic -Wextra -Wshadow -Wmissing-declarations -m64  -O2 -funroll-loops -DIS_64BIT -DUSE_POPCNT     -flto=full  -fopenmp   -c -o uci.o uci.cpp
-	clang++ -g -Wall -Wcast-qual -fno-exceptions -std=c++17  -pedantic -Wextra -Wshadow -Wmissing-declarations -m64  -O2 -funroll-loops -DIS_64BIT -DUSE_POPCNT     -flto=full  -fopenmp   -c -o main.o main.cpp
-	clang++ -g -o main bitboard.o main.o uci.o -m64 -lpthread  -Wall -Wcast-qual -fno-exceptions -std=c++17  -pedantic -Wextra -Wshadow -Wmissing-declarations -m64  -DNDEBUG -O2 -funroll-loops -DIS_64BIT -DUSE_POPCNT     -flto=full  -fopenmp
+	g++ -g -Wall -Wcast-qual -fno-exceptions -std=c++17  -pedantic -Wextra -Wshadow -Wmissing-declarations -m64   -O2 -funroll-loops -DIS_64BIT -DUSE_POPCNT      -fopenmp  -c -o bitboard.o bitboard.cpp
+	g++ -g -Wall -Wcast-qual -fno-exceptions -std=c++17  -pedantic -Wextra -Wshadow -Wmissing-declarations -m64  -O2 -funroll-loops -DIS_64BIT -DUSE_POPCNT      -fopenmp   -c -o uci.o uci.cpp
+	g++ -g -Wall -Wcast-qual -fno-exceptions -std=c++17  -pedantic -Wextra -Wshadow -Wmissing-declarations -m64  -O2 -funroll-loops -DIS_64BIT -DUSE_POPCNT       -fopenmp   -c -o main.o main.cpp
+	g++ -g -o main bitboard.o main.o uci.o -m64 -lpthread  -Wall -Wcast-qual -fno-exceptions -std=c++17  -pedantic -Wextra -Wshadow -Wmissing-declarations -m64  -DNDEBUG -O2 -funroll-loops -DIS_64BIT -DUSE_POPCNT    -fopenmp
 

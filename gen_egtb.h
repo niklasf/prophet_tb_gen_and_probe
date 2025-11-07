@@ -630,6 +630,11 @@ void GenEGTB::gen(int nthreads) {
                             if (LOSS_EGTB->TB[maybe_loss_ix] == UNKNOWN) {
                                 LOSS_EGTB->TB[maybe_loss_ix] = MAYBELOSS_IN(LEVEL+1);
                             } else {
+                                if (!(LOSS_EGTB->TB[maybe_loss_ix] - MAYBELOSS_IN(0) >= LEVEL+1)) {
+                                    std::cout << "LEVEL=" << LEVEL << ", LOSS_EGTB->TB[maybe_loss_ix]=" << LOSS_EGTB->TB[maybe_loss_ix] << std::endl;
+                                    pos.undo_rev_move(move);
+                                    check_consistency(pos, true);
+                                }
                                 assert(LOSS_EGTB->TB[maybe_loss_ix] - MAYBELOSS_IN(0) >= LEVEL+1);
                                 // LOSS_TB[maybe_loss_ix] has to be MAYBELOSS_IN(SOME_LEVEL) where SOME_LEVEL >= LEVEL+1
                                 // if SOME_LEVEL == LEVEL+1 this is what we would have set anyways

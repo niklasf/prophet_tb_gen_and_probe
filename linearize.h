@@ -169,15 +169,17 @@ void pos_at_ix_kkx(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int 
     int piece_counts[4] = {0,0,0,0};
     int total_piece_count = 2;
     int i = 0;
+    // std::cout << std::endl;
     for (Color c: {~stm, stm}) {
         int* c_pieces = (c == WHITE) ? wpieces : bpieces;
         for (PieceType p : {QUEEN, ROOK, BISHOP, KNIGHT}) {
             if (c_pieces[p] == 0) { continue; }
             pieces[i] = make_piece(c, p);
             piece_counts[i] = c_pieces[p];
-            i++;
             total_piece_count += piece_counts[i];
-            if (total_piece_count >= 6) { std::cout << "More than 6 pieces not supported!\n"; assert(false); }
+            i++;
+            // std::cout << PieceToChar[p] << ": " << piece_counts[i] << std::endl;
+            if (total_piece_count > 6) { std::cout << "More than 6 pieces not supported! (have " << total_piece_count << ")\n"; assert(false); }
         }
     }
 
