@@ -89,13 +89,13 @@ void store_egtb(EGTB* egtb, std::string folder) {
 
 void zip_egtb(EGTB* egtb, std::string folder) {
     std::string filename = folder + egtb->id + ".egtb";
-    std::string cmd = "zip -m " + filename + ".zip " + filename;
+    std::string cmd = "zip -m " + filename + ".zip " + filename; // -m   move into zipfile (delete OS files)
     system(cmd.c_str());
 }
 
 void unzip_egtb(EGTB* egtb, std::string folder) {
     std::string filename = folder + egtb->id + ".egtb.zip";
-    std::string cmd = "unzip -n " + filename;
+    std::string cmd = "unzip -n " + filename; // -n  never overwrite existing files
     system(cmd.c_str());
 }
 
@@ -177,7 +177,7 @@ void free_egtb_mmap(EGTB* egtb) {
 void load_egtb_in_memory(EGTB* egtb, std::string folder) {
     std::string filename = folder + egtb->id + ".egtb";
     std::ifstream inputFileStream;
-    egtb->TB = (int16_t*) calloc(sizeof(int16_t), egtb->num_pos);
+    egtb->TB = (int16_t*) calloc(egtb->num_pos, sizeof(int16_t));
     inputFileStream.open(filename, std::ios::in|std::ios::binary);
     for(uint64_t i=0; i<egtb->num_pos; i++)
         inputFileStream.read((char*) &egtb->TB[i], sizeof(int16_t));
@@ -243,14 +243,14 @@ class GenEGTB {
     bool zip;
 
 public:
-    GenEGTB(int wpieces[6], int bpieces[6], std::string folder, bool zip) {
+    GenEGTB(int wpieces_[6], int bpieces_[6], std::string folder_, bool zip_) {
         // std::cout << "GenEGTB\n";
-        this->folder = folder;
+        this->folder = folder_;
         this->n_pieces = 0;
         for (int i = 0; i < 6; i++) {
-            this->wpieces[i] = wpieces[i];
-            this->bpieces[i] = bpieces[i];
-            this->n_pieces += wpieces[i] + bpieces[i];
+            this->wpieces[i] = wpieces_[i];
+            this->bpieces[i] = bpieces_[i];
+            this->n_pieces += wpieces_[i] + bpieces_[i];
         }
 
         for (int i = 0; i < 6; i++) {
@@ -260,12 +260,12 @@ public:
             }
         }
 
-        this->WTM_EGTB = new EGTB(wpieces, bpieces);
-        this->BTM_EGTB = new EGTB(bpieces, wpieces);
+        this->WTM_EGTB = new EGTB(this->wpieces, this->bpieces);
+        this->BTM_EGTB = new EGTB(this->bpieces, this->wpieces);
 
         allocated = false;
 
-        this->zip = zip;
+        this->zip = zip_;
     }
     void allocate_and_load();
 
@@ -300,9 +300,9 @@ public:
 
 void GenEGTB::allocate_and_load() {
     this->allocated = true;
-    this->WTM_EGTB->TB = (int16_t*) calloc(sizeof(int16_t), WTM_EGTB->num_pos);
+    this->WTM_EGTB->TB = (int16_t*) calloc(WTM_EGTB->num_pos, sizeof(int16_t));
     this->WTM_EGTB->mmaped = false;
-    this->BTM_EGTB->TB = (int16_t*) calloc(sizeof(int16_t), BTM_EGTB->num_pos);
+    this->BTM_EGTB->TB = (int16_t*) calloc(BTM_EGTB->num_pos, sizeof(int16_t));
     this->BTM_EGTB->mmaped = false;
 
     std::cout << "White pieces: " << get_pieces_identifier(wpieces) << std::endl;
@@ -632,8 +632,6 @@ void GenEGTB::gen(int nthreads) {
                             } else {
                                 if (!(LOSS_EGTB->TB[maybe_loss_ix] - MAYBELOSS_IN(0) >= LEVEL+1)) {
                                     std::cout << "LEVEL=" << LEVEL << ", LOSS_EGTB->TB[maybe_loss_ix]=" << LOSS_EGTB->TB[maybe_loss_ix] << std::endl;
-                                    pos.undo_rev_move(move);
-                                    check_consistency(pos, true);
                                 }
                                 assert(LOSS_EGTB->TB[maybe_loss_ix] - MAYBELOSS_IN(0) >= LEVEL+1);
                                 // LOSS_TB[maybe_loss_ix] has to be MAYBELOSS_IN(SOME_LEVEL) where SOME_LEVEL >= LEVEL+1

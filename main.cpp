@@ -263,7 +263,7 @@ int main(int argc, char *argv[]) {
     // test_pawn_tril_2();
     // test_pawn_tril_3();
     // test_pawn_tril_4();
-
+    // exit(0);
     // test_index();
     // test_ep_index();
     // test_pawn_index();
@@ -370,9 +370,18 @@ int main(int argc, char *argv[]) {
     pieces1 = {0, 0, 0, 0, 0, 0};
     pieces2 = {0, 0, 0, 0, 0, 0};
 
+    GenEGTB* g;
+
+    // pieces1 = {0, 1, 1, 0, 0, 0};
+    // pieces2 = {0, 0, 0, 1, 1, 0};
+
+    // g = new GenEGTB(&pieces1[0], &pieces2[0], "egtbs/", true);
+    // g->gen(nthreads);
+    // g->~GenEGTB();
+    // return 0;
+    
     Piece PIECES_ARR[] = {NO_PIECE, W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN};
 
-    GenEGTB* g;
     // EGPosition pos;
     int16_t longest_overall_mate = WIN_IN(0) + 1;
     std::string longest_overall_mate_str;
@@ -423,7 +432,7 @@ int main(int argc, char *argv[]) {
                                     g->~GenEGTB();
                                 }
 
-                                check_longest_mate = (
+                                /*check_longest_mate = (
                                     (id == "KNKRBN") ||
                                     (id == "KBKQRB") ||
                                     (id == "KBKQQB") ||
@@ -431,7 +440,7 @@ int main(int argc, char *argv[]) {
                                     (id == "KRKRBN") ||
                                     (id == "KRKQQB") ||
                                     (id == "KKQRRR")
-                                );
+                                );*/
 
                                 if (egtb_exists(&egtb, "egtbs/") && check_longest_mate) {
                                     std::cout << id << ": ";

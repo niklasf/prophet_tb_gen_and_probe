@@ -120,7 +120,7 @@ void pawn_tril_from_linear(uint64_t n_tuple, uint64_t tril_ix, int& pawn_ix, int
 
 void test_tril(uint64_t n_domain, uint64_t n_tuple) {
     uint64_t count = 0;
-    int* ixs = (int*) calloc(sizeof(uint64_t), n_tuple);
+    int* ixs = (int*) calloc(n_tuple, sizeof(uint64_t));
     for (uint64_t tril_ix = 0; tril_ix < number_of_ordered_tuples(n_domain, n_tuple); tril_ix++) {
         tril_from_linear(n_tuple, tril_ix, ixs);
         uint64_t tril_ix_2 = tril_to_linear(n_tuple, ixs);
@@ -134,12 +134,12 @@ void test_tril_1(uint64_t n_domain) {
     uint64_t count = 0;
     uint64_t n_tuple = 1;
     uint64_t gt_count = number_of_ordered_tuples(n_domain, n_tuple);
-    int* ixs = (int*) calloc(sizeof(uint64_t), n_tuple);
-    int* ixs_2 = (int*) calloc(sizeof(uint64_t), n_tuple);
+    int* ixs = (int*) calloc(n_tuple, sizeof(uint64_t));
+    int* ixs_2 = (int*) calloc(n_tuple, sizeof(uint64_t));
     for (uint64_t i = 0; i < n_domain; i++) {
         ixs[0] = i;
         uint64_t tril_ix = tril_to_linear(n_tuple, ixs);
-        assert(0 <= tril_ix && tril_ix < gt_count);
+        assert(tril_ix < gt_count);
         tril_from_linear(n_tuple, tril_ix, ixs_2);
         for (uint64_t t = 0; t < n_tuple; t++) { assert(ixs[t] == ixs_2[t]); }
         count++;
@@ -151,15 +151,15 @@ void test_tril_2(uint64_t n_domain) {
     uint64_t count = 0;
     uint64_t n_tuple = 2;
     uint64_t gt_count = number_of_ordered_tuples(n_domain, n_tuple);
-    int* ixs = (int*) calloc(sizeof(uint64_t), n_tuple);
-    int* ixs_2 = (int*) calloc(sizeof(uint64_t), n_tuple);
+    int* ixs = (int*) calloc(n_tuple, sizeof(uint64_t));
+    int* ixs_2 = (int*) calloc(n_tuple, sizeof(uint64_t));
     for (uint64_t i = 0; i < n_domain; i++) {
         for (uint64_t j = i+1; j < n_domain; j++) {
             ixs[0] = i;
             ixs[1] = j;
 
             uint64_t tril_ix = tril_to_linear(n_tuple, ixs);
-            assert(0 <= tril_ix && tril_ix < gt_count);
+            assert(tril_ix < gt_count);
             tril_from_linear(n_tuple, tril_ix, ixs_2);
             for (uint64_t t = 0; t < n_tuple; t++) { assert(ixs[t] == ixs_2[t]); }
             count++;
@@ -174,8 +174,8 @@ void test_tril_3(uint64_t n_domain) {
     uint64_t count = 0;
     uint64_t n_tuple = 3;
     uint64_t gt_count = number_of_ordered_tuples(n_domain, n_tuple);
-    int* ixs = (int*) calloc(sizeof(uint64_t), n_tuple);
-    int* ixs_2 = (int*) calloc(sizeof(uint64_t), n_tuple);
+    int* ixs = (int*) calloc(n_tuple, sizeof(uint64_t));
+    int* ixs_2 = (int*) calloc(n_tuple, sizeof(uint64_t));
     for (uint64_t i = 0; i < n_domain; i++) {
         for (uint64_t j = i+1; j < n_domain; j++) {
             for (uint64_t k = j+1; k < n_domain; k++) {
@@ -184,7 +184,7 @@ void test_tril_3(uint64_t n_domain) {
                 ixs[2] = k;
 
                 uint64_t tril_ix = tril_to_linear(n_tuple, ixs);
-                assert(0 <= tril_ix && tril_ix < gt_count);
+                assert(tril_ix < gt_count);
                 tril_from_linear(n_tuple, tril_ix, ixs_2);
                 for (uint64_t t = 0; t < n_tuple; t++) { assert(ixs[t] == ixs_2[t]); }
                 count++;
@@ -199,8 +199,8 @@ void test_tril_4(uint64_t n_domain) {
     uint64_t count = 0;
     uint64_t n_tuple = 4;
     uint64_t gt_count = number_of_ordered_tuples(n_domain, n_tuple);
-    int* ixs = (int*) calloc(sizeof(uint64_t), n_tuple);
-    int* ixs_2 = (int*) calloc(sizeof(uint64_t), n_tuple);
+    int* ixs = (int*) calloc(n_tuple, sizeof(uint64_t));
+    int* ixs_2 = (int*) calloc(n_tuple, sizeof(uint64_t));
     for (uint64_t i = 0; i < n_domain; i++) {
         for (uint64_t j = i+1; j < n_domain; j++) {
             for (uint64_t k = j+1; k < n_domain; k++) {
@@ -211,7 +211,7 @@ void test_tril_4(uint64_t n_domain) {
                     ixs[3] = l;
 
                     uint64_t tril_ix = tril_to_linear(n_tuple, ixs);
-                    assert(0 <= tril_ix && tril_ix < gt_count);
+                    assert(tril_ix < gt_count);
                     tril_from_linear(n_tuple, tril_ix, ixs_2);
                     for (uint64_t t = 0; t < n_tuple; t++) { assert(ixs[t] == ixs_2[t]); }
                     count++;
@@ -226,7 +226,7 @@ void test_tril_4(uint64_t n_domain) {
 void test_pawn_tril(uint64_t n_tuple) {
     uint64_t count = 0;
     int pawn_ix = 0;
-    int* ixs = (int*) calloc(sizeof(uint64_t), n_tuple - 1);
+    int* ixs = (int*) calloc(n_tuple - 1, sizeof(uint64_t));
     for (uint64_t tril_ix = 0; tril_ix < number_of_ordered_tuples_with_first_pawn(n_tuple); tril_ix++) {
         pawn_tril_from_linear(n_tuple, tril_ix, pawn_ix, ixs);
         uint64_t tril_ix_2 = pawn_tril_to_linear(n_tuple, pawn_ix, ixs);
@@ -242,18 +242,17 @@ void test_pawn_tril_1() {
     uint64_t n_tuple = 1;
     uint64_t gt_count = number_of_ordered_tuples_with_first_pawn(n_tuple);
     int pawn_ix = 0;
-    int* ixs = (int*) calloc(sizeof(uint64_t), n_tuple-1);
+    int* ixs = NULL;
     int pawn_ix_2 = 0;
-    int* ixs_2 = (int*) calloc(sizeof(uint64_t), n_tuple-1);
+    int* ixs_2 = NULL;
     for (uint64_t i = 0; i < 24; i++) {
         pawn_ix = pawnix24_to_sqix48(i);
 
         uint64_t tril_ix = pawn_tril_to_linear(n_tuple, pawn_ix, ixs);
-        assert(0 <= tril_ix && tril_ix < gt_count);
+        assert(tril_ix < gt_count);
         pawn_tril_from_linear(n_tuple, tril_ix, pawn_ix_2, ixs_2);
         // std::cout << "tril_ix=" << tril_ix << ": " << pawn_ix << " vs " << pawn_ix_2; for (int ll = 0; ll < n_tuple - 1; ll++) std::cout << ", " << ixs[ll] << " vs " << ixs_2[ll]; std::cout << std::endl;
         assert(pawn_ix == pawn_ix_2);
-        for (uint64_t t = 0; t < n_tuple; t++) { assert(ixs[t] == ixs_2[t]); }
         count++;
     }
     std::cout << "Checked " << count << " tril indexes" << std::endl;
@@ -265,20 +264,20 @@ void test_pawn_tril_2() {
     uint64_t n_tuple = 2;
     uint64_t gt_count = number_of_ordered_tuples_with_first_pawn(n_tuple);
     int pawn_ix = 0;
-    int* ixs = (int*) calloc(sizeof(uint64_t), n_tuple-1);
+    int* ixs = (int*) calloc(n_tuple-1, sizeof(uint64_t));
     int pawn_ix_2 = 0;
-    int* ixs_2 = (int*) calloc(sizeof(uint64_t), n_tuple-1);
+    int* ixs_2 = (int*) calloc(n_tuple-1, sizeof(uint64_t));
     for (uint64_t i = 0; i < 24; i++) {
         pawn_ix = pawnix24_to_sqix48(i);
         for (uint64_t j = pawn_ix+1; j < 48; j++) {
             ixs[0] = j;
 
             uint64_t tril_ix = pawn_tril_to_linear(n_tuple, pawn_ix, ixs);
-            assert(0 <= tril_ix && tril_ix < gt_count);
+            assert(tril_ix < gt_count);
             pawn_tril_from_linear(n_tuple, tril_ix, pawn_ix_2, ixs_2);
             // std::cout << "tril_ix=" << tril_ix << ": " << pawn_ix << " vs " << pawn_ix_2; for (int ll = 0; ll < n_tuple - 1; ll++) std::cout << ", " << ixs[ll] << " vs " << ixs_2[ll]; std::cout << std::endl;
             assert(pawn_ix == pawn_ix_2);
-            for (uint64_t t = 0; t < n_tuple; t++) { assert(ixs[t] == ixs_2[t]); }
+            for (uint64_t t = 0; t < n_tuple - 1; t++) { assert(ixs[t] == ixs_2[t]); }
             count++;
         }
     }
@@ -291,9 +290,9 @@ void test_pawn_tril_3() {
     uint64_t n_tuple = 3;
     uint64_t gt_count = number_of_ordered_tuples_with_first_pawn(n_tuple);
     int pawn_ix = 0;
-    int* ixs = (int*) calloc(sizeof(uint64_t), n_tuple-1);
+    int* ixs = (int*) calloc(n_tuple-1, sizeof(uint64_t));
     int pawn_ix_2 = 0;
-    int* ixs_2 = (int*) calloc(sizeof(uint64_t), n_tuple-1);
+    int* ixs_2 = (int*) calloc(n_tuple-1, sizeof(uint64_t));
     for (uint64_t i = 0; i < 24; i++) {
         pawn_ix = pawnix24_to_sqix48(i);
         for (uint64_t j = pawn_ix+1; j < 48; j++) {
@@ -302,10 +301,10 @@ void test_pawn_tril_3() {
                 ixs[1] = k;
 
                 uint64_t tril_ix = pawn_tril_to_linear(n_tuple, pawn_ix, ixs);
-                assert(0 <= tril_ix && tril_ix < gt_count);
+                assert(tril_ix < gt_count);
                 pawn_tril_from_linear(n_tuple, tril_ix, pawn_ix_2, ixs_2);
                 assert(pawn_ix == pawn_ix_2);
-                for (uint64_t t = 0; t < n_tuple; t++) { assert(ixs[t] == ixs_2[t]); }
+                for (uint64_t t = 0; t < n_tuple - 1; t++) { assert(ixs[t] == ixs_2[t]); }
                 count++;
             }
         }
@@ -319,9 +318,9 @@ void test_pawn_tril_4() {
     uint64_t n_tuple = 4;
     uint64_t gt_count = number_of_ordered_tuples_with_first_pawn(n_tuple);
     int pawn_ix = 0;
-    int* ixs = (int*) calloc(sizeof(uint64_t), n_tuple-1);
+    int* ixs = (int*) calloc(n_tuple-1, sizeof(uint64_t));
     int pawn_ix_2 = 0;
-    int* ixs_2 = (int*) calloc(sizeof(uint64_t), n_tuple-1);
+    int* ixs_2 = (int*) calloc(n_tuple-1, sizeof(uint64_t));
     for (uint64_t i = 0; i < 24; i++) {
         pawn_ix = pawnix24_to_sqix48(i);
         for (uint64_t j = pawn_ix+1; j < 48; j++) {
@@ -332,10 +331,10 @@ void test_pawn_tril_4() {
                     ixs[2] = l;
 
                     uint64_t tril_ix = pawn_tril_to_linear(n_tuple, pawn_ix, ixs);
-                    assert(0 <= tril_ix && tril_ix < gt_count);
+                    assert(tril_ix < gt_count);
                     pawn_tril_from_linear(n_tuple, tril_ix, pawn_ix_2, ixs_2);
                     assert(pawn_ix == pawn_ix_2);
-                    for (uint64_t t = 0; t < n_tuple; t++) { assert(ixs[t] == ixs_2[t]); }
+                    for (uint64_t t = 0; t < n_tuple - 1; t++) { assert(ixs[t] == ixs_2[t]); }
                     count++;
                 }
             }

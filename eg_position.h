@@ -14,9 +14,9 @@
 struct UndoInfo {
     PieceType captured;
     Square epSquare;
-    UndoInfo(PieceType captured, Square epSquare) {
-        this->captured = captured;
-        this->epSquare = epSquare;
+    UndoInfo(PieceType captured_, Square epSquare_) {
+        this->captured = captured_;
+        this->epSquare = epSquare_;
     }
 };
 

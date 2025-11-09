@@ -261,9 +261,9 @@ void pos_at_ix_kkp(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int 
             piece_counts[i] = c_pieces[p] - (EP && p == PAWN);
         if (piece_counts[i] == 0) { continue; }
         pieces[i] = make_piece(c, p);
-        i++;
         total_piece_count += piece_counts[i];
-        if (total_piece_count >= 6) { std::cout << "More than 6 pieces not supported!\n"; assert(false); }
+        i++;
+        if (total_piece_count > 6) { std::cout << "More than 6 pieces not supported!\n"; assert(false); }
     }
 
 
@@ -494,8 +494,8 @@ uint64_t ix_from_pos_kkp(EGPosition const &pos, uint64_t num_nonep_pos) {
     int n_occupied_sqs = 0;
 
     bool EP = pos.ep_square() != SQ_NONE;
-    Square ep_pawn_sq;
-    Square ep_cap_pawn_sq;
+    Square ep_pawn_sq = SQ_NONE;
+    Square ep_cap_pawn_sq = SQ_NONE;
     if (EP) {
         ix += num_nonep_pos;
 
