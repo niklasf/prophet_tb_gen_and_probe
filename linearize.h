@@ -150,10 +150,11 @@ void pos_at_ix_kkx(EGPosition &pos, uint64_t ix, Color stm, int wpieces[6], int 
     uint64_t kkx = ix % N_KKX;
     ix = ix / N_KKX;
 
-    Square ktm_sq = Square(KKX_KTM_SQ[kkx]);
-    is_diag_symmetric = is_diag_symmetric && (ktm_sq & DiagBB);
     Square kntm_sq = Square(KKX_KNTM_SQ[kkx]);
     is_diag_symmetric = is_diag_symmetric && (kntm_sq & DiagBB);
+
+    Square ktm_sq = Square(KKX_KTM_SQ[kkx]);
+    is_diag_symmetric = is_diag_symmetric && (ktm_sq & DiagBB);
 
     if (ktm_sq < kntm_sq) {
         occupied_sqs[0] = ktm_sq;
@@ -388,17 +389,17 @@ uint64_t ix_from_pos_kkx(EGPosition const &pos) {
     bool is_diag_symmetric = true;
     Square occupied_sqs[6];
 
-    Square orig_ktm_sq = pos.square<KING>(stm);
+    Square orig_kntm_sq = pos.square<KING>(~stm);
 
     // transformation to put king in left lower quadrant
-    int8_t flip = ((orig_ktm_sq & RightHalfBB) ? 7 : 0) ^ ((orig_ktm_sq & TopHalfBB) ? 56 : 0);
+    int8_t flip = ((orig_kntm_sq & RightHalfBB) ? 7 : 0) ^ ((orig_kntm_sq & TopHalfBB) ? 56 : 0);
     // transformation to put first piece that breaks diagonal symmetry below diagonal
     int8_t swap = 0;
 
-    Square ktm_sq = maybe_update_swap_and_transform(orig_ktm_sq, flip, is_diag_symmetric, swap);
-
-    Square orig_kntm_sq = pos.square<KING>(~stm);
     Square kntm_sq = maybe_update_swap_and_transform(orig_kntm_sq, flip, is_diag_symmetric, swap);
+
+    Square orig_ktm_sq = pos.square<KING>(stm);
+    Square ktm_sq = maybe_update_swap_and_transform(orig_ktm_sq, flip, is_diag_symmetric, swap);
     
     int16_t kkx_ix = get_kkx_ix(orig_ktm_sq, orig_kntm_sq);
 
@@ -611,18 +612,19 @@ uint64_t ix_from_pos(EGPosition const &pos, uint64_t num_nonep_pos, uint64_t num
 
 void transform_to_canoncial(const EGPosition &pos, EGPosition &pos2) {
     Color stm = pos.side_to_move();
+    bool has_pawns = pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK) > 0;
 
     bool is_diag_symmetric = true;
     bool is_horizontal_symmetric = true;
     int8_t flip = 0;
     int8_t swap = 0;
-    int8_t stm_flip = stm == BLACK ? 56 : 0;
+    int8_t stm_flip = has_pawns && (stm == BLACK) ? 56 : 0;
 
     Square orig_ktm_sq = pos.square<KING>(stm);
+    Square orig_kntm_sq = pos.square<KING>(~stm);
 
-    bool has_pawns = pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK) > 0;
     if (!has_pawns) {
-        flip = ((orig_ktm_sq & RightHalfBB) ? 7 : 0) ^ ((orig_ktm_sq & TopHalfBB) ? 56 : 0);
+        flip = ((orig_kntm_sq & RightHalfBB) ? 7 : 0) ^ ((orig_kntm_sq & TopHalfBB) ? 56 : 0);
     } else {
         flip = stm_flip; 
         // do not use stm == BLACK ? 56 : 0;
@@ -645,12 +647,11 @@ void transform_to_canoncial(const EGPosition &pos, EGPosition &pos2) {
     }
 
     if (!has_pawns) {
-        Square ktm_sq = maybe_update_swap_and_transform(orig_ktm_sq, flip, is_diag_symmetric, swap);
-        pos2.put_piece(make_piece(stm, KING), ktm_sq ^ stm_flip);
-
-        Square orig_kntm_sq = pos.square<KING>(~stm);
         Square ktnm_sq = maybe_update_swap_and_transform(orig_kntm_sq, flip, is_diag_symmetric, swap);
         pos2.put_piece(make_piece(~stm, KING), ktnm_sq ^ stm_flip);
+
+        Square ktm_sq = maybe_update_swap_and_transform(orig_ktm_sq, flip, is_diag_symmetric, swap);
+        pos2.put_piece(make_piece(stm, KING), ktm_sq ^ stm_flip);
     }
 
     for (Color c: {~stm, stm}) {

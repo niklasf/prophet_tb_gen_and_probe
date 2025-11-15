@@ -20,8 +20,8 @@
 void test_index() {
 
     // 0, PAWN, KNIGHT, BISHOP, ROOK, QUEEN 
-    int wpieces[6] = {0, 0, 0, 0, 0, 0};
-    int bpieces[6] = {0, 2, 0, 0, 0, 0};
+    int wpieces[6] = {0, 0, 1, 0, 0, 1};
+    int bpieces[6] = {0, 0, 0, 1, 0, 0};
 
     uint64_t count = 0;
     for (Color stm: {WHITE, BLACK}) {
@@ -59,8 +59,8 @@ void test_index() {
                     if (p1_sq == k1_sq || p1_sq == k2_sq) { continue; }
                     for (Square p2_sq = SQ_A1; p2_sq <= SQ_H8; ++p2_sq) {
                         if (p2_sq == k1_sq || p2_sq == k2_sq || p2_sq == p1_sq) { continue; }
-                        // for (Square p3_sq = SQ_A1; p3_sq <= SQ_H8; ++p3_sq) {
-                        //     if (p3_sq == k1_sq || p3_sq == k2_sq || p3_sq == p1_sq || p3_sq == p2_sq) { continue; }
+                        for (Square p3_sq = SQ_A1; p3_sq <= SQ_H8; ++p3_sq) {
+                            if (p3_sq == k1_sq || p3_sq == k2_sq || p3_sq == p1_sq || p3_sq == p2_sq) { continue; }
                         //     for (Square p4_sq = SQ_A1; p4_sq <= SQ_H8; ++p4_sq) {
                         //         if (p4_sq == k1_sq || p4_sq == k2_sq || p4_sq == p1_sq || p4_sq == p2_sq || p4_sq == p3_sq) { continue; }
 
@@ -75,8 +75,8 @@ void test_index() {
                                     pos1.put_piece(make_piece(cs[0],pts[0]), p1_sq);
                                     if (pts[1] == PAWN && !(p2_sq & PawnSquaresBB)) { continue; }
                                     pos1.put_piece(make_piece(cs[1],pts[1]), p2_sq);
-                                    // if (pts[2] == PAWN && !(p3_sq & PawnSquaresBB)) { continue; }
-                                    // pos1.put_piece(make_piece(cs[2],pts[2]), p3_sq);
+                                    if (pts[2] == PAWN && !(p3_sq & PawnSquaresBB)) { continue; }
+                                    pos1.put_piece(make_piece(cs[2],pts[2]), p3_sq);
                                     // if (pts[3] == PAWN && !(p4_sq & PawnSquaresBB)) { continue; }
                                     // pos1.put_piece(make_piece(cs[3],pts[3]), p4_sq);
                                     pos1.set_side_to_move(stm);
@@ -119,7 +119,7 @@ void test_index() {
                                     // std::cout << "\n";
                                 }
                         //     }
-                        // }
+                        }
                     }
                 }
             }
@@ -256,6 +256,7 @@ void unplace_piece(Piece p, int* pieces1, int* pieces2) {
 int main(int argc, char *argv[]) {
     // single threaded: 3m15s
     Bitboards::init();
+    enumerate_kkx();
     init_kkx_table();
     init_tril();
 
@@ -264,11 +265,11 @@ int main(int argc, char *argv[]) {
     // test_pawn_tril_3();
     // test_pawn_tril_4();
     // exit(0);
-    // test_index();
+    test_index();
     // test_ep_index();
     // test_pawn_index();
 
-    // exit(0);
+    exit(0);
 
 
     EGPosition pos;
