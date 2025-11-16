@@ -28,7 +28,7 @@ void compute_kntm_poscounts(const int stm_pieces[6], const int sntm_pieces[6], u
 
         // stm_pieces
         for (PieceType pt = KNIGHT; pt < KING; ++pt) {
-            n *= number_of_ordered_tuples(64 - num_unblockablechecks(kntm_sq, pt) - 2, stm_pieces[pt]);
+            n *= number_of_ordered_tuples(64 - num_unblockablechecks(kntm_sq, pt) - 2 + (pt == KNIGHT), stm_pieces[pt]);
             n_squares_available_to_sntm -= stm_pieces[pt];
         }
 
@@ -216,8 +216,13 @@ void pos_at_ix_kkx(EGPosition &pos, uint64_t ix, Color stm, const int wpieces[6]
             Piece pc = make_piece(c, pt);
 
             if (c == stm) {
-                allowed_squares = ~(unblockablechecks_bb(kntm_sq,pt) | square_bb(kntm_sq) | square_bb(ktm_sq));
-                s = number_of_ordered_tuples(64 - num_unblockablechecks(kntm_sq,pt) - 2, piece_count);
+                if (pt == KNIGHT) {
+                    allowed_squares = ~(unblockablechecks_bb(kntm_sq,pt) | square_bb(kntm_sq));
+                    s = number_of_ordered_tuples(64 - num_unblockablechecks(kntm_sq,pt) - 1, piece_count);
+                } else {
+                    allowed_squares = ~(unblockablechecks_bb(kntm_sq,pt) | square_bb(kntm_sq) | square_bb(ktm_sq));
+                    s = number_of_ordered_tuples(64 - num_unblockablechecks(kntm_sq,pt) - 2, piece_count);
+                }
             } else {
                 allowed_squares = ~pos.pieces();
                 s = number_of_ordered_tuples(64 - n_occupied_sqs, piece_count);
@@ -225,8 +230,6 @@ void pos_at_ix_kkx(EGPosition &pos, uint64_t ix, Color stm, const int wpieces[6]
 
             uint64_t tril_ix = ix % s;
             ix = ix / s;
-
-            // std::cout << Bitboards::pretty(allowed_squares) << std::endl;
 
             tril_from_linear(piece_count, tril_ix, sqs_ixs);
             for (int j = 0; j < piece_count; j++) {
@@ -437,7 +440,7 @@ uint64_t ix_from_pos_kkx(EGPosition const &pos, const uint64_t kntm_poscounts[11
     int n_occupied_sqs = 2;
 
     uint64_t ix = kntm_poscounts[kntm_sq_to_ix(kntm_sq)];
-    int8_t ktm_ix = get_kkx_ktm_ix(orig_ktm_sq, orig_kntm_sq);
+    uint64_t ktm_ix = get_kkx_ktm_ix(orig_ktm_sq, orig_kntm_sq);
 
     uint64_t multiplier = 1;
     if (square_bb(kntm_sq) & DiagBB) {
@@ -448,14 +451,14 @@ uint64_t ix_from_pos_kkx(EGPosition const &pos, const uint64_t kntm_poscounts[11
     ix += ktm_ix;
 
     int sqs_ixs[4];
-    uint64_t n_available_squares;
 
     for (Color c: {stm, ~stm}) {
         for (PieceType pt: {QUEEN, ROOK, BISHOP, KNIGHT}) {
             Bitboard pieceBB = pos.pieces(c, pt);
             if (pieceBB) {
                 Bitboard transformedBB = maybe_update_swap_and_transform_bb(pieceBB, flip, is_diag_symmetric, swap);
-                Bitboard unavailable_squares = (c == stm) ? (unblockablechecks_bb(kntm_sq,pt) | square_bb(kntm_sq) | square_bb(ktm_sq)) : occupied_sqs;
+                Bitboard unavailable_squares = (c == stm) ? (unblockablechecks_bb(kntm_sq,pt) | square_bb(kntm_sq) | ((pt == KNIGHT) ? 0 : square_bb(ktm_sq))) : occupied_sqs;
+                uint64_t n_available_squares = (c == stm) ? 64 - num_unblockablechecks(kntm_sq,pt) - 2 + (pt == KNIGHT):  64 - n_occupied_sqs;
                 int piece_count = 0;
                 while (transformedBB) {
                     Square sq = pop_lsb(transformedBB);
@@ -467,11 +470,6 @@ uint64_t ix_from_pos_kkx(EGPosition const &pos, const uint64_t kntm_poscounts[11
                 }
                 uint64_t tril_ix = tril_to_linear(piece_count, sqs_ixs);
                 ix += tril_ix * multiplier;
-                if (c == stm) {
-                    n_available_squares = 64 - num_unblockablechecks(kntm_sq,pt) - 2;
-                } else {
-                    n_available_squares = 64 - n_occupied_sqs;
-                }
                 multiplier *= number_of_ordered_tuples(n_available_squares, piece_count);
             }
         }
@@ -692,7 +690,7 @@ void transform_to_canoncial(const EGPosition &pos, EGPosition &pos2) {
         pos2.put_piece(make_piece(stm, KING), ktm_sq ^ stm_flip);
     }
 
-    for (Color c: {~stm, stm}) {
+    for (Color c: {stm, ~stm}) {
         for (PieceType pt: {KING, QUEEN, ROOK, BISHOP, KNIGHT, PAWN}) {
             if (!has_pawns && pt == KING) continue; // already placed
             if ( has_pawns && pt == PAWN) continue; // already placed

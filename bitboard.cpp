@@ -112,7 +112,11 @@ void Bitboards::init() {
 
     for (Square sq = SQ_A1; sq <= SQ_H8; ++sq) {
         for (PieceType pt = KNIGHT; pt <= KING; ++pt) {
-            UnblockableChecks[pt][sq] = PseudoAttacks[pt][sq] & PseudoAttacks[KING][sq];
+            if (pt == KNIGHT) {
+                UnblockableChecks[pt][sq] = PseudoAttacks[pt][sq];
+            } else {
+                UnblockableChecks[pt][sq] = PseudoAttacks[pt][sq] & PseudoAttacks[KING][sq];
+            }
             UnblockableChecksCount[pt][sq] = popcount(UnblockableChecks[pt][sq]);
         }
         for (Color c: {WHITE, BLACK}) {

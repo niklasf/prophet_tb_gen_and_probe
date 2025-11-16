@@ -20,14 +20,19 @@
 void test_index() {
 
     // 0, PAWN, KNIGHT, BISHOP, ROOK, QUEEN 
-    int wpieces[6] = {0, 0, 2, 0, 0, 0};
-    int bpieces[6] = {0, 0, 0, 0, 0, 0};
+    int wpieces[6] = {0, 0, 0, 0, 1, 0};
+    int bpieces[6] = {0, 0, 1, 0, 0, 0};
+
+    EGTB wtm_table = EGTB(wpieces, bpieces);
+    std::cout << wtm_table.id << ": nonep: " << wtm_table.num_nonep_pos << ", ep: " << wtm_table.num_ep_pos << std::endl;
+    EGTB btm_table = EGTB(bpieces, wpieces);
+    std::cout << btm_table.id << ": nonep: " << btm_table.num_nonep_pos << ", ep: " << btm_table.num_ep_pos << std::endl;
+    // exit(0);
 
     uint64_t count = 0;
     for (Color stm: {WHITE, BLACK}) {
 
-        EGTB egtb = stm == WHITE ? EGTB(wpieces, bpieces) : EGTB(bpieces, wpieces);
-        std::cout << egtb.id << ": nonep: " << egtb.num_nonep_pos << ", ep: " << egtb.num_ep_pos << std::endl;
+        EGTB egtb = stm == WHITE ? wtm_table : btm_table;
 
 
         PieceType pts[4] = {NO_PIECE_TYPE, NO_PIECE_TYPE, NO_PIECE_TYPE, NO_PIECE_TYPE};
