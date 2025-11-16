@@ -611,16 +611,16 @@ uint64_t ix_from_pos(EGPosition const &pos, uint64_t num_nonep_pos, uint64_t num
 
 void transform_to_canoncial(const EGPosition &pos, EGPosition &pos2) {
     Color stm = pos.side_to_move();
+    bool has_pawns = pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK) > 0;
 
     bool is_diag_symmetric = true;
     bool is_horizontal_symmetric = true;
     int8_t flip = 0;
     int8_t swap = 0;
-    int8_t stm_flip = stm == BLACK ? 56 : 0;
+    int8_t stm_flip = has_pawns && (stm == BLACK) ? 56 : 0;
 
     Square orig_ktm_sq = pos.square<KING>(stm);
 
-    bool has_pawns = pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK) > 0;
     if (!has_pawns) {
         flip = ((orig_ktm_sq & RightHalfBB) ? 7 : 0) ^ ((orig_ktm_sq & TopHalfBB) ? 56 : 0);
     } else {
