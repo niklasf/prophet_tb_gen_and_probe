@@ -302,14 +302,20 @@ public:
 };
 
 void GenEGTB::allocate_and_load() {
+    uint64_t bytes_allocated = 0;
+    uint64_t bytes_mmaped = 0;
+
     this->allocated = true;
     this->WTM_EGTB->TB = (int16_t*) calloc(WTM_EGTB->num_pos, sizeof(int16_t));
     this->WTM_EGTB->mmaped = false;
     this->BTM_EGTB->TB = (int16_t*) calloc(BTM_EGTB->num_pos, sizeof(int16_t));
     this->BTM_EGTB->mmaped = false;
+    bytes_allocated += WTM_EGTB->num_pos * 2;
+    bytes_allocated += BTM_EGTB->num_pos * 2;
 
     std::cout << "White pieces: " << get_pieces_identifier(wpieces) << std::endl;
     std::cout << "Black pieces: " << get_pieces_identifier(bpieces) << std::endl;
+
 
     this->WTM_EGTBs[NO_PIECE_TYPE][NO_PIECE_TYPE] = WTM_EGTB;
     this->BTM_EGTBs[NO_PIECE_TYPE][NO_PIECE_TYPE] = BTM_EGTB;
@@ -319,6 +325,8 @@ void GenEGTB::allocate_and_load() {
         if (wpieces[capture_pt] > 0) {
             wpieces[capture_pt]--;
             EGTB* egtb = new EGTB(wpieces, bpieces); unzip_and_load_egtb(egtb, folder, false);
+            bytes_allocated += (egtb->num_pos * 2) * !egtb->mmaped;
+            bytes_mmaped += (egtb->num_pos * 2) * egtb->mmaped;
             std::cout << "Loaded " << egtb->id << " for white " << PieceToChar[capture_pt] << " captured, white to move" << std::endl;
             this->WTM_EGTBs[NO_PIECE_TYPE][capture_pt] = egtb;
             wpieces[capture_pt]++;
@@ -326,6 +334,7 @@ void GenEGTB::allocate_and_load() {
         if (bpieces[capture_pt] > 0) {
             bpieces[capture_pt]--;
             EGTB* egtb = new EGTB(bpieces, wpieces); unzip_and_load_egtb(egtb, folder, false); 
+            bytes_allocated += egtb->num_pos * 2;
             std::cout << "Loaded " << egtb->id << " for black " << PieceToChar[capture_pt] << " captured, black to move"  << std::endl;
             this->BTM_EGTBs[NO_PIECE_TYPE][capture_pt] = egtb;
             bpieces[capture_pt]++;
@@ -338,6 +347,8 @@ void GenEGTB::allocate_and_load() {
             bpieces[PAWN]--;
             bpieces[promote_pt]++;
             EGTB* egtb = new EGTB(wpieces, bpieces); unzip_and_load_egtb(egtb, folder, true);
+            bytes_allocated += (egtb->num_pos * 2) * !egtb->mmaped;
+            bytes_mmaped += (egtb->num_pos * 2) * egtb->mmaped;
             std::cout << "Loaded " << egtb->id << " for black promotion to " << PieceToChar[promote_pt] << ", white to move" << std::endl;
             this->WTM_EGTBs[promote_pt][NO_PIECE_TYPE] = egtb;
             bpieces[PAWN]++;
@@ -347,6 +358,8 @@ void GenEGTB::allocate_and_load() {
             wpieces[PAWN]--;
             wpieces[promote_pt]++;
             EGTB* egtb = new EGTB(bpieces, wpieces); unzip_and_load_egtb(egtb, folder, true); 
+            bytes_allocated += (egtb->num_pos * 2) * !egtb->mmaped;
+            bytes_mmaped += (egtb->num_pos * 2) * egtb->mmaped;
             std::cout << "Loaded " << egtb->id << " for white promotion to " << PieceToChar[promote_pt] << ", black to move" << std::endl;
             this->BTM_EGTBs[promote_pt][NO_PIECE_TYPE] = egtb;
             wpieces[PAWN]++;
@@ -362,6 +375,8 @@ void GenEGTB::allocate_and_load() {
                 bpieces[PAWN]--;
                 bpieces[promote_pt]++;
                 EGTB* egtb = new EGTB(wpieces, bpieces); unzip_and_load_egtb(egtb, folder, false);
+                bytes_allocated += (egtb->num_pos * 2) * !egtb->mmaped;
+                bytes_mmaped += (egtb->num_pos * 2) * egtb->mmaped;
                 std::cout << "Loaded " << egtb->id << " for white " << PieceToChar[capture_pt] << " captured with black promotion to " << PieceToChar[promote_pt] << ", white to move" << std::endl;
                 this->WTM_EGTBs[promote_pt][capture_pt] = egtb;
                 wpieces[capture_pt]++;
@@ -373,6 +388,8 @@ void GenEGTB::allocate_and_load() {
                 wpieces[PAWN]--;
                 wpieces[promote_pt]++;
                 EGTB* egtb = new EGTB(bpieces, wpieces); unzip_and_load_egtb(egtb, folder, false); 
+                bytes_allocated += (egtb->num_pos * 2) * !egtb->mmaped;
+                bytes_mmaped += (egtb->num_pos * 2) * egtb->mmaped;
                 std::cout << "Load " << egtb->id << " for black " << PieceToChar[capture_pt] << " captured with white promotion to " << PieceToChar[promote_pt] << ", black to move" << std::endl;
                 this->BTM_EGTBs[promote_pt][capture_pt] = egtb;
                 bpieces[capture_pt]++;
@@ -381,6 +398,9 @@ void GenEGTB::allocate_and_load() {
             }
         }
     }
+
+    std::cout << "Bytes allocated: " << bytes_allocated << std::endl;
+    std::cout << "Bytes mmaped: " << bytes_mmaped << std::endl;
 }
 
 
