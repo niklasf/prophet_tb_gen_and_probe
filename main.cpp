@@ -430,7 +430,7 @@ int main(int argc, char *argv[]) {
                                 EGTB egtb = EGTB(&pieces1[0], &pieces2[0]);
 
                                 if (generate_missing) {
-                                    g = new GenEGTB(&pieces1[0], &pieces2[0], folder, true);
+                                    g = new GenEGTB(&pieces1[0], &pieces2[0], folder, true, false);
                                     g->gen(nthreads);
                                     g->~GenEGTB();
                                 }
@@ -445,7 +445,7 @@ int main(int argc, char *argv[]) {
                                     (id == "KKQRRR")
                                 );*/
 
-                                if (egtb_exists(&egtb, folder) && check_longest_mate) {
+                                if (check_longest_mate && egtb_exists(&egtb, folder)) {
                                     std::cout << id << ": ";
                                     
                                     unzip_and_load_egtb(&egtb, folder, true);
