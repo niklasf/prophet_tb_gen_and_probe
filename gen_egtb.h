@@ -55,7 +55,7 @@ struct EGTB {
     int stm_pieces[6];
     int sntm_pieces[6];
     bool has_pawns;
-    uint64_t kntm_poscounts[33];
+    uint64_t kntm_poscounts[N_KKP + 1];
     uint64_t num_nonep_pos;
     uint64_t num_ep_pos;
     uint64_t num_pos;
@@ -70,7 +70,7 @@ struct EGTB {
         has_pawns = stm_pieces[PAWN] + sntm_pieces[PAWN] > 0;
         id = get_egtb_identifier(stm_pieces, sntm_pieces);
         compute_kntm_poscounts(stm_pieces, sntm_pieces, kntm_poscounts);
-        num_nonep_pos = has_pawns ? kntm_poscounts[32] : kntm_poscounts[10];
+        num_nonep_pos = has_pawns ? kntm_poscounts[N_KKP] : kntm_poscounts[N_KKX];
         num_ep_pos = compute_num_ep_positions(stm_pieces, sntm_pieces);
         num_pos = num_nonep_pos + num_ep_pos;
     }

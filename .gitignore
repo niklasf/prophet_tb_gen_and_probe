@@ -1,8 +1,10 @@
 *.o
 main
+main_egtb
 tmp.txt
 tmp*
 .vscode
 *.egtb
 *.zip
 *.gz
+*.zip.0

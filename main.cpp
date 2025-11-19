@@ -2,7 +2,6 @@
 #include <vector>
 #include "bitboard.h"
 #include "kkx.h"
-// #include "kkp.h"
 #include "linearize.h"
 #include "eg_position.h"
 #include "eg_movegen.h"
@@ -19,9 +18,9 @@
 
 void test_index() {
 
-    // 0, PAWN, KNIGHT, BISHOP, ROOK, QUEEN 
+    //                0, P, N, B, R, Q
     int wpieces[6] = {0, 1, 0, 0, 0, 0};
-    int bpieces[6] = {0, 0, 0, 0, 0, 0};
+    int bpieces[6] = {0, 0, 0, 1, 0, 0};
 
     EGTB wtm_table = EGTB(wpieces, bpieces);
     std::cout << wtm_table.id << ": nonep: " << wtm_table.num_nonep_pos << ", ep: " << wtm_table.num_ep_pos << std::endl;
@@ -260,10 +259,12 @@ void unplace_piece(Piece p, int* pieces1, int* pieces2) {
 }
 
 int main(int argc, char *argv[]) {
-    // single threaded: 3m15s
     Bitboards::init();
     // enumerate_kkx();
+    // enumerate_kkp();
+
     init_kkx_table();
+    init_kkp_table();
     init_tril();
 
     // test_pawn_tril_1();
