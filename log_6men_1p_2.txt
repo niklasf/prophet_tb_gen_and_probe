@@ -2986,3 +2986,1441 @@ Finished consistency checks in 24253.4s.
 6323670354 wins in KRNPKQ
 4987183801 draws in KRNPKQ
 1719396767 losses in KRNPKQ
+init_kkx_table count: 3612
+Generate 10121539680 KQQNPK and 10121539680 KKQQNP
+White pieces: KQQNP
+Black pieces: K
+Archive:  egtbs/KQQNK.egtb.zip
+  inflating: egtbs/KQQNK.egtb        
+Loaded KQQNK for white P captured, white to move
+Archive:  egtbs/KQQPK.egtb.zip
+  inflating: egtbs/KQQPK.egtb        
+Loaded KQQPK for white N captured, white to move
+Archive:  egtbs/KQNPK.egtb.zip
+  inflating: egtbs/KQNPK.egtb        
+Loaded KQNPK for white Q captured, white to move
+Archive:  egtbs/KKQQNN.egtb.zip
+  inflating: egtbs/KKQQNN.egtb       
+Loaded KKQQNN for white promotion to N, black to move
+Archive:  egtbs/KKQQBN.egtb.zip
+  inflating: egtbs/KKQQBN.egtb       
+Loaded KKQQBN for white promotion to B, black to move
+Archive:  egtbs/KKQQRN.egtb.zip
+  inflating: egtbs/KKQQRN.egtb       
+Loaded KKQQRN for white promotion to R, black to move
+Archive:  egtbs/KKQQQN.egtb.zip
+  inflating: egtbs/KKQQQN.egtb       
+Loaded KKQQQN for white promotion to Q, black to move
+Bytes allocated: 41620304880
+Bytes mmaped: 17525258520
+Stats for KKQQNP:
+    # Non-EP positions: 10121539680 (100%)
+    # EP positions: 0 (0%)
+    Checkmate count: 398113791 (3.93333%)
+    1050764040 unused indices (10.3815%)
+    1050764040 of which sntm in check (10.3815%)
+Stats for KQQNPK:
+    # Non-EP positions: 10121539680 (100%)
+    # EP positions: 0 (0%)
+    Checkmate count: 0 (0%)
+    6502913859 unused indices (64.2483%)
+    6502913859 of which sntm in check (64.2483%)
+Finished checkmate init in 371.964s.
+MIN_LEVEL = 18
+1067274995 positions at level 1
+1618356389 positions at level 2
+2029611646 positions at level 3
+4135251225 positions at level 4
+514375895 positions at level 5
+1963199010 positions at level 6
+7362737 positions at level 7
+318285645 positions at level 8
+472 positions at level 9
+243619409 positions at level 10
+0 positions at level 11
+143154605 positions at level 12
+0 positions at level 13
+34881067 positions at level 14
+0 positions at level 15
+1195272 positions at level 16
+0 positions at level 17
+477 positions at level 18
+0 positions at level 19
+0 positions at level 20
+Finished retrograde in 1398.11s.
+0 wins in KKQQNP
+214718750 draws in KKQQNP
+8856056890 losses in KKQQNP
+3618625745 wins in KQQNPK
+76 draws in KQQNPK
+0 losses in KQQNPK
+Stored KQQNPK and KKQQNP
+Checked WTM integrity
+Checked BTM integrity
+  adding: egtbs/KQQNPK.egtb (deflated 97%)
+  adding: egtbs/KKQQNP.egtb (deflated 95%)
+Zipped KQQNPK.zip and KKQQNP.zip
+Finished TB in 2431.93s.
+Generate 20243079360 KQNPKN and 20243079360 KNKQNP
+White pieces: KQNP
+Black pieces: KN
+Archive:  egtbs/KQNKN.egtb.zip
+  inflating: egtbs/KQNKN.egtb        
+Loaded KQNKN for white P captured, white to move
+Archive:  egtbs/KQPKN.egtb.zip
+  inflating: egtbs/KQPKN.egtb        
+Loaded KQPKN for white N captured, white to move
+Archive:  egtbs/KKQNP.egtb.zip
+  inflating: egtbs/KKQNP.egtb        
+Loaded KKQNP for black N captured, black to move
+Archive:  egtbs/KNPKN.egtb.zip
+  inflating: egtbs/KNPKN.egtb        
+Loaded KNPKN for white Q captured, white to move
+Archive:  egtbs/KNKQNN.egtb.zip
+  inflating: egtbs/KNKQNN.egtb       
+Loaded KNKQNN for white promotion to N, black to move
+Archive:  egtbs/KNKQBN.egtb.zip
+  inflating: egtbs/KNKQBN.egtb       
+Loaded KNKQBN for white promotion to B, black to move
+Archive:  egtbs/KNKQRN.egtb.zip
+  inflating: egtbs/KNKQRN.egtb       
+Loaded KNKQRN for white promotion to R, black to move
+Archive:  egtbs/KNKQQN.egtb.zip
+  inflating: egtbs/KNKQQN.egtb       
+Loaded KNKQQN for white promotion to Q, black to move
+Archive:  egtbs/KKQNN.egtb.zip
+  inflating: egtbs/KKQNN.egtb        
+Load KKQNN for black N captured with white promotion to N, black to move
+Archive:  egtbs/KKQBN.egtb.zip
+  inflating: egtbs/KKQBN.egtb        
+Load KKQBN for black N captured with white promotion to B, black to move
+Archive:  egtbs/KKQRN.egtb.zip
+  inflating: egtbs/KKQRN.egtb        
+Load KKQRN for black N captured with white promotion to R, black to move
+Archive:  egtbs/KKQQN.egtb.zip
+  inflating: egtbs/KKQQN.egtb        
+Load KKQQN for black N captured with white promotion to Q, black to move
+Bytes allocated: 83869632000
+Bytes mmaped: 37112312160
+Stats for KNKQNP:
+    # Non-EP positions: 20243079360 (100%)
+    # EP positions: 0 (0%)
+    Checkmate count: 50059285 (0.247291%)
+    3589977720 unused indices (17.7343%)
+    3589977720 of which sntm in check (17.7343%)
+Stats for KQNPKN:
+    # Non-EP positions: 20243079360 (100%)
+    # EP positions: 0 (0%)
+    Checkmate count: 13983 (6.90755e-05%)
+    9256721313 unused indices (45.7278%)
+    9256721313 of which sntm in check (45.7278%)
+Finished checkmate init in 827.973s.
+MIN_LEVEL = 201
+368323646 positions at level 1
+118706620 positions at level 2
+588750025 positions at level 3
+255271474 positions at level 4
+1087533014 positions at level 5
+550329006 positions at level 6
+1599759242 positions at level 7
+1212072338 positions at level 8
+1824217295 positions at level 9
+1749383890 positions at level 10
+1924326504 positions at level 11
+2158142486 positions at level 12
+1696820010 positions at level 13
+2492148232 positions at level 14
+1099857413 positions at level 15
+2415362963 positions at level 16
+539415976 positions at level 17
+1859439408 positions at level 18
+173102779 positions at level 19
+1029119379 positions at level 20
+35865826 positions at level 21
+415701402 positions at level 22
+6029636 positions at level 23
+206195293 positions at level 24
+3929608 positions at level 25
+155673579 positions at level 26
+3377640 positions at level 27
+105332607 positions at level 28
+2589345 positions at level 29
+69302273 positions at level 30
+1962034 positions at level 31
+52148011 positions at level 32
+1651237 positions at level 33
+47926650 positions at level 34
+1500253 positions at level 35
+44944464 positions at level 36
+1307096 positions at level 37
+40251167 positions at level 38
+1077381 positions at level 39
+34860137 positions at level 40
+865794 positions at level 41
+29856092 positions at level 42
+713006 positions at level 43
+24937322 positions at level 44
+556396 positions at level 45
+20053999 positions at level 46
+428213 positions at level 47
+15803331 positions at level 48
+321677 positions at level 49
+12607802 positions at level 50
+245828 positions at level 51
+10128561 positions at level 52
+196083 positions at level 53
+8612022 positions at level 54
+162505 positions at level 55
+7396809 positions at level 56
+135951 positions at level 57
+6370181 positions at level 58
+114823 positions at level 59
+5442919 positions at level 60
+97272 positions at level 61
+4440841 positions at level 62
+77060 positions at level 63
+3545304 positions at level 64
+61196 positions at level 65
+2794959 positions at level 66
+49035 positions at level 67
+2167476 positions at level 68
+38372 positions at level 69
+1728422 positions at level 70
+30122 positions at level 71
+1357036 positions at level 72
+24593 positions at level 73
+1045862 positions at level 74
+19258 positions at level 75
+809171 positions at level 76
+15195 positions at level 77
+617881 positions at level 78
+11760 positions at level 79
+453279 positions at level 80
+8518 positions at level 81
+329283 positions at level 82
+5830 positions at level 83
+241448 positions at level 84
+4515 positions at level 85
+181789 positions at level 86
+3108 positions at level 87
+142340 positions at level 88
+2644 positions at level 89
+119908 positions at level 90
+2189 positions at level 91
+86273 positions at level 92
+1291 positions at level 93
+52957 positions at level 94
+1119 positions at level 95
+35635 positions at level 96
+667 positions at level 97
+23904 positions at level 98
+536 positions at level 99
+16701 positions at level 100
+321 positions at level 101
+12132 positions at level 102
+252 positions at level 103
+12070 positions at level 104
+225 positions at level 105
+10708 positions at level 106
+186 positions at level 107
+10116 positions at level 108
+215 positions at level 109
+7373 positions at level 110
+144 positions at level 111
+4285 positions at level 112
+34 positions at level 113
+1796 positions at level 114
+14 positions at level 115
+696 positions at level 116
+11 positions at level 117
+513 positions at level 118
+3 positions at level 119
+209 positions at level 120
+2 positions at level 121
+112 positions at level 122
+0 positions at level 123
+2 positions at level 124
+0 positions at level 125
+0 positions at level 126
+0 positions at level 127
+6 positions at level 128
+0 positions at level 129
+0 positions at level 130
+0 positions at level 131
+0 positions at level 132
+0 positions at level 133
+0 positions at level 134
+0 positions at level 135
+2 positions at level 136
+0 positions at level 137
+18 positions at level 138
+0 positions at level 139
+28 positions at level 140
+0 positions at level 141
+4 positions at level 142
+0 positions at level 143
+5 positions at level 144
+0 positions at level 145
+2 positions at level 146
+0 positions at level 147
+0 positions at level 148
+0 positions at level 149
+7 positions at level 150
+0 positions at level 151
+14 positions at level 152
+0 positions at level 153
+4 positions at level 154
+0 positions at level 155
+22 positions at level 156
+0 positions at level 157
+7 positions at level 158
+0 positions at level 159
+8 positions at level 160
+0 positions at level 161
+35 positions at level 162
+0 positions at level 163
+0 positions at level 164
+0 positions at level 165
+0 positions at level 166
+0 positions at level 167
+2 positions at level 168
+0 positions at level 169
+18 positions at level 170
+0 positions at level 171
+36 positions at level 172
+0 positions at level 173
+92 positions at level 174
+0 positions at level 175
+84 positions at level 176
+0 positions at level 177
+2 positions at level 178
+0 positions at level 179
+14 positions at level 180
+0 positions at level 181
+2 positions at level 182
+0 positions at level 183
+14 positions at level 184
+0 positions at level 185
+0 positions at level 186
+0 positions at level 187
+0 positions at level 188
+0 positions at level 189
+0 positions at level 190
+0 positions at level 191
+4 positions at level 192
+0 positions at level 193
+30 positions at level 194
+0 positions at level 195
+0 positions at level 196
+0 positions at level 197
+0 positions at level 198
+0 positions at level 199
+0 positions at level 200
+0 positions at level 201
+0 positions at level 202
+Finished retrograde in 4747.88s.
+80900 wins in KNKQNP
+1429190119 draws in KNKQNP
+15223830621 losses in KNKQNP
+10965511023 wins in KQNPKN
+20833019 draws in KQNPKN
+14005 losses in KQNPKN
+Stored KQNPKN and KNKQNP
+Checked WTM integrity
+Checked BTM integrity
+  adding: egtbs/KQNPKN.egtb (deflated 89%)
+  adding: egtbs/KNKQNP.egtb (deflated 85%)
+Zipped KQNPKN.zip and KNKQNP.zip
+Finished TB in 8526.79s.
+Generate 20243079360 KQNPKB and 20243079360 KBKQNP
+White pieces: KQNP
+Black pieces: KB
+Archive:  egtbs/KQNKB.egtb.zip
+  inflating: egtbs/KQNKB.egtb        
+Loaded KQNKB for white P captured, white to move
+Archive:  egtbs/KQPKB.egtb.zip
+  inflating: egtbs/KQPKB.egtb        
+Loaded KQPKB for white N captured, white to move
+Archive:  egtbs/KKQNP.egtb.zip
+  inflating: egtbs/KKQNP.egtb        
+Loaded KKQNP for black B captured, black to move
+Archive:  egtbs/KNPKB.egtb.zip
+  inflating: egtbs/KNPKB.egtb        
+Loaded KNPKB for white Q captured, white to move
+Archive:  egtbs/KBKQNN.egtb.zip
+  inflating: egtbs/KBKQNN.egtb       
+Loaded KBKQNN for white promotion to N, black to move
+Archive:  egtbs/KBKQBN.egtb.zip
+  inflating: egtbs/KBKQBN.egtb       
+Loaded KBKQBN for white promotion to B, black to move
+Archive:  egtbs/KBKQRN.egtb.zip
+  inflating: egtbs/KBKQRN.egtb       
+Loaded KBKQRN for white promotion to R, black to move
+Archive:  egtbs/KBKQQN.egtb.zip
+  inflating: egtbs/KBKQQN.egtb       
+Loaded KBKQQN for white promotion to Q, black to move
+Archive:  egtbs/KKQNN.egtb.zip
+  inflating: egtbs/KKQNN.egtb        
+Load KKQNN for black B captured with white promotion to N, black to move
+Archive:  egtbs/KKQBN.egtb.zip
+  inflating: egtbs/KKQBN.egtb        
+Load KKQBN for black B captured with white promotion to B, black to move
+Archive:  egtbs/KKQRN.egtb.zip
+  inflating: egtbs/KKQRN.egtb        
+Load KKQRN for black B captured with white promotion to R, black to move
+Archive:  egtbs/KKQQN.egtb.zip
+  inflating: egtbs/KKQQN.egtb        
+Load KKQQN for black B captured with white promotion to Q, black to move
+Bytes allocated: 83869632000
+Bytes mmaped: 37112312160
+Stats for KBKQNP:
+    # Non-EP positions: 20243079360 (100%)
+    # EP positions: 0 (0%)
+    Checkmate count: 44962955 (0.222115%)
+    4400100160 unused indices (21.7363%)
+    4400100160 of which sntm in check (21.7363%)
+Stats for KQNPKB:
+    # Non-EP positions: 20243079360 (100%)
+    # EP positions: 0 (0%)
+    Checkmate count: 20830 (0.000102899%)
+    9256721313 unused indices (45.7278%)
+    9256721313 of which sntm in check (45.7278%)
+Finished checkmate init in 857.783s.
+MIN_LEVEL = 86
+342581623 positions at level 1
+76922172 positions at level 2
+436461942 positions at level 3
+174882208 positions at level 4
+925743084 positions at level 5
+431328319 positions at level 6
+1599143618 positions at level 7
+1094111848 positions at level 8
+1893301875 positions at level 9
+1502025204 positions at level 10
+1959168533 positions at level 11
+1831229125 positions at level 12
+1737493096 positions at level 13
+2191598299 positions at level 14
+1143311892 positions at level 15
+2248520788 positions at level 16
+619165576 positions at level 17
+1898752334 positions at level 18
+246266810 positions at level 19
+1180032076 positions at level 20
+60230379 positions at level 21
+505107011 positions at level 22
+8619280 positions at level 23
+219497700 positions at level 24
+2419129 positions at level 25
+123576212 positions at level 26
+1467260 positions at level 27
+70561310 positions at level 28
+1025589 positions at level 29
+50004073 positions at level 30
+817518 positions at level 31
+43425533 positions at level 32
+713511 positions at level 33
+42614622 positions at level 34
+696315 positions at level 35
+40108782 positions at level 36
+616530 positions at level 37
+34456389 positions at level 38
+484007 positions at level 39
+28276680 positions at level 40
+376198 positions at level 41
+23021866 positions at level 42
+293380 positions at level 43
+18022732 positions at level 44
+207763 positions at level 45
+13688422 positions at level 46
+135695 positions at level 47
+10361783 positions at level 48
+83617 positions at level 49
+7455692 positions at level 50
+50942 positions at level 51
+4903989 positions at level 52
+26746 positions at level 53
+3334119 positions at level 54
+15581 positions at level 55
+2543140 positions at level 56
+11357 positions at level 57
+2010793 positions at level 58
+10477 positions at level 59
+1585295 positions at level 60
+9511 positions at level 61
+1095464 positions at level 62
+6402 positions at level 63
+610688 positions at level 64
+4275 positions at level 65
+373277 positions at level 66
+2784 positions at level 67
+297092 positions at level 68
+2118 positions at level 69
+221052 positions at level 70
+1447 positions at level 71
+135352 positions at level 72
+802 positions at level 73
+71753 positions at level 74
+464 positions at level 75
+32867 positions at level 76
+165 positions at level 77
+13953 positions at level 78
+142 positions at level 79
+11173 positions at level 80
+80 positions at level 81
+4127 positions at level 82
+21 positions at level 83
+520 positions at level 84
+0 positions at level 85
+30 positions at level 86
+0 positions at level 87
+0 positions at level 88
+Finished retrograde in 3994.72s.
+154273 wins in KBKQNP
+1921051854 draws in KBKQNP
+13921773073 losses in KBKQNP
+10980813261 wins in KQNPKB
+5508210 draws in KQNPKB
+36576 losses in KQNPKB
+Stored KQNPKB and KBKQNP
+Checked WTM integrity
+Checked BTM integrity
+  adding: egtbs/KQNPKB.egtb (deflated 88%)
+  adding: egtbs/KBKQNP.egtb (deflated 85%)
+Zipped KQNPKB.zip and KBKQNP.zip
+Finished TB in 7858.68s.
+Generate 20243079360 KQNPKR and 20243079360 KRKQNP
+White pieces: KQNP
+Black pieces: KR
+Archive:  egtbs/KQNKR.egtb.zip
+  inflating: egtbs/KQNKR.egtb        
+Loaded KQNKR for white P captured, white to move
+Archive:  egtbs/KQPKR.egtb.zip
+  inflating: egtbs/KQPKR.egtb        
+Loaded KQPKR for white N captured, white to move
+Archive:  egtbs/KKQNP.egtb.zip
+  inflating: egtbs/KKQNP.egtb        
+Loaded KKQNP for black R captured, black to move
+Archive:  egtbs/KNPKR.egtb.zip
+  inflating: egtbs/KNPKR.egtb        
+Loaded KNPKR for white Q captured, white to move
+Archive:  egtbs/KRKQNN.egtb.zip
+  inflating: egtbs/KRKQNN.egtb       
+Loaded KRKQNN for white promotion to N, black to move
+Archive:  egtbs/KRKQBN.egtb.zip
+  inflating: egtbs/KRKQBN.egtb       
+Loaded KRKQBN for white promotion to B, black to move
+Archive:  egtbs/KRKQRN.egtb.zip
+  inflating: egtbs/KRKQRN.egtb       
+Loaded KRKQRN for white promotion to R, black to move
+Archive:  egtbs/KRKQQN.egtb.zip
+  inflating: egtbs/KRKQQN.egtb       
+Loaded KRKQQN for white promotion to Q, black to move
+Archive:  egtbs/KKQNN.egtb.zip
+  inflating: egtbs/KKQNN.egtb        
+Load KKQNN for black R captured with white promotion to N, black to move
+Archive:  egtbs/KKQBN.egtb.zip
+  inflating: egtbs/KKQBN.egtb        
+Load KKQBN for black R captured with white promotion to B, black to move
+Archive:  egtbs/KKQRN.egtb.zip
+  inflating: egtbs/KKQRN.egtb        
+Load KKQRN for black R captured with white promotion to R, black to move
+Archive:  egtbs/KKQQN.egtb.zip
+  inflating: egtbs/KKQQN.egtb        
+Load KKQQN for black R captured with white promotion to Q, black to move
+Bytes allocated: 83869632000
+Bytes mmaped: 37112312160
+Stats for KRKQNP:
+    # Non-EP positions: 20243079360 (100%)
+    # EP positions: 0 (0%)
+    Checkmate count: 38810846 (0.191724%)
+    5669496104 unused indices (28.0071%)
+    5669496104 of which sntm in check (28.0071%)
+Stats for KQNPKR:
+    # Non-EP positions: 20243079360 (100%)
+    # EP positions: 0 (0%)
+    Checkmate count: 2950945 (0.0145775%)
+    9256721313 unused indices (45.7278%)
+    9256721313 of which sntm in check (45.7278%)
+Finished checkmate init in 832.601s.
+MIN_LEVEL = 133
+326441707 positions at level 1
+44512464 positions at level 2
+282499529 positions at level 3
+49781348 positions at level 4
+472530964 positions at level 5
+88630910 positions at level 6
+1045184897 positions at level 7
+260780357 positions at level 8
+1523634328 positions at level 9
+528507354 positions at level 10
+1698227055 positions at level 11
+756278200 positions at level 12
+1591215992 positions at level 13
+964133645 positions at level 14
+1165694728 positions at level 15
+1127840005 positions at level 16
+836640989 positions at level 17
+1287330206 positions at level 18
+659802985 positions at level 19
+1422565383 positions at level 20
+555897308 positions at level 21
+1437878699 positions at level 22
+418687575 positions at level 23
+1288871897 positions at level 24
+257473711 positions at level 25
+970727802 positions at level 26
+111390458 positions at level 27
+575783598 positions at level 28
+33054406 positions at level 29
+286289534 positions at level 30
+16198252 positions at level 31
+169492812 positions at level 32
+15949133 positions at level 33
+118410233 positions at level 34
+18089793 positions at level 35
+83152560 positions at level 36
+17990067 positions at level 37
+56223587 positions at level 38
+13692983 positions at level 39
+35357583 positions at level 40
+9743243 positions at level 41
+22035155 positions at level 42
+7213138 positions at level 43
+14533581 positions at level 44
+5710304 positions at level 45
+10245549 positions at level 46
+4701535 positions at level 47
+7788331 positions at level 48
+4025961 positions at level 49
+6236735 positions at level 50
+3549042 positions at level 51
+5334884 positions at level 52
+3198638 positions at level 53
+4808713 positions at level 54
+2804134 positions at level 55
+4566822 positions at level 56
+2453482 positions at level 57
+4189136 positions at level 58
+2108789 positions at level 59
+3547018 positions at level 60
+1831634 positions at level 61
+2690921 positions at level 62
+1569127 positions at level 63
+1977703 positions at level 64
+1334494 positions at level 65
+1370269 positions at level 66
+1127118 positions at level 67
+848354 positions at level 68
+932761 positions at level 69
+426617 positions at level 70
+760231 positions at level 71
+178686 positions at level 72
+607090 positions at level 73
+55951 positions at level 74
+476506 positions at level 75
+20043 positions at level 76
+380407 positions at level 77
+8322 positions at level 78
+302475 positions at level 79
+3496 positions at level 80
+230718 positions at level 81
+1193 positions at level 82
+180921 positions at level 83
+359 positions at level 84
+152272 positions at level 85
+145 positions at level 86
+125598 positions at level 87
+45 positions at level 88
+105165 positions at level 89
+16 positions at level 90
+80911 positions at level 91
+0 positions at level 92
+67159 positions at level 93
+3 positions at level 94
+52422 positions at level 95
+1 positions at level 96
+50652 positions at level 97
+5 positions at level 98
+43358 positions at level 99
+4 positions at level 100
+35334 positions at level 101
+4 positions at level 102
+27047 positions at level 103
+8 positions at level 104
+21258 positions at level 105
+0 positions at level 106
+14179 positions at level 107
+0 positions at level 108
+10568 positions at level 109
+0 positions at level 110
+7816 positions at level 111
+0 positions at level 112
+5532 positions at level 113
+0 positions at level 114
+6672 positions at level 115
+0 positions at level 116
+3422 positions at level 117
+0 positions at level 118
+3501 positions at level 119
+0 positions at level 120
+3723 positions at level 121
+0 positions at level 122
+3370 positions at level 123
+0 positions at level 124
+2119 positions at level 125
+1 positions at level 126
+1043 positions at level 127
+0 positions at level 128
+751 positions at level 129
+0 positions at level 130
+192 positions at level 131
+0 positions at level 132
+122 positions at level 133
+0 positions at level 134
+Finished retrograde in 4499.8s.
+151371453 wins in KRKQNP
+2741850845 draws in KRKQNP
+11680360958 losses in KRKQNP
+10964991341 wins in KQNPKR
+16549626 draws in KQNPKR
+4817080 losses in KQNPKR
+Stored KQNPKR and KRKQNP
+Checked WTM integrity
+Checked BTM integrity
+  adding: egtbs/KQNPKR.egtb (deflated 87%)
+  adding: egtbs/KRKQNP.egtb (deflated 84%)
+Zipped KQNPKR.zip and KRKQNP.zip
+Finished TB in 8333.43s.
+Generate 20243079360 KQNPKQ and 20243079360 KQKQNP
+White pieces: KQNP
+Black pieces: KQ
+Archive:  egtbs/KQNKQ.egtb.zip
+  inflating: egtbs/KQNKQ.egtb        
+Loaded KQNKQ for white P captured, white to move
+Archive:  egtbs/KQPKQ.egtb.zip
+  inflating: egtbs/KQPKQ.egtb        
+Loaded KQPKQ for white N captured, white to move
+Archive:  egtbs/KNPKQ.egtb.zip
+  inflating: egtbs/KNPKQ.egtb        
+Loaded KNPKQ for white Q captured, white to move
+Archive:  egtbs/KKQNP.egtb.zip
+  inflating: egtbs/KKQNP.egtb        
+Loaded KKQNP for black Q captured, black to move
+Archive:  egtbs/KQKQNN.egtb.zip
+  inflating: egtbs/KQKQNN.egtb       
+Loaded KQKQNN for white promotion to N, black to move
+Archive:  egtbs/KQKQBN.egtb.zip
+  inflating: egtbs/KQKQBN.egtb       
+Loaded KQKQBN for white promotion to B, black to move
+Archive:  egtbs/KQKQRN.egtb.zip
+  inflating: egtbs/KQKQRN.egtb       
+Loaded KQKQRN for white promotion to R, black to move
+Archive:  egtbs/KQKQQN.egtb.zip
+  inflating: egtbs/KQKQQN.egtb       
+Loaded KQKQQN for white promotion to Q, black to move
+Archive:  egtbs/KKQNN.egtb.zip
+  inflating: egtbs/KKQNN.egtb        
+Load KKQNN for black Q captured with white promotion to N, black to move
+Archive:  egtbs/KKQBN.egtb.zip
+  inflating: egtbs/KKQBN.egtb        
+Load KKQBN for black Q captured with white promotion to B, black to move
+Archive:  egtbs/KKQRN.egtb.zip
+  inflating: egtbs/KKQRN.egtb        
+Load KKQRN for black Q captured with white promotion to R, black to move
+Archive:  egtbs/KKQQN.egtb.zip
+  inflating: egtbs/KKQQN.egtb        
+Load KKQQN for black Q captured with white promotion to Q, black to move
+Bytes allocated: 83869632000
+Bytes mmaped: 37112312160
+Stats for KQKQNP:
+    # Non-EP positions: 20243079360 (100%)
+    # EP positions: 0 (0%)
+    Checkmate count: 26025836 (0.128567%)
+    7968068184 unused indices (39.3619%)
+    7968068184 of which sntm in check (39.3619%)
+Stats for KQNPKQ:
+    # Non-EP positions: 20243079360 (100%)
+    # EP positions: 0 (0%)
+    Checkmate count: 7802074 (0.0385419%)
+    9256721313 unused indices (45.7278%)
+    9256721313 of which sntm in check (45.7278%)
+Finished checkmate init in 835.382s.
+MIN_LEVEL = 248
+277615916 positions at level 1
+30747141 positions at level 2
+234126712 positions at level 3
+25846340 positions at level 4
+394896607 positions at level 5
+31402883 positions at level 6
+896456216 positions at level 7
+70076030 positions at level 8
+1271850458 positions at level 9
+115671780 positions at level 10
+1357167666 positions at level 11
+157986563 positions at level 12
+1103716030 positions at level 13
+191509103 positions at level 14
+589542217 positions at level 15
+166517919 positions at level 16
+372330587 positions at level 17
+141780619 positions at level 18
+402689950 positions at level 19
+153691015 positions at level 20
+519473192 positions at level 21
+170565967 positions at level 22
+630272425 positions at level 23
+186962441 positions at level 24
+624539186 positions at level 25
+201790004 positions at level 26
+514515989 positions at level 27
+210928478 positions at level 28
+463101713 positions at level 29
+214312525 positions at level 30
+458182489 positions at level 31
+215399195 positions at level 32
+463059339 positions at level 33
+218645201 positions at level 34
+462759655 positions at level 35
+222051336 positions at level 36
+445151017 positions at level 37
+223287962 positions at level 38
+409220324 positions at level 39
+222461273 positions at level 40
+353478968 positions at level 41
+218811044 positions at level 42
+280710846 positions at level 43
+210392929 positions at level 44
+213950925 positions at level 45
+196972984 positions at level 46
+168709842 positions at level 47
+178565596 positions at level 48
+135316013 positions at level 49
+155164220 positions at level 50
+106670611 positions at level 51
+129004773 positions at level 52
+81909637 positions at level 53
+103583408 positions at level 54
+61906504 positions at level 55
+81395073 positions at level 56
+46441381 positions at level 57
+63654941 positions at level 58
+34765460 positions at level 59
+49796231 positions at level 60
+25967081 positions at level 61
+39182301 positions at level 62
+19406082 positions at level 63
+31169268 positions at level 64
+14593604 positions at level 65
+25193536 positions at level 66
+11159531 positions at level 67
+20736401 positions at level 68
+8637888 positions at level 69
+17385443 positions at level 70
+6787276 positions at level 71
+14918043 positions at level 72
+5496740 positions at level 73
+13164199 positions at level 74
+4579058 positions at level 75
+11847886 positions at level 76
+3911913 positions at level 77
+10850610 positions at level 78
+3422254 positions at level 79
+10105986 positions at level 80
+3070296 positions at level 81
+9594912 positions at level 82
+2805014 positions at level 83
+9200194 positions at level 84
+2610353 positions at level 85
+8886223 positions at level 86
+2457992 positions at level 87
+8627265 positions at level 88
+2350226 positions at level 89
+8406577 positions at level 90
+2265678 positions at level 91
+8264403 positions at level 92
+2201372 positions at level 93
+8099133 positions at level 94
+2137164 positions at level 95
+7896858 positions at level 96
+2078952 positions at level 97
+7668236 positions at level 98
+2030344 positions at level 99
+7467993 positions at level 100
+1990633 positions at level 101
+7305894 positions at level 102
+1940902 positions at level 103
+7097852 positions at level 104
+1883376 positions at level 105
+6846374 positions at level 106
+1805130 positions at level 107
+6552533 positions at level 108
+1715736 positions at level 109
+6283612 positions at level 110
+1641605 positions at level 111
+6046897 positions at level 112
+1567227 positions at level 113
+5762592 positions at level 114
+1491974 positions at level 115
+5459103 positions at level 116
+1422945 positions at level 117
+5198874 positions at level 118
+1344689 positions at level 119
+4962595 positions at level 120
+1280150 positions at level 121
+4823930 positions at level 122
+1219986 positions at level 123
+4689198 positions at level 124
+1155215 positions at level 125
+4533718 positions at level 126
+1101521 positions at level 127
+4350276 positions at level 128
+1037648 positions at level 129
+4133809 positions at level 130
+976653 positions at level 131
+3899959 positions at level 132
+915234 positions at level 133
+3675412 positions at level 134
+867108 positions at level 135
+3436528 positions at level 136
+813531 positions at level 137
+3181954 positions at level 138
+757567 positions at level 139
+2928056 positions at level 140
+694113 positions at level 141
+2706887 positions at level 142
+646379 positions at level 143
+2554014 positions at level 144
+604105 positions at level 145
+2411519 positions at level 146
+567044 positions at level 147
+2306417 positions at level 148
+531762 positions at level 149
+2152252 positions at level 150
+498179 positions at level 151
+2004555 positions at level 152
+458005 positions at level 153
+1815903 positions at level 154
+413108 positions at level 155
+1628122 positions at level 156
+370388 positions at level 157
+1459263 positions at level 158
+340309 positions at level 159
+1324115 positions at level 160
+310203 positions at level 161
+1194305 positions at level 162
+280019 positions at level 163
+1050618 positions at level 164
+247023 positions at level 165
+910164 positions at level 166
+217160 positions at level 167
+796258 positions at level 168
+192493 positions at level 169
+698412 positions at level 170
+172214 positions at level 171
+598132 positions at level 172
+147985 positions at level 173
+525172 positions at level 174
+129196 positions at level 175
+462630 positions at level 176
+113588 positions at level 177
+392596 positions at level 178
+98819 positions at level 179
+344325 positions at level 180
+87210 positions at level 181
+306380 positions at level 182
+78371 positions at level 183
+276974 positions at level 184
+69289 positions at level 185
+246395 positions at level 186
+61103 positions at level 187
+225137 positions at level 188
+55139 positions at level 189
+198947 positions at level 190
+46713 positions at level 191
+157710 positions at level 192
+38959 positions at level 193
+127270 positions at level 194
+31011 positions at level 195
+99155 positions at level 196
+24923 positions at level 197
+78365 positions at level 198
+20199 positions at level 199
+64452 positions at level 200
+16909 positions at level 201
+52664 positions at level 202
+14080 positions at level 203
+42343 positions at level 204
+11714 positions at level 205
+36951 positions at level 206
+10345 positions at level 207
+31379 positions at level 208
+8196 positions at level 209
+24138 positions at level 210
+6757 positions at level 211
+20059 positions at level 212
+5543 positions at level 213
+16024 positions at level 214
+4179 positions at level 215
+12932 positions at level 216
+3475 positions at level 217
+12116 positions at level 218
+2920 positions at level 219
+10989 positions at level 220
+2548 positions at level 221
+9477 positions at level 222
+2083 positions at level 223
+6949 positions at level 224
+1525 positions at level 225
+4604 positions at level 226
+1076 positions at level 227
+3705 positions at level 228
+797 positions at level 229
+3413 positions at level 230
+651 positions at level 231
+2893 positions at level 232
+519 positions at level 233
+1982 positions at level 234
+332 positions at level 235
+1380 positions at level 236
+269 positions at level 237
+1371 positions at level 238
+228 positions at level 239
+1078 positions at level 240
+161 positions at level 241
+682 positions at level 242
+131 positions at level 243
+572 positions at level 244
+89 positions at level 245
+421 positions at level 246
+71 positions at level 247
+182 positions at level 248
+40 positions at level 249
+129 positions at level 250
+29 positions at level 251
+103 positions at level 252
+27 positions at level 253
+127 positions at level 254
+25 positions at level 255
+99 positions at level 256
+16 positions at level 257
+74 positions at level 258
+8 positions at level 259
+37 positions at level 260
+12 positions at level 261
+47 positions at level 262
+3 positions at level 263
+12 positions at level 264
+1 positions at level 265
+0 positions at level 266
+Finished retrograde in 5276.62s.
+3383046378 wins in KQKQNP
+3922779593 draws in KQKQNP
+4969185205 losses in KQKQNP
+10154018913 wins in KQNPKQ
+799471446 draws in KQNPKQ
+32867688 losses in KQNPKQ
+Stored KQNPKQ and KQKQNP
+Checked WTM integrity
+Checked BTM integrity
+  adding: egtbs/KQNPKQ.egtb (deflated 83%)
+  adding: egtbs/KQKQNP.egtb (deflated 80%)
+Zipped KQNPKQ.zip and KQKQNP.zip
+Finished TB in 9158.34s.
+Generate 10121539680 KNPKNN and 10121539680 KNNKNP
+White pieces: KNP
+Black pieces: KNN
+Archive:  egtbs/KNKNN.egtb.zip
+  inflating: egtbs/KNKNN.egtb        
+Loaded KNKNN for white P captured, white to move
+Archive:  egtbs/KPKNN.egtb.zip
+  inflating: egtbs/KPKNN.egtb        
+Loaded KPKNN for white N captured, white to move
+Archive:  egtbs/KNKNP.egtb.zip
+  inflating: egtbs/KNKNP.egtb        
+Loaded KNKNP for black N captured, black to move
+Archive:  egtbs/KNNKNN.egtb.zip
+  inflating: egtbs/KNNKNN.egtb       
+Loaded KNNKNN for white promotion to N, black to move
+Archive:  egtbs/KNNKBN.egtb.zip
+  inflating: egtbs/KNNKBN.egtb       
+Loaded KNNKBN for white promotion to B, black to move
+Archive:  egtbs/KNNKRN.egtb.zip
+  inflating: egtbs/KNNKRN.egtb       
+Loaded KNNKRN for white promotion to R, black to move
+Archive:  egtbs/KNNKQN.egtb.zip
+  inflating: egtbs/KNNKQN.egtb       
+Loaded KNNKQN for white promotion to Q, black to move
+Load KNKNN for black N captured with white promotion to N, black to move
+Archive:  egtbs/KNKBN.egtb.zip
+  inflating: egtbs/KNKBN.egtb        
+Load KNKBN for black N captured with white promotion to B, black to move
+Archive:  egtbs/KNKRN.egtb.zip
+  inflating: egtbs/KNKRN.egtb        
+Load KNKRN for black N captured with white promotion to R, black to move
+Archive:  egtbs/KNKQN.egtb.zip
+  inflating: egtbs/KNKQN.egtb        
+Load KNKQN for black N captured with white promotion to Q, black to move
+Bytes allocated: 42354164160
+Bytes mmaped: 21648848760
+Stats for KNNKNP:
+    # Non-EP positions: 10121539680 (100%)
+    # EP positions: 0 (0%)
+    Checkmate count: 51433 (0.000508154%)
+    2480320352 unused indices (24.5054%)
+    2480320352 of which sntm in check (24.5054%)
+Stats for KNPKNN:
+    # Non-EP positions: 10121539680 (100%)
+    # EP positions: 0 (0%)
+    Checkmate count: 212793 (0.00210238%)
+    2024276430 unused indices (19.9997%)
+    2024276430 of which sntm in check (19.9997%)
+Finished checkmate init in 401.769s.
+MIN_LEVEL = 229
+3648259 positions at level 1
+409935 positions at level 2
+4861699 positions at level 3
+477589 positions at level 4
+5975249 positions at level 5
+453222 positions at level 6
+7861560 positions at level 7
+657466 positions at level 8
+10644906 positions at level 9
+766264 positions at level 10
+13861011 positions at level 11
+994523 positions at level 12
+20416821 positions at level 13
+1454405 positions at level 14
+33306156 positions at level 15
+2404442 positions at level 16
+56325383 positions at level 17
+4310259 positions at level 18
+91926793 positions at level 19
+8062212 positions at level 20
+136240103 positions at level 21
+14977828 positions at level 22
+175719360 positions at level 23
+25448734 positions at level 24
+189547682 positions at level 25
+37368556 positions at level 26
+171402048 positions at level 27
+46274784 positions at level 28
+143797449 positions at level 29
+50942598 positions at level 30
+125049658 positions at level 31
+55336677 positions at level 32
+119498570 positions at level 33
+62755039 positions at level 34
+116931256 positions at level 35
+67846509 positions at level 36
+107559255 positions at level 37
+62112389 positions at level 38
+88705679 positions at level 39
+46472543 positions at level 40
+66371619 positions at level 41
+30850783 positions at level 42
+47251806 positions at level 43
+19778563 positions at level 44
+33469161 positions at level 45
+12426969 positions at level 46
+24150148 positions at level 47
+8134168 positions at level 48
+18338188 positions at level 49
+5890481 positions at level 50
+14538583 positions at level 51
+4527071 positions at level 52
+12127321 positions at level 53
+3658198 positions at level 54
+10360197 positions at level 55
+3075503 positions at level 56
+9056829 positions at level 57
+2665535 positions at level 58
+7989157 positions at level 59
+2311224 positions at level 60
+7053941 positions at level 61
+1937581 positions at level 62
+6198242 positions at level 63
+1578129 positions at level 64
+5585976 positions at level 65
+1358478 positions at level 66
+5290467 positions at level 67
+1186980 positions at level 68
+5304927 positions at level 69
+1101369 positions at level 70
+5366636 positions at level 71
+1012299 positions at level 72
+5387493 positions at level 73
+916656 positions at level 74
+5275522 positions at level 75
+833443 positions at level 76
+5186491 positions at level 77
+810325 positions at level 78
+5237513 positions at level 79
+821014 positions at level 80
+5348036 positions at level 81
+814892 positions at level 82
+5164404 positions at level 83
+771414 positions at level 84
+5044056 positions at level 85
+684329 positions at level 86
+5029816 positions at level 87
+637930 positions at level 88
+4988358 positions at level 89
+606386 positions at level 90
+4862000 positions at level 91
+557111 positions at level 92
+5006960 positions at level 93
+507071 positions at level 94
+5497267 positions at level 95
+476504 positions at level 96
+5542491 positions at level 97
+430957 positions at level 98
+5049339 positions at level 99
+380522 positions at level 100
+4495578 positions at level 101
+334371 positions at level 102
+3698999 positions at level 103
+305783 positions at level 104
+2981527 positions at level 105
+265402 positions at level 106
+2564144 positions at level 107
+213946 positions at level 108
+2447670 positions at level 109
+171367 positions at level 110
+2724650 positions at level 111
+140687 positions at level 112
+3246428 positions at level 113
+133640 positions at level 114
+3740435 positions at level 115
+141330 positions at level 116
+4161752 positions at level 117
+152969 positions at level 118
+3944933 positions at level 119
+135718 positions at level 120
+3598450 positions at level 121
+113448 positions at level 122
+3556376 positions at level 123
+98477 positions at level 124
+3789945 positions at level 125
+85731 positions at level 126
+3784286 positions at level 127
+75742 positions at level 128
+3922022 positions at level 129
+64955 positions at level 130
+4152600 positions at level 131
+60667 positions at level 132
+4234835 positions at level 133
+58888 positions at level 134
+4049868 positions at level 135
+59607 positions at level 136
+3529012 positions at level 137
+59078 positions at level 138
+2702107 positions at level 139
+57299 positions at level 140
+2323902 positions at level 141
+54653 positions at level 142
+2403906 positions at level 143
+49161 positions at level 144
+2859672 positions at level 145
+49490 positions at level 146
+3204529 positions at level 147
+57475 positions at level 148
+3290845 positions at level 149
+60653 positions at level 150
+3115819 positions at level 151
+62123 positions at level 152
+2944614 positions at level 153
+62715 positions at level 154
+3094277 positions at level 155
+71733 positions at level 156
+3879172 positions at level 157
+84910 positions at level 158
+4582237 positions at level 159
+97364 positions at level 160
+4771326 positions at level 161
+99430 positions at level 162
+4784192 positions at level 163
+95540 positions at level 164
+4878907 positions at level 165
+94093 positions at level 166
+4626089 positions at level 167
+92309 positions at level 168
+4142263 positions at level 169
+89426 positions at level 170
+3513628 positions at level 171
+76575 positions at level 172
+2903652 positions at level 173
+66484 positions at level 174
+2700042 positions at level 175
+60586 positions at level 176
+2629937 positions at level 177
+55146 positions at level 178
+2799779 positions at level 179
+54909 positions at level 180
+3405292 positions at level 181
+53273 positions at level 182
+3642268 positions at level 183
+52131 positions at level 184
+3964274 positions at level 185
+63162 positions at level 186
+4314042 positions at level 187
+73273 positions at level 188
+4504026 positions at level 189
+83343 positions at level 190
+4146485 positions at level 191
+87976 positions at level 192
+3495237 positions at level 193
+84024 positions at level 194
+2735463 positions at level 195
+75932 positions at level 196
+2168551 positions at level 197
+61184 positions at level 198
+1819054 positions at level 199
+43920 positions at level 200
+1341366 positions at level 201
+30468 positions at level 202
+794288 positions at level 203
+16887 positions at level 204
+381866 positions at level 205
+8876 positions at level 206
+171235 positions at level 207
+2882 positions at level 208
+68741 positions at level 209
+1974 positions at level 210
+29935 positions at level 211
+801 positions at level 212
+13626 positions at level 213
+553 positions at level 214
+6610 positions at level 215
+241 positions at level 216
+2662 positions at level 217
+312 positions at level 218
+1811 positions at level 219
+206 positions at level 220
+1247 positions at level 221
+210 positions at level 222
+1477 positions at level 223
+210 positions at level 224
+1425 positions at level 225
+202 positions at level 226
+1243 positions at level 227
+296 positions at level 228
+2064 positions at level 229
+257 positions at level 230
+1626 positions at level 231
+278 positions at level 232
+1790 positions at level 233
+497 positions at level 234
+3286 positions at level 235
+529 positions at level 236
+3258 positions at level 237
+536 positions at level 238
+3282 positions at level 239
+551 positions at level 240
+3636 positions at level 241
+564 positions at level 242
+3484 positions at level 243
+535 positions at level 244
+3372 positions at level 245
+544 positions at level 246
+3451 positions at level 247
+761 positions at level 248
+4715 positions at level 249
+818 positions at level 250
+4601 positions at level 251
+872 positions at level 252
+4838 positions at level 253
+549 positions at level 254
+3275 positions at level 255
+328 positions at level 256
+1977 positions at level 257
+290 positions at level 258
+1597 positions at level 259
+317 positions at level 260
+1916 positions at level 261
+367 positions at level 262
+2030 positions at level 263
+389 positions at level 264
+2069 positions at level 265
+314 positions at level 266
+1701 positions at level 267
+268 positions at level 268
+1556 positions at level 269
+112 positions at level 270
+737 positions at level 271
+79 positions at level 272
+542 positions at level 273
+30 positions at level 274
+198 positions at level 275
+0 positions at level 276
+Finished retrograde in 1305.98s.
+271101239 wins in KNNKNP
+6770386600 draws in KNNKNP
+599731489 losses in KNNKNP
+1881098232 wins in KNPKNN
+6210448421 draws in KNPKNN
+5716597 losses in KNPKNN
+Stored KNPKNN and KNNKNP
+Checked WTM integrity
+Checked BTM integrity
+  adding: egtbs/KNPKNN.egtb (deflated 91%)
+  adding: egtbs/KNNKNP.egtb (deflated 94%)
+Zipped KNPKNN.zip and KNNKNP.zip
+Finished TB in 2493.65s.
+Generate 20243079360 KNPKBN and 20243079360 KBNKNP
+White pieces: KNP
+Black pieces: KBN
+Archive:  egtbs/KNKBN.egtb.zip
+  inflating: egtbs/KNKBN.egtb        
+Loaded KNKBN for white P captured, white to move
+Archive:  egtbs/KPKBN.egtb.zip
+  inflating: egtbs/KPKBN.egtb        
+Loaded KPKBN for white N captured, white to move
+Archive:  egtbs/KBKNP.egtb.zip
+  inflating: egtbs/KBKNP.egtb        
+Loaded KBKNP for black N captured, black to move
+Archive:  egtbs/KNKNP.egtb.zip
+  inflating: egtbs/KNKNP.egtb        
+Loaded KNKNP for black B captured, black to move
+Archive:  egtbs/KBNKNN.egtb.zip
+  inflating: egtbs/KBNKNN.egtb       
+Loaded KBNKNN for white promotion to N, black to move
+Archive:  egtbs/KBNKBN.egtb.zip
+  inflating: egtbs/KBNKBN.egtb       
+Loaded KBNKBN for white promotion to B, black to move
+Archive:  egtbs/KBNKRN.egtb.zip
+  inflating: egtbs/KBNKRN.egtb       
+Loaded KBNKRN for white promotion to R, black to move
+Archive:  egtbs/KBNKQN.egtb.zip
+  inflating: egtbs/KBNKQN.egtb       
+Loaded KBNKQN for white promotion to Q, black to move
+Archive:  egtbs/KBKNN.egtb.zip
+  inflating: egtbs/KBKNN.egtb        
+Load KBKNN for black N captured with white promotion to N, black to move
+Archive:  egtbs/KNKNN.egtb.zip
+  inflating: egtbs/KNKNN.egtb        
+Load KNKNN for black B captured with white promotion to N, black to move
+Archive:  egtbs/KBKBN.egtb.zip
+  inflating: egtbs/KBKBN.egtb        
+Load KBKBN for black N captured with white promotion to B, black to move
+Load KNKBN for black B captured with white promotion to B, black to move
+Archive:  egtbs/KBKRN.egtb.zip
+  inflating: egtbs/KBKRN.egtb        
+Load KBKRN for black N captured with white promotion to R, black to move
+Archive:  egtbs/KNKRN.egtb.zip
+  inflating: egtbs/KNKRN.egtb        
+Load KNKRN for black B captured with white promotion to R, black to move
+Archive:  egtbs/KBKQN.egtb.zip
+  inflating: egtbs/KBKQN.egtb        
+Load KBKQN for black N captured with white promotion to Q, black to move
+Archive:  egtbs/KNKQN.egtb.zip
+  inflating: egtbs/KNKQN.egtb        
+Load KNKQN for black B captured with white promotion to Q, black to move
+Bytes allocated: 84708328320
+Bytes mmaped: 43297697520
+Stats for KBNKNP:
+    # Non-EP positions: 20243079360 (100%)
+    # EP positions: 0 (0%)
+    Checkmate count: 102738 (0.000507522%)
+    5676796674 unused indices (28.0431%)
+    5676796674 of which sntm in check (28.0431%)
