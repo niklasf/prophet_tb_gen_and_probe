@@ -69,22 +69,19 @@ struct EGTB {
         }
         has_pawns = stm_pieces[PAWN] + sntm_pieces[PAWN] > 0;
         id = get_egtb_identifier(stm_pieces, sntm_pieces);
-        compute_kntm_poscounts(stm_pieces, sntm_pieces, kntm_poscounts);
-        num_nonep_pos = has_pawns ? kntm_poscounts[N_KKP] : kntm_poscounts[N_KKX];
-        num_ep_pos = compute_num_ep_positions(stm_pieces, sntm_pieces);
-        num_pos = num_nonep_pos + num_ep_pos;
+        compute_poscounts(stm_pieces, sntm_pieces, kntm_poscounts, num_nonep_pos, num_ep_pos, num_pos);
     }
 
     void pos_at_ix(EGPosition &pos, uint64_t ix, Color stm) {
         if (stm == WHITE) {
-            pos_at_ix_(pos, ix, stm, this->stm_pieces, this->sntm_pieces, this->num_nonep_pos, this->num_ep_pos, this->kntm_poscounts);
+            pos_at_ix_(pos, ix, stm, this->stm_pieces, this->sntm_pieces, this->kntm_poscounts);
         } else {
-            pos_at_ix_(pos, ix, stm, this->sntm_pieces, this->stm_pieces, this->num_nonep_pos, this->num_ep_pos, this->kntm_poscounts);
+            pos_at_ix_(pos, ix, stm, this->sntm_pieces, this->stm_pieces, this->kntm_poscounts);
         }
     }
 
     uint64_t ix_from_pos(EGPosition const &pos) {
-        return ix_from_pos_(pos, this->num_nonep_pos, this->num_ep_pos, this->kntm_poscounts);
+        return ix_from_pos_(pos, this->kntm_poscounts);
     }
 };
 

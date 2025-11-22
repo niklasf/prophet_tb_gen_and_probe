@@ -267,4 +267,21 @@ void init_kkp_table() {
     }
 }
 
+#define N_EP 14
+
+                            // {    0,     1,     2,     3,     4,     5,     6,     7,     8,     9,    10,    11,    12,    13};
+const Square EP_PAWN[N_EP]      = {SQ_A5, SQ_B5, SQ_B5, SQ_C5, SQ_C5, SQ_D5, SQ_D5, SQ_E5, SQ_E5, SQ_F5, SQ_F5, SQ_G5, SQ_G5, SQ_H5};
+const Square EP_CAP_PAWN[N_EP]  = {SQ_B5, SQ_A5, SQ_C5, SQ_B5, SQ_D5, SQ_C5, SQ_E5, SQ_D5, SQ_F5, SQ_E5, SQ_G5, SQ_F5, SQ_H5, SQ_G5};
+
+const uint64_t EP_IX[8][3] = {
+    {0, 0, 0}, // SQ_A5
+    {1, 0, 2}, // SQ_B5
+    {3, 0, 4}, // SQ_C5
+    {5, 0, 6}, // SQ_D5
+    {7, 0, 8}, // SQ_E5
+    {9, 0, 10}, // SQ_F5
+    {11, 0, 12}, // SQ_G5
+    {13, 0, 0}, // SQ_H5
+};
+
 #endif

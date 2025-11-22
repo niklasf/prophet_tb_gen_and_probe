@@ -231,22 +231,32 @@ inline bool EGPosition::check_ep(Square ep_sq) const {
     Square to = ep_sq + pawn_push(us);
 
     if (piece_on(to) != make_piece(us, PAWN)) {
+        // there has to be pawn that can be captured with ep
         return false;
     }
     
     if (piece_on(ep_sq) || piece_on(from)) {
+        // ep_sq and from have to be empty since pawn should have been able to make double push
+        return false;
+    }
+
+    if (!((us == WHITE && (from & Rank2BB)) || (us == BLACK && (from & Rank7BB)))) {
+        // origin square of pawn (from) has to be on the start rank of pawns
         return false;
     }
 
 
     Bitboard pawns = attacks_bb<PAWN>(ep_sq, us) & pieces(them, PAWN);
     if (!pawns)
+        // there are no pawns attacking ep sq
         return false;
 
     if (checkers(us) & ~square_bb(to))
+        // we are in check, ep is only possible if pawn to be captured with ep gives check
         return false;
 
     if (more_than_one(pawns)) {
+        // there are two pawns available for ep
         if (!more_than_one(blockers_for_king(them) & pawns)) {
             return true;
         }
