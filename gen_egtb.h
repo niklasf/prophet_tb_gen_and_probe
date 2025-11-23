@@ -54,22 +54,24 @@ struct EGTB {
     int16_t* TB;
     int stm_pieces[6];
     int sntm_pieces[6];
-    bool has_pawns;
+    int npieces;
+    int npawns;
     uint64_t kntm_poscounts[N_KKP + 1];
     uint64_t num_nonep_pos;
     uint64_t num_ep_pos;
     uint64_t num_pos;
-    std::string filename;
     size_t filesize;
     bool mmaped;
     bool loaded;
 
     EGTB(int stm_pieces_[6], int sntm_pieces_[6]) {
+        npieces = 0;
         for (int i = 0; i < 6; i++) {
             stm_pieces[i] = stm_pieces_[i];
             sntm_pieces[i] = sntm_pieces_[i];
+            npieces += stm_pieces[i] + sntm_pieces[i];
         }
-        has_pawns = stm_pieces[PAWN] + sntm_pieces[PAWN] > 0;
+        npawns = stm_pieces[PAWN] + sntm_pieces[PAWN];
         id = get_egtb_identifier(stm_pieces, sntm_pieces);
         compute_poscounts(stm_pieces, sntm_pieces, kntm_poscounts, num_nonep_pos, num_ep_pos, num_pos);
         loaded = false;
@@ -89,20 +91,27 @@ struct EGTB {
         assert (ix < this->num_pos);
         return ix;
     }
+    std::string get_folder(std::string root_folder) {
+        assert (!root_folder.empty() && root_folder.back() == '/');
+        std::ostringstream os;
+        os << root_folder << "/" << npieces << "men/" << npawns << "pawns/";
+        return os.str();
+    }
+    std::string get_filename(std::string root_folder) {
+        std::ostringstream os;
+        os << get_folder(root_folder) << id << ".egtb";
+        return os.str();
+    }
 };
 
 
-// std::string get_filename(int stm_pieces[6], int sntm_pieces[6], std::string folder) {
-//     std::ostringstream os;
-//     os << folder;
-//     os << get_egtb_identifier(stm_pieces, sntm_pieces);
-//     os << ".egtb";
-//     return os.str();
-// }
+void store_egtb(EGTB* egtb, std::string root_folder) {
+    // make folder if it does not exist
+    std::string folder = egtb->get_folder(root_folder);
+    std::string cmd = "mkdir -p " + folder;
+    system(cmd.c_str());
 
-
-void store_egtb(EGTB* egtb, std::string folder) {
-    std::string filename = folder + egtb->id + ".egtb";
+    std::string filename = egtb->get_filename(root_folder);
     std::ofstream outputFileStream;
     outputFileStream.open(filename, std::ios::out|std::ios::binary);
     for(uint64_t i=0; i<egtb->num_pos; i++) {
@@ -116,31 +125,31 @@ void store_egtb(EGTB* egtb, std::string folder) {
     }
 }
 
-void zip_egtb(EGTB* egtb, std::string folder) {
-    std::string filename = folder + egtb->id + ".egtb";
+void zip_egtb(EGTB* egtb, std::string root_folder) {
+    std::string filename = egtb->get_filename(root_folder);
     std::string cmd = "zip -m " + filename + ".zip " + filename; // -m   move into zipfile (delete OS files)
     system(cmd.c_str());
 }
 
-void unzip_egtb(EGTB* egtb, std::string folder) {
-    std::string filename = folder + egtb->id + ".egtb.zip";
+void unzip_egtb(EGTB* egtb, std::string root_folder) {
+    std::string filename = egtb->get_filename(root_folder);
     std::string cmd = "unzip -n " + filename; // -n  never overwrite existing files
     system(cmd.c_str());
 }
 
-void rm_unzipped_egtb(EGTB* egtb, std::string folder) {
-    std::string filename = folder + egtb->id + ".egtb";
-    std::string cmd = "rm " + filename;
-    system(cmd.c_str());
-}
-void rm_all_unzipped_egtbs(std::string folder) {
-    std::string filename = folder + "*.egtb";
+void rm_unzipped_egtb(EGTB* egtb, std::string root_folder) {
+    std::string filename = egtb->get_filename(root_folder);
     std::string cmd = "rm " + filename;
     system(cmd.c_str());
 }
 
-void load_egtb_mmap(EGTB* egtb, std::string folder) {
-    std::string filename = folder + egtb->id + ".egtb";
+void rm_all_unzipped_egtbs(std::string folder) {
+    std::string cmd = "find " + folder + "-type f -name \"*.egtb\" -delete";
+    system(cmd.c_str());
+}
+
+void load_egtb_mmap(EGTB* egtb, std::string root_folder) {
+    std::string filename = egtb->get_filename(root_folder);
     struct stat st;
     stat(filename.c_str(), &st);
     int fd = open(filename.c_str(), O_RDONLY);
@@ -160,12 +169,10 @@ void load_egtb_mmap(EGTB* egtb, std::string folder) {
     egtb->loaded = true;
     egtb->filesize = st.st_size;
     assert(egtb->filesize == egtb->num_pos * sizeof(int16_t));
-    egtb->filename = filename;
     close(fd);
 }
 
 void free_egtb_mmap(EGTB* egtb) {
-    // std::cout << "munmap " << filename << " from " << TB << " with size " << st.st_size << std::endl;
     assert (egtb->mmaped);
     int unmap = munmap(egtb->TB, egtb->filesize);
     if (unmap == -1) {
@@ -175,8 +182,8 @@ void free_egtb_mmap(EGTB* egtb) {
     egtb->loaded = false;
 }
 
-void load_egtb_in_memory(EGTB* egtb, std::string folder) {
-    std::string filename = folder + egtb->id + ".egtb";
+void load_egtb_in_memory(EGTB* egtb, std::string root_folder) {
+    std::string filename = egtb->get_filename(root_folder);
     std::ifstream inputFileStream;
     egtb->TB = (int16_t*) calloc(egtb->num_pos, sizeof(int16_t));
     inputFileStream.open(filename, std::ios::in|std::ios::binary);
@@ -185,7 +192,6 @@ void load_egtb_in_memory(EGTB* egtb, std::string folder) {
     egtb->mmaped = false;
     egtb->loaded = true;
     egtb->filesize = egtb->num_pos * sizeof(int16_t);
-    egtb->filename = filename;
 }
 
 void free_egtb_in_memory(EGTB* egtb) {
@@ -195,11 +201,11 @@ void free_egtb_in_memory(EGTB* egtb) {
 }
 
 
-void load_egtb(EGTB* egtb, std::string folder, bool mmap) {
+void load_egtb(EGTB* egtb, std::string root_folder, bool mmap) {
     if (mmap)
-        load_egtb_mmap(egtb, folder);
+        load_egtb_mmap(egtb, root_folder);
     else
-        load_egtb_in_memory(egtb, folder);
+        load_egtb_in_memory(egtb, root_folder);
 }
 
 
@@ -210,24 +216,24 @@ void free_egtb(EGTB* egtb) {
         free_egtb_in_memory(egtb);
 }
 
-bool egtb_exists_zipped(EGTB* egtb, std::string folder) {
-    std::string filename = folder + egtb->id + ".egtb.zip";
+bool egtb_exists_zipped(EGTB* egtb, std::string root_folder) {
+    std::string filename = egtb->get_filename(root_folder);
     return std::ifstream(filename).good();
 }
 
-bool egtb_exists_unzipped(EGTB* egtb, std::string folder) {
-    std::string filename = folder + egtb->id + ".egtb";
+bool egtb_exists_unzipped(EGTB* egtb, std::string root_folder) {
+    std::string filename = egtb->get_filename(root_folder);
     return std::ifstream(filename).good();
 }
 
-bool egtb_exists(EGTB* egtb, std::string folder) {
-    return egtb_exists_unzipped(egtb, folder) || egtb_exists_zipped(egtb, folder);
+bool egtb_exists(EGTB* egtb, std::string root_folder) {
+    return egtb_exists_unzipped(egtb, root_folder) || egtb_exists_zipped(egtb, root_folder);
 }
 
-void unzip_and_load_egtb(EGTB* egtb, std::string folder, bool mmap) {
-    if (!egtb_exists_unzipped(egtb, folder))
-        unzip_egtb(egtb, folder);
-    load_egtb(egtb, folder, mmap);
+void unzip_and_load_egtb(EGTB* egtb, std::string root_folder, bool mmap) {
+    if (!egtb_exists_unzipped(egtb, root_folder))
+        unzip_egtb(egtb, root_folder);
+    load_egtb(egtb, root_folder, mmap);
 }
 
 class GenEGTB {
