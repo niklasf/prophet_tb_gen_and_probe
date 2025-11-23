@@ -62,6 +62,8 @@ struct EGTB {
     std::string filename;
     size_t filesize;
     bool mmaped;
+    bool loaded;
+
     EGTB(int stm_pieces_[6], int sntm_pieces_[6]) {
         for (int i = 0; i < 6; i++) {
             stm_pieces[i] = stm_pieces_[i];
@@ -70,6 +72,7 @@ struct EGTB {
         has_pawns = stm_pieces[PAWN] + sntm_pieces[PAWN] > 0;
         id = get_egtb_identifier(stm_pieces, sntm_pieces);
         compute_poscounts(stm_pieces, sntm_pieces, kntm_poscounts, num_nonep_pos, num_ep_pos, num_pos);
+        loaded = false;
     }
 
     void pos_at_ix(EGPosition &pos, uint64_t ix, Color stm) {
@@ -83,11 +86,6 @@ struct EGTB {
 
     uint64_t ix_from_pos(EGPosition const &pos) {
         uint64_t ix = ix_from_pos_(pos, this->kntm_poscounts);
-        if (ix >= this->num_pos) {
-            std::cout << pos << pos.fen();
-            std::cout << "ix " << ix << " vs " << this->num_pos << std::endl;
-            assert (false);
-        }
         assert (ix < this->num_pos);
         return ix;
     }
@@ -109,9 +107,7 @@ void store_egtb(EGTB* egtb, std::string folder) {
     outputFileStream.open(filename, std::ios::out|std::ios::binary);
     for(uint64_t i=0; i<egtb->num_pos; i++) {
         int16_t val = egtb->TB[i];
-        if (val == UNUSED) {
-            val = 0;
-        }
+        if (val == UNUSED) val = 0;
         if (!IS_SET(val)) {
             std::cout << "store_egtb: corrupt value " << int(val) << " at " << i << std::endl;
             exit(1);
@@ -143,37 +139,6 @@ void rm_all_unzipped_egtbs(std::string folder) {
     system(cmd.c_str());
 }
 
-void store_egtb_8bit(EGTB* egtb, std::string folder) {
-    std::string filename = folder + egtb->id + ".egtb";
-    std::ofstream outputFileStream;
-    outputFileStream.open(filename, std::ios::out|std::ios::binary);
-    for(uint64_t i=0; i<egtb->num_pos; i++) {
-        int16_t val = egtb->TB[i];
-        assert (IS_SET(val));
-        uint8_t out = 0;
-        if (val < 0) {
-            int16_t level = val - LOSS_IN(0);
-            if (!(0 <= level && level < 256)) std::cout << level << " " << val << std::endl;
-            assert (0 <= level);
-            assert (level < 256);
-            assert (level % 2 == 0);
-            out = 255 - level;
-        } else if (val > 0) {
-            int16_t level = WIN_IN(0) - val;
-            if (!(0 <= level && level < 256)) std::cout << level << " " << val << std::endl;
-            assert (0 <= level);
-            assert (level < 256);
-            assert (level % 2 == 1);
-            out = 255 - level;
-        } else {
-            out = 0; // draw
-        }
-
-        outputFileStream.write((char*) &out, sizeof(uint8_t));
-    }
-}
-
-
 void load_egtb_mmap(EGTB* egtb, std::string folder) {
     std::string filename = folder + egtb->id + ".egtb";
     struct stat st;
@@ -192,6 +157,7 @@ void load_egtb_mmap(EGTB* egtb, std::string folder) {
     }
     // std::cout << "mmap " << filename << " to " << TB << " with size " << st.st_size  << std::endl;
     egtb->mmaped = true;
+    egtb->loaded = true;
     egtb->filesize = st.st_size;
     assert(egtb->filesize == egtb->num_pos * sizeof(int16_t));
     egtb->filename = filename;
@@ -206,6 +172,7 @@ void free_egtb_mmap(EGTB* egtb) {
         perror("Error munmapping the file");
         exit(EXIT_FAILURE);
     }
+    egtb->loaded = false;
 }
 
 void load_egtb_in_memory(EGTB* egtb, std::string folder) {
@@ -216,6 +183,7 @@ void load_egtb_in_memory(EGTB* egtb, std::string folder) {
     for(uint64_t i=0; i<egtb->num_pos; i++)
         inputFileStream.read((char*) &egtb->TB[i], sizeof(int16_t));
     egtb->mmaped = false;
+    egtb->loaded = true;
     egtb->filesize = egtb->num_pos * sizeof(int16_t);
     egtb->filename = filename;
 }
@@ -223,6 +191,7 @@ void load_egtb_in_memory(EGTB* egtb, std::string folder) {
 void free_egtb_in_memory(EGTB* egtb) {
     assert (!egtb->mmaped);
     free(egtb->TB);
+    egtb->loaded = false;
 }
 
 
@@ -507,6 +476,7 @@ void GenEGTB::check_consistency(EGPosition &pos, bool verbose) {
     }
 }
 
+// requires UNUSED flag
 void GenEGTB::check_consistency_allocated(int nthreads) {
     EGTB* LOSS_EGTB;
     EGTB* (*CAPTURE_EGTBs)[6];
@@ -572,13 +542,13 @@ void GenEGTB::check_consistency_allocated(int nthreads) {
     }
 }
 
+// does not require unused flag
 void GenEGTB::check_consistency_allocated_by_level(int nthreads, int16_t MAX_LEVEL) {
-    uint64_t MAX_NPOS = std::max(WTM_EGTB->num_pos, BTM_EGTB->num_pos);
     for (int16_t LEVEL = 0; LEVEL <= MAX_LEVEL; LEVEL++) {
         #pragma omp parallel for num_threads(nthreads) schedule(static,64)
-        for (uint64_t ix = 0; ix < MAX_NPOS; ix++) {
+        for (uint64_t ix = 0; ix < WTM_EGTB->num_pos; ix++) {
             EGPosition pos;
-            if ((ix < WTM_EGTB->num_pos) && (WTM_EGTB->TB[ix] == LOSS_IN(LEVEL) || WTM_EGTB->TB[ix] == WIN_IN(LEVEL))) {
+            if ((WTM_EGTB->TB[ix] == LOSS_IN(LEVEL) || WTM_EGTB->TB[ix] == WIN_IN(LEVEL))) {
                 pos.reset();
                 WTM_EGTB->pos_at_ix(pos, ix, WHITE);
                 assert (!pos.sntm_in_check());
@@ -589,9 +559,9 @@ void GenEGTB::check_consistency_allocated_by_level(int nthreads, int16_t MAX_LEV
         std::cout << "WTM Consistency check passed for level " << LEVEL << std::endl;
 
         #pragma omp parallel for num_threads(nthreads) schedule(static,64)
-        for (uint64_t ix = 0; ix < MAX_NPOS; ix++) {
+        for (uint64_t ix = 0; ix < BTM_EGTB->num_pos; ix++) {
             EGPosition pos;
-            if ((ix < BTM_EGTB->num_pos) && (BTM_EGTB->TB[ix] == LOSS_IN(LEVEL) || BTM_EGTB->TB[ix] == WIN_IN(LEVEL))) {
+            if ((BTM_EGTB->TB[ix] == LOSS_IN(LEVEL) || BTM_EGTB->TB[ix] == WIN_IN(LEVEL))) {
                 pos.reset();
                 BTM_EGTB->pos_at_ix(pos, ix, BLACK);
                 assert (!pos.sntm_in_check());
@@ -603,9 +573,9 @@ void GenEGTB::check_consistency_allocated_by_level(int nthreads, int16_t MAX_LEV
     }
 
     #pragma omp parallel for num_threads(nthreads) schedule(static,64)
-    for (uint64_t ix = 0; ix < MAX_NPOS; ix++) {
+    for (uint64_t ix = 0; ix < WTM_EGTB->num_pos; ix++) {
         EGPosition pos;
-        if (ix < WTM_EGTB->num_pos && WTM_EGTB->TB[ix] == 0) {
+        if (WTM_EGTB->TB[ix] == 0) {
             pos.reset();
             WTM_EGTB->pos_at_ix(pos, ix, WHITE);
             assert (!pos.sntm_in_check());
@@ -616,9 +586,9 @@ void GenEGTB::check_consistency_allocated_by_level(int nthreads, int16_t MAX_LEV
     std::cout << "WTM Consistency check passed for draws" << std::endl;
 
     #pragma omp parallel for num_threads(nthreads) schedule(static,64)
-    for (uint64_t ix = 0; ix < MAX_NPOS; ix++) {
+    for (uint64_t ix = 0; ix < BTM_EGTB->num_pos; ix++) {
         EGPosition pos;
-        if (ix < BTM_EGTB->num_pos && BTM_EGTB->TB[ix] == 0) {
+        if (BTM_EGTB->TB[ix] == 0) {
             pos.reset();
             BTM_EGTB->pos_at_ix(pos, ix, BLACK);
             assert (!pos.sntm_in_check());
@@ -639,10 +609,15 @@ void GenEGTB::gen(int nthreads) {
     }
     std::cout << "Generate " << WTM_EGTB->num_pos << " " << WTM_EGTB->id << " and " << BTM_EGTB->num_pos << " " << BTM_EGTB->id << std::endl;
 
+    TimePoint t0 = now();
+
     int piece_count = 2;
     for (int i = 0; i < 6; i++) piece_count += wpieces[i] + bpieces[i];
 
     allocate_and_load();
+
+    TimePoint t1 = now();
+    std::cout << "Finished allocate and load in " << (double) (t1 - t0) / 1000.0 << "s." << std::endl;
 
     int16_t LEVEL = 0;
 
@@ -655,7 +630,8 @@ void GenEGTB::gen(int nthreads) {
         
     int16_t MIN_LEVEL = 0;
 
-    TimePoint t0 = now();
+
+    // Step 1. Get all infos from dependent tables.
 
     for (int wtm = 0; wtm <= 1; ++wtm) {
         if (wtm) {
@@ -675,7 +651,10 @@ void GenEGTB::gen(int nthreads) {
         uint64_t N_CHECKMATE = 0;
 
 
-        #pragma omp parallel for num_threads(nthreads) schedule(static,64) reduction(+:N_LEVEL_POS) reduction(+:N_SYMMETRY) reduction(+:N_SNTM_IN_CHECK) reduction(+:N_ILLEGAL_EP) reduction(+:N_PIECE_COLLISION) reduction(+:N_CHECKMATE) reduction(max:MIN_LEVEL)
+        #pragma omp parallel for num_threads(nthreads) schedule(static,64) \
+        reduction(+:N_LEVEL_POS) reduction(+:N_SYMMETRY) reduction(+:N_SNTM_IN_CHECK) \
+        reduction(+:N_ILLEGAL_EP) reduction(+:N_PIECE_COLLISION) reduction(+:N_CHECKMATE) \
+        reduction(max:MIN_LEVEL)
         for (uint64_t ix = 0; ix < LOSS_EGTB->num_pos; ix++) {
             EGPosition pos;
             pos.reset();
@@ -772,11 +751,13 @@ void GenEGTB::gen(int nthreads) {
         std::cout << "    " << N_SYMMETRY << " of which symmetric positions (" << (double) N_SYMMETRY / LOSS_EGTB->num_pos * 100 << "%)" << std::endl;
     }
 
-    TimePoint t1 = now();
-    std::cout << "Finished checkmate init in " << (double) (t1 - t0) / 1000.0 << "s." << std::endl;
+    TimePoint t2 = now();
+    std::cout << "Finished init in " << (double) (t2 - t1) / 1000.0 << "s." << std::endl;
 
- 
+
     std::cout << "MIN_LEVEL = " << int(MIN_LEVEL) << std::endl;
+
+    // Step 2. Retrograde Analysis
 
     while (true) {
         LEVEL++;
@@ -792,6 +773,8 @@ void GenEGTB::gen(int nthreads) {
                 LOSS_EGTB = BTM_EGTB;
                 WIN_EGTB = WTM_EGTB;
             }
+
+            // Step 2a. From each lost position take a move backwards and set as win.
 
             #pragma omp parallel for num_threads(nthreads) schedule(static,64)
             for (uint64_t ix = 0; ix < LOSS_EGTB->num_pos; ix++) {
@@ -827,16 +810,15 @@ void GenEGTB::gen(int nthreads) {
                 }
             }
 
+            // Step 2b. For each new win position, take move backwards and flag as potential (maybe) loss
+
             #pragma omp parallel for num_threads(nthreads) schedule(static,64) reduction(+:N_LEVEL_POS)
             for (uint64_t win_ix = 0; win_ix < WIN_EGTB->num_pos; win_ix++) {
                 if (WIN_EGTB->TB[win_ix] == WIN_IN(LEVEL)) {
                     EGPosition pos;
                     pos.reset();
                     WIN_EGTB->pos_at_ix(pos, win_ix, ~LOSS_COLOR); // not much slower
-                    if (pos.sntm_in_check()) {
-                        std::cout << win_ix << " " << WIN_EGTB->TB[win_ix] << pos;
-                        assert (!pos.sntm_in_check());
-                    }
+                    assert (!pos.sntm_in_check());
                     if (win_ix > WIN_EGTB->num_nonep_pos) assert (pos.check_ep(pos.ep_square()));
                     N_LEVEL_POS++;
 
@@ -885,6 +867,8 @@ void GenEGTB::gen(int nthreads) {
         std::cout << N_LEVEL_POS << " positions at level " << LEVEL << std::endl;
 
         LEVEL++;
+
+        // Step 2c. for each potenial (maybe) loss, check all forward moves to see if we can confirm loss
 
         N_LEVEL_POS = 0;
         for (int wtm = 0; wtm <= 1; ++wtm) {
@@ -954,7 +938,7 @@ void GenEGTB::gen(int nthreads) {
     }
 
 
-    // all entries that are not known wins or losses are draws
+    // Step 3. all entries that are not known wins or losses are draws
     #pragma omp parallel for num_threads(nthreads) schedule(static,64)
     for (uint64_t ix = 0; ix < WTM_EGTB->num_pos; ix++) {
         if (WTM_EGTB->TB[ix] == UNKNOWN) WTM_EGTB->TB[ix] = 0;
@@ -966,43 +950,18 @@ void GenEGTB::gen(int nthreads) {
         assert (IS_SET(BTM_EGTB->TB[ix] || BTM_EGTB->TB[ix] == UNUSED));
     }
 
-    TimePoint t2 = now();
-    std::cout << "Finished retrograde in " << (double) (t2 - t1) / 1000.0 << "s." << std::endl;
-    
-
-    // check_consistency_allocated_by_level(nthreads, LEVEL);
-    check_consistency_allocated(nthreads);
-
     TimePoint t3 = now();
-    std::cout << "Finished consistency checks in " << (double) (t3 - t2)/ 1000.0 << "s." << std::endl;
+    std::cout << "Finished retrograde in " << (double) (t3 - t2) / 1000.0 << "s." << std::endl;
     
 
-    for (int wtm = 0; wtm <= 1; ++wtm) {
-        EGTB* egtb = wtm ? WTM_EGTB : BTM_EGTB;
+    // Step 4. Write to disk
 
-        uint64_t wins = 0;
-        uint64_t draws = 0;
-        uint64_t losses = 0;
-        #pragma omp parallel for num_threads(nthreads) schedule(static,64) reduction(+:wins) reduction(+:draws) reduction(+:losses)
-        for (uint64_t ix = 0; ix < egtb->num_pos; ix++) {
-            if (egtb->TB[ix] == UNUSED) {
-                egtb->TB[ix] = 0; // can store 0 for unused for more efficient compression
-                continue; 
-            }
-            wins += (egtb->TB[ix] > 0);
-            draws += (egtb->TB[ix] == 0);
-            losses += (egtb->TB[ix] < 0);
-        }
-        std::cout << wins << " wins in " << egtb->id << std::endl;
-        std::cout << draws << " draws in " << egtb->id << std::endl;
-        std::cout << losses << " losses in " << egtb->id << std::endl;
-    }
-    
+    // sets UNUSED to 0
     store_egtb(WTM_EGTB, folder);
     store_egtb(BTM_EGTB, folder);
     std::cout << "Stored " << WTM_EGTB->id << " and " << BTM_EGTB->id << std::endl;
 
-    // check file integrity
+    // check file integrity (TODO: remove)
     EGTB WTM_EGTB_MMAP = EGTB(this->wpieces, this->bpieces);
     load_egtb(&WTM_EGTB_MMAP, folder, true);
     for (uint64_t ix = 0; ix < WTM_EGTB_MMAP.num_pos; ix++) {
@@ -1025,6 +984,22 @@ void GenEGTB::gen(int nthreads) {
     free_egtb(&BTM_EGTB_MMAP);
     std::cout << "Checked BTM integrity" << std::endl;
 
+
+    TimePoint t4 = now();
+    std::cout << "Wrote to disk in " << (double) (t4 - t3) / 1000.0 << "s." << std::endl;
+    
+
+    // Step 5. Consistency checks
+
+    if (do_consistency_checks) {
+        // check_consistency_allocated_by_level(nthreads, LEVEL);
+        check_consistency_allocated(nthreads);
+    }
+    TimePoint t5 = now();
+    std::cout << "Finished consistency checks in " << (double) (t5 - t4)/ 1000.0 << "s." << std::endl;
+    
+    
+    // Step 6. Compress files
     if (zip) {
         zip_egtb(WTM_EGTB, folder);
         zip_egtb(BTM_EGTB, folder);
@@ -1033,11 +1008,12 @@ void GenEGTB::gen(int nthreads) {
 
         rm_all_unzipped_egtbs(folder);
     }
-
-    TimePoint t4 = now();
-    std::cout << "Finished TB in " << (double) (t4 - t0)/ 1000.0 << "s." << std::endl;
+    TimePoint t6 = now();
+    std::cout << "Compressed files in " << (double) (t6 - t5)/ 1000.0 << "s." << std::endl;
 
     deallocate_and_free();
+
+    std::cout << "Finished TB in " << (double) (t6 - t0)/ 1000.0 << "s." << std::endl;
 }
 
 #endif
