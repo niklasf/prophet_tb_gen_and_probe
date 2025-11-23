@@ -29,6 +29,7 @@ inline int16_t MAYBELOSS_IN(int16_t level) { return -11000 + level; }
 inline int16_t IS_SET(int16_t val) { return LOSS_IN(0) <= val && val <= WIN_IN(0); }
 // inline int16_t IS_UNSET(int16_t val) { return val == 0; }
 
+#define CHUNKSIZE 2048
 
 std::string get_pieces_identifier(int pieces[6]) {
     std::ostringstream os;
@@ -92,7 +93,7 @@ struct EGTB {
         return ix;
     }
     std::string get_folder(std::string root_folder) {
-        assert (!root_folder.empty() && root_folder.back() == '/');
+        assert (!root_folder.empty() && root_folder.back() != '/');
         std::ostringstream os;
         os << root_folder << "/" << npieces << "men/" << npawns << "pawns/";
         return os.str();
@@ -502,7 +503,7 @@ void GenEGTB::check_consistency_allocated(int nthreads) {
             CAPTURE_EGTBs = WTM_EGTBs;
         }
 
-        #pragma omp parallel for num_threads(nthreads) schedule(static,64)
+        #pragma omp parallel for num_threads(nthreads) schedule(static,CHUNKSIZE)
         for (uint64_t ix = 0; ix < LOSS_EGTB->num_pos; ix++) {
             EGPosition pos;
             pos.reset();
@@ -551,7 +552,7 @@ void GenEGTB::check_consistency_allocated(int nthreads) {
 // does not require unused flag
 void GenEGTB::check_consistency_allocated_by_level(int nthreads, int16_t MAX_LEVEL) {
     for (int16_t LEVEL = 0; LEVEL <= MAX_LEVEL; LEVEL++) {
-        #pragma omp parallel for num_threads(nthreads) schedule(static,64)
+        #pragma omp parallel for num_threads(nthreads) schedule(static,CHUNKSIZE)
         for (uint64_t ix = 0; ix < WTM_EGTB->num_pos; ix++) {
             EGPosition pos;
             if ((WTM_EGTB->TB[ix] == LOSS_IN(LEVEL) || WTM_EGTB->TB[ix] == WIN_IN(LEVEL))) {
@@ -564,7 +565,7 @@ void GenEGTB::check_consistency_allocated_by_level(int nthreads, int16_t MAX_LEV
         }
         std::cout << "WTM Consistency check passed for level " << LEVEL << std::endl;
 
-        #pragma omp parallel for num_threads(nthreads) schedule(static,64)
+        #pragma omp parallel for num_threads(nthreads) schedule(static,CHUNKSIZE)
         for (uint64_t ix = 0; ix < BTM_EGTB->num_pos; ix++) {
             EGPosition pos;
             if ((BTM_EGTB->TB[ix] == LOSS_IN(LEVEL) || BTM_EGTB->TB[ix] == WIN_IN(LEVEL))) {
@@ -578,7 +579,7 @@ void GenEGTB::check_consistency_allocated_by_level(int nthreads, int16_t MAX_LEV
         std::cout << "BTM Consistency check passed for level " << LEVEL << std::endl;
     }
 
-    #pragma omp parallel for num_threads(nthreads) schedule(static,64)
+    #pragma omp parallel for num_threads(nthreads) schedule(static,CHUNKSIZE)
     for (uint64_t ix = 0; ix < WTM_EGTB->num_pos; ix++) {
         EGPosition pos;
         if (WTM_EGTB->TB[ix] == 0) {
@@ -591,7 +592,7 @@ void GenEGTB::check_consistency_allocated_by_level(int nthreads, int16_t MAX_LEV
     }
     std::cout << "WTM Consistency check passed for draws" << std::endl;
 
-    #pragma omp parallel for num_threads(nthreads) schedule(static,64)
+    #pragma omp parallel for num_threads(nthreads) schedule(static,CHUNKSIZE)
     for (uint64_t ix = 0; ix < BTM_EGTB->num_pos; ix++) {
         EGPosition pos;
         if (BTM_EGTB->TB[ix] == 0) {
@@ -657,7 +658,7 @@ void GenEGTB::gen(int nthreads) {
         uint64_t N_CHECKMATE = 0;
 
 
-        #pragma omp parallel for num_threads(nthreads) schedule(static,64) \
+        #pragma omp parallel for num_threads(nthreads) schedule(static,CHUNKSIZE) \
         reduction(+:N_LEVEL_POS) reduction(+:N_SYMMETRY) reduction(+:N_SNTM_IN_CHECK) \
         reduction(+:N_ILLEGAL_EP) reduction(+:N_PIECE_COLLISION) reduction(+:N_CHECKMATE) \
         reduction(max:MIN_LEVEL)
@@ -782,7 +783,7 @@ void GenEGTB::gen(int nthreads) {
 
             // Step 2a. From each lost position take a move backwards and set as win.
 
-            #pragma omp parallel for num_threads(nthreads) schedule(static,64)
+            #pragma omp parallel for num_threads(nthreads) schedule(static,CHUNKSIZE)
             for (uint64_t ix = 0; ix < LOSS_EGTB->num_pos; ix++) {
                 EGPosition pos;
                 if (LOSS_EGTB->TB[ix] == LOSS_IN(LEVEL-1)) {
@@ -818,7 +819,7 @@ void GenEGTB::gen(int nthreads) {
 
             // Step 2b. For each new win position, take move backwards and flag as potential (maybe) loss
 
-            #pragma omp parallel for num_threads(nthreads) schedule(static,64) reduction(+:N_LEVEL_POS)
+            #pragma omp parallel for num_threads(nthreads) schedule(static,CHUNKSIZE) reduction(+:N_LEVEL_POS)
             for (uint64_t win_ix = 0; win_ix < WIN_EGTB->num_pos; win_ix++) {
                 if (WIN_EGTB->TB[win_ix] == WIN_IN(LEVEL)) {
                     EGPosition pos;
@@ -888,7 +889,7 @@ void GenEGTB::gen(int nthreads) {
                 WIN_EGTB = WTM_EGTB;
             }
 
-            #pragma omp parallel for num_threads(nthreads) schedule(static,64) reduction(+:N_LEVEL_POS)
+            #pragma omp parallel for num_threads(nthreads) schedule(static,CHUNKSIZE) reduction(+:N_LEVEL_POS)
             for (uint64_t ix = 0; ix < LOSS_EGTB->num_pos; ix++) {
                 EGPosition pos;
                 if (LOSS_EGTB->TB[ix] == MAYBELOSS_IN(LEVEL)) {
@@ -945,12 +946,12 @@ void GenEGTB::gen(int nthreads) {
 
 
     // Step 3. all entries that are not known wins or losses are draws
-    #pragma omp parallel for num_threads(nthreads) schedule(static,64)
+    #pragma omp parallel for num_threads(nthreads) schedule(static,CHUNKSIZE)
     for (uint64_t ix = 0; ix < WTM_EGTB->num_pos; ix++) {
         if (WTM_EGTB->TB[ix] == UNKNOWN) WTM_EGTB->TB[ix] = 0;
         assert (IS_SET(WTM_EGTB->TB[ix] || WTM_EGTB->TB[ix] == UNUSED));
     }
-    #pragma omp parallel for num_threads(nthreads) schedule(static,64)
+    #pragma omp parallel for num_threads(nthreads) schedule(static,CHUNKSIZE)
     for (uint64_t ix = 0; ix < BTM_EGTB->num_pos; ix++) {
         if (BTM_EGTB->TB[ix] == UNKNOWN) BTM_EGTB->TB[ix] = 0;
         assert (IS_SET(BTM_EGTB->TB[ix] || BTM_EGTB->TB[ix] == UNUSED));
@@ -1015,7 +1016,7 @@ void GenEGTB::gen(int nthreads) {
         rm_all_unzipped_egtbs(folder);
     }
     TimePoint t6 = now();
-    std::cout << "Compressed files in " << (double) (t6 - t5)/ 1000.0 << "s." << std::endl;
+    if (zip) std::cout << "Compressed files in " << (double) (t6 - t5)/ 1000.0 << "s." << std::endl;
 
     deallocate_and_free();
 

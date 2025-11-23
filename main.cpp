@@ -237,7 +237,7 @@ int main(int argc, char *argv[]) {
     pieces2 = {0, 0, 0, 0, 0, 0};
 
     GenEGTB* g;
-    std::string folder = "egtbs_new/";
+    std::string folder = "egtbs_new";
 
     // pieces1 = {0, 1, 1, 0, 0, 0};
     // pieces2 = {0, 0, 0, 1, 1, 0};
@@ -262,7 +262,7 @@ int main(int argc, char *argv[]) {
     uint64_t total_poscount = 0;
 
     int MIN_PIECE_COUNT = 0;
-    int MAX_PIECE_COUNT = 2;
+    int MAX_PIECE_COUNT = 3;
 
     int MIN_PAWN_COUNT = 0;
     int MAX_PAWN_COUNT = 3;
