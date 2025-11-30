@@ -234,14 +234,13 @@ int main(int argc, char *argv[]) {
 
     std::unordered_set<std::string> egtbs = {};
     
-    uint64_t total_poscount = 0;
-
     int MIN_PIECE_COUNT = 4;
     int MAX_PIECE_COUNT = 4;
 
-    int MIN_PAWN_COUNT = 0;
-    int MAX_PAWN_COUNT = 0;
+    int MIN_PAWN_COUNT = 1;
+    int MAX_PAWN_COUNT = 1;
 
+    int count = 0;
     for (int piece_count = MIN_PIECE_COUNT; piece_count <= MAX_PIECE_COUNT; piece_count++) {
         for (int pawn_count = MIN_PAWN_COUNT; pawn_count <= std::min(piece_count,MAX_PAWN_COUNT); pawn_count++ ) {
             for (Piece p1 : PIECES_ARR) {
@@ -268,6 +267,11 @@ int main(int argc, char *argv[]) {
 
                             if (p.second) { // true if inserted
                                 EGTB egtb = EGTB(&pieces1[0], &pieces2[0]);
+                                count++;
+                                std::cout << count << ". " << egtb.id << std::endl;
+                                // bool disable_allocate_promotion_tb = (egtb.npieces == 6);
+                                // GenEGTB g = GenEGTB(&pieces1[0], &pieces2[0], folder, zip, do_consistency_checks, disable_allocate_promotion_tb);
+                                // std::cout << std::endl;
 
                                 if (generate_missing && !egtb_exists(&egtb, folder)) {
                                     bool disable_allocate_promotion_tb = (egtb.npieces == 6);
@@ -276,7 +280,7 @@ int main(int argc, char *argv[]) {
                                     g.gen(nthreads);
                                     if (generate_only_one) return 0;
                                 } else {
-                                    std::cout << "Already exists " << egtb.id << std::endl;
+                                    std::cout << "Already exists." << std::endl;
                                 }
                             }
 
@@ -291,8 +295,6 @@ int main(int argc, char *argv[]) {
             }
         }
     }
-
-    std::cout << "total count: " << total_poscount << std::endl;
 
     return 0;
 }

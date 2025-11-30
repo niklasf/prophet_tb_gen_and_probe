@@ -33,8 +33,8 @@ inline int16_t VAL_TO_LOWERBOUND(int16_t val) { return val + LOWERBOUND_OFFSET; 
 inline int16_t LOWERBOUND_TO_VAL(int16_t lb) { return lb - LOWERBOUND_OFFSET; };
 
 #define CHUNKSIZE 2048
-// 90 GB
-#define CONSISTENCY_CHECK_MAX_BYTES 90000000000
+#define CONSISTENCY_CHECK_MAX_BYTES 96636764160ULL
+// == 90 GiB = 96GB
 
 std::string get_pieces_identifier(int pieces[6]) {
     std::ostringstream os;
@@ -133,36 +133,46 @@ void store_egtb(EGTB* egtb, std::string root_folder) {
     system(cmd.c_str());
 
     std::string filename = egtb->get_filename(root_folder);
-    std::ofstream outputFileStream;
-    outputFileStream.open(filename, std::ios::out|std::ios::binary);
-    for(uint64_t i=0; i<egtb->num_pos; i++) {
-        int16_t val = egtb->TB[i];
-        if (val == UNUSED) val = 0;
-        if (!IS_SET(val)) {
-            std::cout << "store_egtb: corrupt value " << int(val) << " at " << i << std::endl;
-            exit(1);
-        }
-        outputFileStream.write((char*) &val, sizeof(int16_t));
-    }
+    FILE *f = fopen(filename.c_str(), "wb");
+    fwrite(egtb->TB, sizeof(int16_t), egtb->num_pos, f);
+    fclose(f);
+
+    // std::ofstream outputFileStream;
+    // outputFileStream.open(filename, std::ios::out|std::ios::binary);
+    // for(uint64_t i=0; i<egtb->num_pos; i++) {
+    //     int16_t val = egtb->TB[i];
+    //     if (val == UNUSED) val = 0;
+    //     if (!IS_SET(val)) {
+    //         std::cout << "store_egtb: corrupt value " << int(val) << " at " << i << std::endl;
+    //         exit(1);
+    //     }
+    //     outputFileStream.write((char*) &val, sizeof(int16_t));
+    // }
 }
 
-void zip_egtb(EGTB* egtb, std::string root_folder) {
+void zip_egtb(EGTB* egtb, std::string root_folder, bool async) {
     std::string filename = egtb->get_filename(root_folder);
     std::string cmd = "zip -m " + filename + ".zip " + filename; // -m   move into zipfile (delete OS files)
+    if (async) cmd += " &";
     std::cout << "CMD " << cmd << std::endl;
     system(cmd.c_str());
 }
 
-void zip_egtbs(EGTB* egtb1, EGTB* egtb2, std::string root_folder) {
+void zip_egtbs(EGTB* egtb1, EGTB* egtb2, std::string root_folder, bool async) {
     if (egtb1->id == egtb2->id) {
-        zip_egtb(egtb1, root_folder);
+        zip_egtb(egtb1, root_folder, async);
     } else {
         std::string filename1 = egtb1->get_filename(root_folder);
         std::string filename2 = egtb2->get_filename(root_folder);
-        std::string cmd = "zip -m " + filename1 + ".zip " + filename1;
-        cmd += " & ";
+        std::string cmd = "";
+        if (async) cmd += "{ ";
+        cmd += "zip -m " + filename1 + ".zip " + filename1;
+        if (async) cmd += " ; "; // run sequentially
+        else cmd += " & "; // run in parallel
         cmd += "zip -m " + filename2 + ".zip " + filename2;
-        cmd += " & wait";
+        if (async) cmd += " ; }";
+        cmd += " &";
+        if (!async) cmd += " wait";
         std::cout << "CMD " << cmd << std::endl;
         system(cmd.c_str());
     }
@@ -225,11 +235,17 @@ void free_egtb_mmap(EGTB* egtb) {
 
 void load_egtb_in_memory(EGTB* egtb, std::string root_folder) {
     std::string filename = egtb->get_filename(root_folder);
-    std::ifstream inputFileStream;
     egtb->TB = (int16_t*) calloc(egtb->num_pos, sizeof(int16_t));
-    inputFileStream.open(filename, std::ios::in|std::ios::binary);
-    for(uint64_t i=0; i<egtb->num_pos; i++)
-        inputFileStream.read((char*) &egtb->TB[i], sizeof(int16_t));
+    FILE *f = fopen(filename.c_str(), "rb");
+    fread(egtb->TB, sizeof(int16_t), egtb->num_pos, f);
+    fclose(f);
+
+    // std::ifstream inputFileStream;
+    // egtb->TB = (int16_t*) calloc(egtb->num_pos, sizeof(int16_t));
+    // inputFileStream.open(filename, std::ios::in|std::ios::binary);
+    // for(uint64_t i=0; i<egtb->num_pos; i++)
+    //     inputFileStream.read((char*) &egtb->TB[i], sizeof(int16_t));
+
     egtb->mmaped = false;
     egtb->loaded = true;
     egtb->filesize = egtb->num_pos * sizeof(int16_t);
@@ -320,17 +336,21 @@ public:
 
         std::cout << "White pieces: " << get_pieces_identifier(wpieces) << std::endl;
         std::cout << "Black pieces: " << get_pieces_identifier(bpieces) << std::endl;
+        uint64_t working_bytes = (this->WTM_EGTB->num_pos * 2) + (this->BTM_EGTB->num_pos * 2);
+        std::cout << "working tb: " << working_bytes / (1024*1024) << " MB"  << std::endl;
 
         this->WTM_EGTBs[NO_PIECE_TYPE][NO_PIECE_TYPE] = WTM_EGTB;
         this->BTM_EGTBs[NO_PIECE_TYPE][NO_PIECE_TYPE] = BTM_EGTB;
 
         // captures
+        uint64_t capture_bytes = 0;
         for (PieceType capture_pt = PAWN; capture_pt <= QUEEN; ++capture_pt) {
             if (wpieces[capture_pt] > 0) {
                 wpieces[capture_pt]--;
                 EGTB* egtb = new EGTB(wpieces, bpieces);
                 this->WTM_EGTBs[NO_PIECE_TYPE][capture_pt] = egtb;
                 std::cout << " " << egtb->id << " for white " << PieceToChar[capture_pt] << " captured, white to move" << std::endl;
+                capture_bytes += egtb->num_pos * 2;
                 wpieces[capture_pt]++;
             }
             if (bpieces[capture_pt] > 0) {
@@ -338,11 +358,14 @@ public:
                 EGTB* egtb = new EGTB(bpieces,wpieces);
                 this->BTM_EGTBs[NO_PIECE_TYPE][capture_pt] = egtb;
                 std::cout << " " << egtb->id << " for black " << PieceToChar[capture_pt] << " captured, black to move"  << std::endl;
+                capture_bytes += egtb->num_pos * 2;
                 bpieces[capture_pt]++;
             }
         }
+        std::cout << "capture tbs: " << capture_bytes / (1024*1024) << " MB (total: " << (working_bytes + capture_bytes) / (1024*1024) << " MB)" << std::endl;
 
         // capture promotions
+        uint64_t capture_promo_bytes = 0;
         for (PieceType promote_pt = KNIGHT; promote_pt <= QUEEN; ++promote_pt) {
             for (PieceType capture_pt = KNIGHT; capture_pt <= QUEEN; ++capture_pt) {
                 if (bpieces[PAWN] > 0 && wpieces[capture_pt] > 0) {
@@ -352,6 +375,7 @@ public:
                     EGTB* egtb = new EGTB(wpieces, bpieces);
                     this->WTM_EGTBs[promote_pt][capture_pt] = egtb;
                     std::cout << " " << egtb->id << " for white " << PieceToChar[capture_pt] << " captured with black promotion to " << PieceToChar[promote_pt] << ", white to move" << std::endl;
+                    capture_promo_bytes += egtb->num_pos * 2;
                     wpieces[capture_pt]++;
                     bpieces[PAWN]++;
                     bpieces[promote_pt]--;
@@ -363,14 +387,17 @@ public:
                     EGTB* egtb = new EGTB(bpieces,wpieces);
                     this->BTM_EGTBs[promote_pt][capture_pt] = egtb;
                     std::cout << " " << egtb->id << " for black " << PieceToChar[capture_pt] << " captured with white promotion to " << PieceToChar[promote_pt] << ", black to move" << std::endl;
+                    capture_promo_bytes += egtb->num_pos * 2;
                     bpieces[capture_pt]++;
                     wpieces[PAWN]++;
                     wpieces[promote_pt]--;
                 }
             }
         }
+        std::cout << "capture-promotion tbs: " << capture_promo_bytes / (1024*1024) << " MB (total: " << (working_bytes + capture_bytes + capture_promo_bytes) / (1024*1024) << " MB)" << std::endl;
 
         // promotions
+        uint64_t promotion_bytes = 0;
         for (PieceType promote_pt = KNIGHT; promote_pt <= QUEEN; ++promote_pt) {
             if (bpieces[PAWN] > 0) {
                 bpieces[PAWN]--;
@@ -378,6 +405,7 @@ public:
                 EGTB* egtb = new EGTB(wpieces, bpieces);
                 this->WTM_EGTBs[promote_pt][NO_PIECE_TYPE] = egtb;
                 std::cout << " " << egtb->id << " for black promotion to " << PieceToChar[promote_pt] << ", white to move" << std::endl;
+                promotion_bytes += egtb->num_pos * 2;
                 bpieces[PAWN]++;
                 bpieces[promote_pt]--;
             }
@@ -387,10 +415,12 @@ public:
                 EGTB* egtb = new EGTB(bpieces, wpieces); 
                 this->BTM_EGTBs[promote_pt][NO_PIECE_TYPE] = egtb;
                 std::cout << " " << egtb->id << " for white promotion to " << PieceToChar[promote_pt] << ", black to move" << std::endl;
+                promotion_bytes += egtb->num_pos * 2;
                 wpieces[PAWN]++;
                 wpieces[promote_pt]--;
             }
         }
+        std::cout << "promotion tbs: " << promotion_bytes / (1024*1024) << " MB (total: " << (working_bytes + capture_bytes + capture_promo_bytes + promotion_bytes) / (1024*1024) << " MB)" <<  std::endl;
 
         this->do_consistency_checks = do_consistency_checks_;
         this->zip = zip_;
@@ -637,7 +667,7 @@ void GenEGTB::check_consistency_allocated(int nthreads) {
 
             int16_t tb_val = LOSS_EGTB->TB[ix];
             if (!LOSS_EGTB->pos_ix_is_used(pos, ix)) {
-                assert (tb_val == 0 || tb_val == UNUSED);
+                assert (tb_val == 0); // || tb_val == UNUSED
                 continue;
             }
 
@@ -678,6 +708,7 @@ void GenEGTB::check_consistency_max_bytes_allocated(int nthreads, uint64_t max_b
         if (WTM_EGTBs[promote_pt][NO_PIECE_TYPE] != NULL) assert (!WTM_EGTBs[promote_pt][NO_PIECE_TYPE]->loaded);
         if (BTM_EGTBs[promote_pt][NO_PIECE_TYPE] != NULL) assert (!BTM_EGTBs[promote_pt][NO_PIECE_TYPE]->loaded);
     }
+    std::cout << "Loading egtbs for consistency checks with max " << (max_bytes / (1024*1024)) << " MB allocated." <<  std::endl;
     load_tb_dependencies(false, false); // load all capture and capture-promotion tables (if not already loaded)
 
     EGTB* LOSS_EGTB;
@@ -718,6 +749,7 @@ void GenEGTB::check_consistency_max_bytes_allocated(int nthreads, uint64_t max_b
                 EGTB* cap_egtb = CAPTURE_EGTBs[promote_pt][NO_PIECE_TYPE];
                 if (cap_egtb != NULL && !checked[promote_pt]) {
                     all_checked = false;
+                    std::cout << "Loading " << cap_egtb->id << " to check consistency for " << LOSS_EGTB->id << std::endl;
                     load_egtb_in_memory(cap_egtb, folder);
                     add_to_bytes_count(cap_egtb);
                     if (bytes_allocated > max_bytes) break; // load at least one TB
@@ -738,7 +770,7 @@ void GenEGTB::check_consistency_max_bytes_allocated(int nthreads, uint64_t max_b
 
                 int16_t tb_val = LOSS_EGTB->TB[ix];
                 if (!LOSS_EGTB->pos_ix_is_used(pos, ix)) {
-                    assert (tb_val == 0 || tb_val == UNUSED);
+                    assert (tb_val == 0); // || tb_val == UNUSED
                     max_obtained[ix_m] |= (1 << ix_of);
                     continue;
                 }
@@ -802,7 +834,7 @@ void GenEGTB::check_consistency_max_bytes_allocated(int nthreads, uint64_t max_b
     }
 }
 
-// does not require unused flag
+// TODO: check this
 void GenEGTB::check_consistency_allocated_by_level(int nthreads, int16_t MAX_LEVEL) {
     for (int16_t LEVEL = 0; LEVEL <= MAX_LEVEL; LEVEL++) {
         #pragma omp parallel for num_threads(nthreads) schedule(static,CHUNKSIZE)
@@ -811,8 +843,7 @@ void GenEGTB::check_consistency_allocated_by_level(int nthreads, int16_t MAX_LEV
             if ((WTM_EGTB->TB[ix] == LOSS_IN(LEVEL) || WTM_EGTB->TB[ix] == WIN_IN(LEVEL))) {
                 pos.reset();
                 WTM_EGTB->pos_at_ix(pos, ix, WHITE);
-                assert (!pos.sntm_in_check());
-                if (ix > WTM_EGTB->num_nonep_pos) assert (pos.check_ep(pos.ep_square()));
+                assert (WTM_EGTB->pos_ix_is_used(pos,ix));
                 check_consistency(pos, false);
             }
         }
@@ -824,8 +855,7 @@ void GenEGTB::check_consistency_allocated_by_level(int nthreads, int16_t MAX_LEV
             if ((BTM_EGTB->TB[ix] == LOSS_IN(LEVEL) || BTM_EGTB->TB[ix] == WIN_IN(LEVEL))) {
                 pos.reset();
                 BTM_EGTB->pos_at_ix(pos, ix, BLACK);
-                assert (!pos.sntm_in_check());
-                if (ix > BTM_EGTB->num_nonep_pos) assert (pos.check_ep(pos.ep_square()));
+                assert (BTM_EGTB->pos_ix_is_used(pos,ix));
                 check_consistency(pos, false);
             }
         }
@@ -838,9 +868,8 @@ void GenEGTB::check_consistency_allocated_by_level(int nthreads, int16_t MAX_LEV
         if (WTM_EGTB->TB[ix] == 0) {
             pos.reset();
             WTM_EGTB->pos_at_ix(pos, ix, WHITE);
-            assert (!pos.sntm_in_check());
-            if (ix > WTM_EGTB->num_nonep_pos) assert (pos.check_ep(pos.ep_square()));
-            check_consistency(pos, false);
+            if (WTM_EGTB->pos_ix_is_used(pos,ix))
+                check_consistency(pos, false);
         }
     }
     std::cout << "WTM Consistency check passed for draws" << std::endl;
@@ -851,9 +880,8 @@ void GenEGTB::check_consistency_allocated_by_level(int nthreads, int16_t MAX_LEV
         if (BTM_EGTB->TB[ix] == 0) {
             pos.reset();
             BTM_EGTB->pos_at_ix(pos, ix, BLACK);
-            assert (!pos.sntm_in_check());
-            if (ix > BTM_EGTB->num_nonep_pos) assert (pos.check_ep(pos.ep_square()));
-            check_consistency(pos, false);
+            if (BTM_EGTB->pos_ix_is_used(pos,ix))
+                check_consistency(pos, false);
         }
     }
     std::cout << "BTM Consistency check passed for draws" << std::endl;
@@ -959,8 +987,8 @@ void GenEGTB::gen(int nthreads) {
 
     allocate();
     load_tb_dependencies(all_tb_dependencies_loaded, true);
-    std::cout << "Bytes allocated: " << bytes_allocated << std::endl;
-    std::cout << "Bytes mmaped: " << bytes_mmaped << std::endl;
+    std::cout << "MB allocated: " << bytes_allocated / (1024*1024) << std::endl;
+    std::cout << "MB mmaped: " << bytes_mmaped / (1024*1024) << std::endl;
 
     TimePoint t1 = now();
     std::cout << "Finished allocate and load in " << (double) (t1 - t0) / 1000.0 << "s." << std::endl;
@@ -1302,16 +1330,16 @@ void GenEGTB::gen(int nthreads) {
     }
 
 
-    // Step 3. all entries that are not known wins or losses are draws
+    // Step 3. all entries that are not known wins or losses are draws, also set UNUSED to 0
     #pragma omp parallel for num_threads(nthreads) schedule(static,CHUNKSIZE)
     for (uint64_t ix = 0; ix < WTM_EGTB->num_pos; ix++) {
-        if (WTM_EGTB->TB[ix] == UNKNOWN) WTM_EGTB->TB[ix] = 0;
-        assert (IS_SET(WTM_EGTB->TB[ix] || WTM_EGTB->TB[ix] == UNUSED));
+        if (WTM_EGTB->TB[ix] == UNKNOWN || WTM_EGTB->TB[ix] == UNUSED) WTM_EGTB->TB[ix] = 0;
+        assert (IS_SET(WTM_EGTB->TB[ix]));
     }
     #pragma omp parallel for num_threads(nthreads) schedule(static,CHUNKSIZE)
     for (uint64_t ix = 0; ix < BTM_EGTB->num_pos; ix++) {
-        if (BTM_EGTB->TB[ix] == UNKNOWN) BTM_EGTB->TB[ix] = 0;
-        assert (IS_SET(BTM_EGTB->TB[ix] || BTM_EGTB->TB[ix] == UNUSED));
+        if (BTM_EGTB->TB[ix] == UNKNOWN || BTM_EGTB->TB[ix] == UNUSED) BTM_EGTB->TB[ix] = 0;
+        assert (IS_SET(BTM_EGTB->TB[ix]));
     }
 
     TimePoint t3 = now();
@@ -1322,7 +1350,6 @@ void GenEGTB::gen(int nthreads) {
 
     // Step 4. Write to disk
 
-    // sets UNUSED to 0
     if (WTM_EGTB->id == BTM_EGTB->id) {
         store_egtb(WTM_EGTB, folder);
         std::cout << "Stored " << WTM_EGTB->id << std::endl;
@@ -1331,30 +1358,6 @@ void GenEGTB::gen(int nthreads) {
         store_egtb(BTM_EGTB, folder);
         std::cout << "Stored " << WTM_EGTB->id << " and " << BTM_EGTB->id << std::endl;
     }
-
-    // check file integrity (TODO: remove)
-    EGTB WTM_EGTB_MMAP = EGTB(this->wpieces, this->bpieces);
-    load_egtb(&WTM_EGTB_MMAP, folder, true);
-    for (uint64_t ix = 0; ix < WTM_EGTB_MMAP.num_pos; ix++) {
-        if (!IS_SET(WTM_EGTB_MMAP.TB[ix]))  {
-            std::cout << "WTM corrupted entry at " << ix << WTM_EGTB_MMAP.TB[ix] << std::endl;
-            exit(1);
-        }
-    }
-    free_egtb(&WTM_EGTB_MMAP);
-    std::cout << "Checked WTM integrity" << std::endl;
-
-    EGTB BTM_EGTB_MMAP = EGTB(this->bpieces, this->wpieces);
-    load_egtb(&BTM_EGTB_MMAP, folder, true);
-    for (uint64_t ix = 0; ix < BTM_EGTB_MMAP.num_pos; ix++) {
-        if (!IS_SET(BTM_EGTB_MMAP.TB[ix])) {
-            std::cout << "BTM corrupted entry at " << ix << BTM_EGTB_MMAP.TB[ix] << std::endl;
-            exit(1);
-        }
-    }
-    free_egtb(&BTM_EGTB_MMAP);
-    std::cout << "Checked BTM integrity" << std::endl;
-
 
     TimePoint t4 = now();
     std::cout << "Wrote to disk in " << (double) (t4 - t3) / 1000.0 << "s." << std::endl;
@@ -1385,12 +1388,12 @@ void GenEGTB::gen(int nthreads) {
 
     // Step 6. Compress files
     if (zip) {
-        zip_egtbs(WTM_EGTB, BTM_EGTB, folder);
+        zip_egtbs(WTM_EGTB, BTM_EGTB, folder, true);
 
-        std::cout << "Zipped " << WTM_EGTB->id << ".zip and " << BTM_EGTB->id << ".zip" << std::endl;
+        // std::cout << "Zipped " << WTM_EGTB->id << ".zip and " << BTM_EGTB->id << ".zip" << std::endl;
 
         if (WTM_EGTB->npieces == 6)
-            rm_all_unzipped_egtbs(folder + "/6men");
+            rm_all_unzipped_egtbs(folder + "/6men/0pawns");
     }
 
     TimePoint t7 = now();
