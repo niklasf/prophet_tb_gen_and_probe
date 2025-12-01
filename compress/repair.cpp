@@ -4,6 +4,7 @@
 
 typedef int16_t CODE;
 #define DUMMY_POS UINT16_MAX
+#define DUMMY_CODE INT16_MAX
 
 typedef struct Sequence {
     CODE code;
@@ -38,17 +39,201 @@ typedef struct RePair_data_structures {
     PAIR **p_que; 
 } RDS;
 
+uint16_t leftPos_SQ(RDS *rds, uint16_t pos);
+uint16_t rightPos_SQ(RDS *rds, uint16_t pos);
+void removeLink_SQ(RDS *rds, uint16_t target_pos);
+void updateBlock_SQ(RDS *rds, CODE new_code, uint16_t target_pos);
 PAIR *locatePair(RDS *rds, CODE left, CODE right);
 void growHashtable(RDS *rds);
 void insertPair_PQ(RDS *rds, PAIR *target, uint64_t p_num);
 void removePair_PQ(RDS *rds, PAIR *target, uint64_t p_num);
 void incrementPair(RDS *rds, PAIR *target);
 void decrementPair(RDS *rds, PAIR *target);
-PAIR *createPair(RDS *rds, CODE left, CODE right, uint64_t f_pos);
+PAIR* getMaxPair(RDS *rds);
+PAIR *createPair(RDS *rds, CODE left, CODE right, uint16_t f_pos);
 void destructPair(RDS *rds, PAIR *target);
 void resetPQ(RDS *rds, uint64_t p_num);
 void initRDS_by_counting_pairs(RDS *rds);
 
+// sequence
+
+uint16_t leftPos_SQ(RDS *rds, uint16_t pos) {
+  SEQ *seq = rds->seq;
+
+  assert(pos != DUMMY_POS);
+  if (pos == 0) {
+    return DUMMY_POS;
+  }
+
+  if (seq[pos-1].code == DUMMY_CODE) {
+    return seq[pos-1].next; // reference to next valid position
+  } else {
+    return pos-1;
+  }
+}
+
+uint16_t rightPos_SQ(RDS *rds, uint16_t pos) {
+  SEQ *seq = rds->seq;
+
+  assert(pos != DUMMY_POS);
+  if (pos == rds->txt_len-1) {
+    return DUMMY_POS;
+  }
+
+  if (seq[pos+1].code == DUMMY_CODE) {
+    return seq[pos+1].prev; // reference to next valid position
+  } else {
+    return pos+1;
+  }
+}
+
+// remove links at target_pos (pair starting at target_pos) from the doubly-linked sequence of pairs
+// does not update seq[target_pos].prev an seq[target_pos].next
+void removeLink_SQ(RDS *rds, uint16_t target_pos) {
+  SEQ *seq = rds->seq;
+  assert(seq[target_pos].code != DUMMY_CODE);
+
+  uint16_t prev_pos = seq[target_pos].prev;
+  uint16_t next_pos = seq[target_pos].next;
+
+  if (prev_pos != DUMMY_POS && next_pos != DUMMY_POS) {
+    seq[prev_pos].next = next_pos;
+    seq[next_pos].prev = prev_pos;
+  }
+  else if (prev_pos == DUMMY_POS && next_pos != DUMMY_POS) {
+    seq[next_pos].prev = DUMMY_POS;
+  }
+  else if (prev_pos != DUMMY_POS && next_pos == DUMMY_POS) {
+    seq[prev_pos].next = DUMMY_POS;
+  }
+}
+
+void updateBlock_SQ(RDS *rds, CODE new_code, uint16_t target_pos) {
+  SEQ *seq = rds->seq;
+  PAIR *l_pair, *c_pair, *r_pair;
+
+
+  uint16_t l_pos  = leftPos_SQ(rds, target_pos);
+  uint16_t r_pos  = rightPos_SQ(rds, target_pos);
+  uint16_t rr_pos = rightPos_SQ(rds, r_pos);
+  CODE c_code = seq[target_pos].code;
+  CODE r_code = seq[r_pos].code;
+  assert(c_code != DUMMY_CODE);
+  assert(r_code != DUMMY_CODE);
+
+  // l_pos  ...  target_pos  ...  r_pos  ...  rr_pos
+  // l_code      c_code           r_code      rr_code
+  // ... can be DUMMY_CODEs in the sequence
+  // (c_code, r_code) is being replaced by new_code:
+  // l_pos  ...  target_pos   ...  r_pos  ...  rr_pos
+  // l_code      new_code          DUMMY  ...  rr_code
+
+  uint16_t nx_pos = seq[target_pos].next; // next occurrence of (c_code, r_code)
+  if (nx_pos == r_pos) {
+    // target_pos  ...  nx_pos  ...  rr_pos
+    // c_code           c_code       c_code
+    nx_pos = seq[nx_pos].next; // avoid overlapping pairs (nx_pos >= rr_pos)
+  }
+
+
+  if (l_pos != DUMMY_POS) {
+    // replace (l_code, c_code) with (l_code, new_code)
+    CODE l_code = seq[l_pos].code;
+    assert(seq[l_pos].code != DUMMY_CODE);
+    removeLink_SQ(rds, l_pos); // does not update seq[l_pos].prev and seq[l_pos].next
+    if ((l_pair = locatePair(rds, l_code, c_code)) != NULL) {
+      if (l_pair->f_pos == l_pos) {
+        // l_pair was first occurrence of (l_code, c_code), after removal it is seq[l_pos].next
+	      l_pair->f_pos = seq[l_pos].next;
+      }
+      decrementPair(rds, l_pair);
+    }
+    if ((c_pair = locatePair(rds, l_code, new_code)) == NULL) {
+      // have not seen (l_code, new_code) before -> it becomes first occurrence
+      seq[l_pos].prev = DUMMY_POS;
+      seq[l_pos].next = DUMMY_POS;
+      createPair(rds, l_code, new_code, l_pos);
+    } else {
+      // seq[l_pos] becomes new last occurrence of (l_code, new_code)
+      seq[l_pos].prev = c_pair->b_pos;
+      seq[l_pos].next = DUMMY_POS;
+      seq[c_pair->b_pos].next = l_pos;
+      c_pair->b_pos = l_pos;
+      incrementPair(rds, c_pair);
+    }
+  }
+
+  // replace (c_code, r_code) with (new_code, DUMMY_CODE) in sequence
+  removeLink_SQ(rds, target_pos); // does not update seq[target_pos].prev and seq[target_pos].next
+  removeLink_SQ(rds, r_pos); // does not update seq[r_pos].prev and seq[r_pos].next
+  seq[target_pos].code = new_code;
+  seq[r_pos].code = DUMMY_CODE;
+  
+  if (rr_pos != DUMMY_POS) {
+    // replace (r_code, rr_code) with (new_code, rr_code)
+    CODE rr_code = seq[rr_pos].code;
+    assert(rr_code != DUMMY_CODE);
+    if ((r_pair = locatePair(rds, r_code, rr_code)) != NULL) {
+      if (r_pair->f_pos == r_pos) {
+        // r_pair was first occurrence of (r_code, rr_code), after removal it is seq[r_pos].next
+	      r_pair->f_pos = seq[r_pos].next;
+      }
+      decrementPair(rds, r_pair);
+    }
+
+    if (target_pos+1 == rr_pos-1) {
+      // target_pos  r_pos  rr_pos (no DUMMY_CODEs in between)
+      // target_pos+1 == r_pos (DUMMY_CODE)
+      seq[target_pos+1].prev = rr_pos; // point to next valid position on the right
+      seq[target_pos+1].next = target_pos; // point to next valid position on the left
+    } else {
+      // target_pos target_pos+1  ...  r_pos  ...  rr_pos-1 rr_pos (DUMMY_CODEs in between)
+      seq[target_pos+1].prev = rr_pos; // point to next valid position on the right
+      seq[target_pos+1].next = DUMMY_POS; 
+      seq[rr_pos-1].prev = DUMMY_POS;
+      seq[rr_pos-1].next = target_pos; // point to next valid position on the left
+    }
+    
+    if (nx_pos > rr_pos) {
+      if ((c_pair = locatePair(rds, new_code, rr_code)) == NULL) {
+        // have not seen (new_code, rr_code) before -> it becomes first occurrence
+        seq[target_pos].prev = DUMMY_POS;
+        seq[target_pos].next = DUMMY_POS;
+        createPair(rds, new_code, rr_code, target_pos);
+      } else {
+        // seq[target_pos] becomes new last occurrence of (new_code, rr_code)
+        seq[target_pos].prev = c_pair->b_pos;
+        seq[target_pos].next = DUMMY_POS;
+        seq[c_pair->b_pos].next = target_pos;
+        c_pair->b_pos = target_pos;
+        incrementPair(rds, c_pair);
+      }
+    } else {
+      // if (nx_pos != rr_pos) {
+      //   std::cout << c_code << " " << r_code << " -> " << new_code << std::endl;
+      //   std::cout << l_pos << " " << target_pos << " " << r_pos << " " << rr_pos << " " << nx_pos << " " << rightPos_SQ(rds, nx_pos) << std::endl;
+      //   for (uint16_t i = l_pos; i < rightPos_SQ(rds, nx_pos); i++) {
+      //     std::cout << i << ": " << seq[i].code << std::endl;
+      //   }
+      // }
+      assert(nx_pos == rr_pos);
+      // target_pos  ...  r_pos  ...  rr_pos=nx_pos
+      // new_code         DUMMY       rr_code (-> newcode in next update)
+      seq[target_pos].next = seq[target_pos].prev = DUMMY_POS;
+    }
+
+  } else if (target_pos < rds->txt_len - 1) {
+    assert(false);
+    // rr_pos == DUMMY_POS
+    // end of sequence edge case
+    // target_pos target_pos+1  ...  r_pos  ...  rr_pos
+    // newcode    DUMMY         ...  DUMMY  ...  DUMMY
+    assert(seq[target_pos+1].code == DUMMY_CODE);
+    seq[target_pos+1].prev = DUMMY_POS;
+    seq[target_pos+1].next = target_pos; // point to next valid position on the left
+    seq[r_pos].prev = seq[r_pos].next = DUMMY_POS;
+  }
+}
 
 // priority queue
 
@@ -117,6 +302,34 @@ void decrementPair(RDS *rds, PAIR *target) {
     target->freq--;
     insertPair_PQ(rds, target, target->freq);
   }
+}
+
+PAIR* getMaxPair(RDS *rds) {
+  PAIR **p_que = rds->p_que;
+  PAIR *p, *max_pair;
+  uint64_t max;
+
+  if (p_que[0] != NULL) {
+    p = p_que[0];
+    max = 0; max_pair = NULL;
+    while (p != NULL) {
+      if (max < p->freq) {
+        max = p->freq;
+        max_pair = p;
+      }
+      p = p->p_next;
+    }
+  } else {
+    // do not return freq=1 pairs
+    max_pair = NULL;
+    for (uint64_t i = rds->p_max-1; i > 1; i--) {
+      if (p_que[i] != NULL) {
+        max_pair = p_que[i];
+        break;
+      }
+    }
+  }
+  return max_pair;
 }
 
 // hash table
@@ -192,7 +405,7 @@ void growHashtable(RDS *rds) {
   }
 }
 
-PAIR *createPair(RDS *rds, CODE left, CODE right, uint64_t f_pos) {
+PAIR *createPair(RDS *rds, CODE left, CODE right, uint16_t f_pos) {
   PAIR *pair = (PAIR*)malloc(sizeof(PAIR));
 
   pair->left  = left;
@@ -267,12 +480,13 @@ void initRDS_by_counting_pairs(RDS *rds) {
     A = seq[i].code;
     B = seq[i+1].code;
     if ((pair = locatePair(rds, A, B)) == NULL) {
-      pair = createPair(rds, A, B, i);
+      pair = createPair(rds, A, B, i); // inits freq to 1
     } else {
+      // seq[i] becomes new last occurrence of (A,B)
       seq[i].prev = pair->b_pos;
       seq[i].next = DUMMY_POS;
-      seq[pair->b_pos].next = i;
-      pair->b_pos = i;
+      seq[pair->b_pos].next = i; // link previous last occurrence to new last occurrence
+      pair->b_pos = i; // update last occurrence index
       incrementPair(rds, pair);
     }
   }
@@ -280,6 +494,62 @@ void initRDS_by_counting_pairs(RDS *rds) {
   resetPQ(rds, 1);
 }
 
+uint64_t replacePairs(RDS *rds, PAIR *max_pair, CODE new_code) {
+  uint16_t i, j;
+  uint64_t num_replaced = 0;
+  SEQ *seq = rds->seq;
+
+  i = max_pair->f_pos;
+  while (i != DUMMY_POS) {
+    j = seq[i].next;
+    // account for overlapping occurrences
+    if (j == rightPos_SQ(rds, i)) {
+      j = seq[j].next;
+    }
+    updateBlock_SQ(rds, new_code, i);
+    i = j;
+    num_replaced++;
+  }
+  // we count overlapping pairs, so after replacement freq does not have to be 1
+  if (max_pair->freq != 1) { 
+    destructPair(rds, max_pair); 
+  }
+  resetPQ(rds, 1);
+  return num_replaced;
+}
+
+typedef struct CompSeq {
+  CODE* seq;
+  uint64_t len;
+} COMPSEQ;
+
+CompSeq getCompSeq(RDS *rds) {
+  SEQ *seq = rds->seq;
+
+  uint64_t i = 0; uint64_t seq_len = 0;
+  while (i < rds->txt_len) {
+    if (seq[i].code == DUMMY_CODE) {
+      i = seq[i].prev;
+      continue;
+    }
+    seq_len++;
+    i++;
+  }
+
+  CODE* comp_seq = (CODE*)malloc(sizeof(CODE)*seq_len);
+  i = 0;
+  uint16_t j = 0;
+  while (i < rds->txt_len) {
+    if (seq[i].code == DUMMY_CODE) {
+      i = seq[i].prev;
+      continue;
+    }
+    comp_seq[j++] = seq[i].code;
+    i++;
+  }
+  COMPSEQ res = {comp_seq, seq_len};
+  return res;
+}
 
 void RunRepair(int batchsize) {
     std::string filename = "KQQKBN.egtb";
@@ -321,7 +591,7 @@ void RunRepair(int batchsize) {
     }
 
     // init priority queue
-    uint64_t p_max = batchsize; //(uint64_t) ceil(sqrt((double) size_w)) + 10;
+    uint64_t p_max = (uint64_t) ceil(sqrt((double) size_w)) + 10;
     PAIR** p_que = (PAIR**) malloc(sizeof(PAIR*) * p_max);
     for (uint64_t i = 0; i < p_max; i++) {
         p_que[i] = NULL;
@@ -339,18 +609,35 @@ void RunRepair(int batchsize) {
 
     initRDS_by_counting_pairs(rds);
 
-    std::cout << "Number of distinct pairs: " << rds->num_pairs << std::endl;
-    for (uint64_t i = 0; i < p_max; i++) {
-        PAIR* p = rds->p_que[i];
-        if (p != NULL) {
-            std::cout << "Frequency " << i << ": ";
-            while (p != NULL) {
-                std::cout << "(" << p->left << "," << p->right << ") ";
-                p = p->p_next;
-            }
-            std::cout << std::endl;
-        }
+    uint64_t num_rules = 0;
+    uint64_t num_replaced = 0;
+    PAIR* max_pair;
+    while ((max_pair = getMaxPair(rds)) != NULL) {
+      num_rules++;
+      CODE new_code = 1000 + num_rules;
+      num_replaced += replacePairs(rds, max_pair, new_code);
     }
+    std::cout << "Total number of replacements: " << num_replaced << std::endl;
+    std::cout << "Total number of rules: " << num_rules << std::endl;
+    CompSeq comp_seq = getCompSeq(rds);
+    std::cout << "Compressed sequence length: " << comp_seq.len << std::endl;
+
+    // PAIR* max_pair = getMaxPair(rds);
+    // replacePairs(rds, max_pair, 1001);
+
+    // std::cout << "Number of distinct pairs: " << rds->num_pairs << std::endl;
+    // for (uint64_t i = 0; i < p_max; i++) {
+    //     PAIR* p = rds->p_que[i];
+    //     if (p != NULL) {
+    //         std::cout << "Frequency " << i << ": ";
+    //         while (p != NULL) {
+    //             std::cout << "(" << p->left << "," << p->right << ", freq=" << p->freq << ") ";
+    //             p = p->p_next;
+    //         }
+    //         std::cout << std::endl;
+    //     }
+    // }
+
 }
 
 
