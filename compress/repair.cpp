@@ -19,6 +19,8 @@ PAIR *createPair(RDS *rds, CODE left, CODE right, uint16_t f_pos);
 void destructPair(RDS *rds, PAIR *target);
 void resetPQ(RDS *rds, uint64_t p_num);
 void initRDS_by_counting_pairs(RDS *rds);
+#include <filesystem>
+namespace fs = std::filesystem;
 
 // sequence
 
@@ -541,7 +543,7 @@ typedef struct CompSeq {
   uint64_t len;
 } COMPSEQ;
 
-CompSeq getCompSeq(RDS *rds) {
+void getCompSeq(RDS *rds, DICT *dict) {
   SEQ *seq = rds->seq;
 
   uint64_t i = 0; uint64_t seq_len = 0;
@@ -565,8 +567,8 @@ CompSeq getCompSeq(RDS *rds) {
     comp_seq[j++] = seq[i].code;
     i++;
   }
-  COMPSEQ res = {comp_seq, seq_len};
-  return res;
+  dict->comp_seq = comp_seq;
+  dict->seq_len = seq_len;
 }
 
 EDICT *convertDict(DICT *dict, uint16_t CHAR_SIZE) {
@@ -587,6 +589,12 @@ EDICT *convertDict(DICT *dict, uint16_t CHAR_SIZE) {
 
   free(dict);
   return edict;
+}
+
+void DestructDict(DICT *dict) {
+  free(dict->rule);
+  free(dict->comp_seq);
+  free(dict);
 }
 
 struct Node {
@@ -634,12 +642,13 @@ void extractLengths(Node* n, int depth, uint64_t* lengths) {
     extractLengths(n->right, depth + 1, lengths);
 }
 
-void RunRepair(uint64_t batchsize, char* filename) {
+uint64_t RunRepair(uint64_t batchsize, const char* filename) {
+    assert (batchsize < UINT16_MAX);
 
     FILE *f = fopen(filename, "rb");
     if (f == NULL) {
         std::cerr << "Error opening file: " << filename << std::endl;
-        return;
+        return 0;
     }
     fseek(f, 0, SEEK_END);
     long bytes = ftell(f);
@@ -656,7 +665,7 @@ void RunRepair(uint64_t batchsize, char* filename) {
       if (TB[ix] != 0)
         min_val = std::min(min_val, (uint16_t) abs(TB[ix]));
     }
-    uint16_t CHAR_SIZE = 1000 - min_val + 1;
+    uint16_t CHAR_SIZE = 1000 - min_val + 1 + 1;
     std::cout << "Read " << count << " entries from " << filename << " -> min_val=" << min_val << " and CHAR_SIZE=" << CHAR_SIZE << std::endl;
 
     // global huff
@@ -666,13 +675,15 @@ void RunRepair(uint64_t batchsize, char* filename) {
     uint64_t final_size = 0;
     double avg_num_rules = 0.0;
     double avg_seq_len = 0.0;
+    uint64_t num_replace_pairs = 0;
+    uint64_t n_batches = ceil((double)count/batchsize);
     for (uint64_t start = 0; start < count; start += batchsize) {
       
       uint64_t size_w = std::min(batchsize, count - start);
 
       // init sequence
       SEQ* seq = (SEQ*) malloc(size_w * sizeof(SEQ));
-      for (uint16_t i = 0; i < size_w; i++) {
+      for (uint64_t i = 0; i < size_w; i++) {
         if (TB[start + i] == 0) {
           seq[i].code = 0;
         } else {
@@ -690,7 +701,7 @@ void RunRepair(uint64_t batchsize, char* filename) {
       }
 
       // init priority queue
-      uint64_t p_max = (uint64_t) ceil(sqrt((double) size_w)) + 10;
+      uint64_t p_max = (uint64_t) ceil(sqrt((double) size_w));
       PAIR** p_que = (PAIR**) malloc(sizeof(PAIR*) * p_max);
       for (uint64_t i = 0; i < p_max; i++) {
           p_que[i] = NULL;
@@ -719,15 +730,18 @@ void RunRepair(uint64_t batchsize, char* filename) {
         num_rules++;
         new_code = addNewPair(dict, max_pair);
         num_replaced += replacePairs(rds, max_pair, new_code);
+        num_replace_pairs++;
       }
-      CODE max_code = new_code;
+      // std::cout << "num_pairs: " << rds->num_pairs << std::endl;
+      assert(rds->num_pairs == 0);
+      // CODE max_code = new_code;
       // std::cout << "Total number of replacements: " << num_replaced << std::endl;
       // std::cout << "Total number of rules: " << num_rules << std::endl;
-      CompSeq comp_seq = getCompSeq(rds);
+      getCompSeq(rds, dict);
       // std::cout << "Compressed sequence length: " << comp_seq.len << std::endl;
 
-      avg_num_rules += (double) num_rules / (count/batchsize + 1);
-      avg_seq_len += (double) comp_seq.len / (count/batchsize + 1);
+      avg_num_rules += (double) num_rules / n_batches;
+      avg_seq_len += (double) dict->seq_len / n_batches;
 
       // PAIR* max_pair = getMaxPair(rds);
       // replacePairs(rds, max_pair, 1001);
@@ -746,14 +760,15 @@ void RunRepair(uint64_t batchsize, char* filename) {
       // }
       EDICT* edict = convertDict(dict, CHAR_SIZE);
       uint64_t cfg_bits = EncodeCFG(edict, CHAR_SIZE);
-      DestructEDict(edict);
-      destructRDS(rds);
 
       final_size += (cfg_bits / 8 + 1);
       // final_size += 2*comp_seq.len; 
 
       // global huff
-      for (uint64_t i = 0; i < comp_seq.len; i++) freq[comp_seq.seq[i]]++;
+      for (uint64_t i = 0; i < dict->seq_len; i++) freq[dict->comp_seq[i]]++;
+
+      DestructEDict(edict);
+      destructRDS(rds);
 
       // huff
       // uint64_t* freq = (uint64_t*) calloc(max_code+1, sizeof(uint64_t));
@@ -787,7 +802,8 @@ void RunRepair(uint64_t batchsize, char* filename) {
       nonzero_symbols += (freq[code] > 0);
     }
     final_size += (huffcoded_seq_bits / 8) + 1;
-    final_size += nonzero_symbols * 4;
+    final_size += nonzero_symbols * 4; // this is upper bound
+    final_size += n_batches * 2; // jump table
 
     free(freq);
     free(lengths);
@@ -795,14 +811,41 @@ void RunRepair(uint64_t batchsize, char* filename) {
 
 
     std::cout << "final size: " << final_size << " " << (double) final_size / (count*2.0) << std::endl;
-    std::cout << "avg_num_rules: " << avg_num_rules << ", avg_seq_len: " << avg_seq_len << std::endl;
+    std::cout << "avg_num_rules: " << avg_num_rules << ", avg_seq_len: " << avg_seq_len << ", num_replace_pairs: " << num_replace_pairs << std::endl;
     free(TB);
+
+    return final_size;
 }
 
 
 int main(int argc, char *argv[]) {
-  assert(argc == 2);
-  char* filename = argv[1];
+  assert(argc >= 2);
+  uint64_t batchsize = atoi(argv[1]);
+  std::cout << "batchsize: " << batchsize << std::endl;
+
+  // uint64_t total_size = 0;
+  // uint64_t total_compressed_size = 0;
+  // uint64_t total_zipped_size = 0;
+  // std::string path = "5men/egtbs/";
+  // for (const auto & entry : fs::directory_iterator(path)) {
+  //   if (entry.path().extension() != ".egtb") continue;
+  //   uint64_t size = entry.file_size();
+  //   total_size += size;
+  //   uint64_t zipped_size = fs::file_size(fs::path("5men/zipped/" + entry.path().filename().u8string() + ".zip"));
+  //   total_zipped_size += zipped_size;
+  //   uint64_t compressed_size = RunRepair(batchsize, entry.path().u8string().c_str());
+  //   total_compressed_size += compressed_size;
+  //   std::cout << entry.path() << " size: " << size;
+  //   std::cout << " zipped size: " << zipped_size << " (" << (double) zipped_size / size << ")";
+  //   std::cout << " compressed size: " << compressed_size << " (" << (double) compressed_size / size << ")";
+  //   std::cout << (compressed_size <= zipped_size ? " OK" : " :(") << std::endl;
+  //   std::cout << std::endl;
+  // }
+  // std::cout << "TOTAL" << " size: " << total_size << " zipped size: " << total_zipped_size << " (" << (double) total_zipped_size / total_size << ") compressed size: " << total_compressed_size << " (" << (double) total_compressed_size / total_size << ")" << std::endl;
+  // exit(1);
+
+  // 8192 ~6012353372
+
   // "KQQKBN.egtb";
   // 4.95 GB -> 522 MB with zip
   // 441 MB without huff-encoded seq
@@ -829,7 +872,8 @@ int main(int argc, char *argv[]) {
 
   // target < 8GB
 
-  // RunRepair(UINT16_MAX, filename);
-  RunRepair(8192, filename);
+  assert(argc == 3);
+  char* filename = argv[2];
+  RunRepair(batchsize, filename);
   return 0;
 }
