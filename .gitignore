@@ -11,3 +11,4 @@ tmp*
 repair
 *.DS_Store
 logs
+*.out
