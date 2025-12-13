@@ -114,6 +114,16 @@ typedef struct Dictionary {
   uint64_t buff_size;
 } DICT;
 
+typedef struct EncodeDictionary {
+  uint64_t txt_len;
+  uint64_t seq_len;
+  uint64_t num_rules;
+  CODE *comp_seq;
+  RULE *rule;
+  CODE *tcode;
+} EDICT;
+
+
 uint16_t leftPos_SQ(RDS *rds, uint16_t pos);
 uint16_t rightPos_SQ(RDS *rds, uint16_t pos);
 void removeLink_SQ(RDS *rds, uint16_t target_pos);
@@ -124,11 +134,16 @@ void insertPair_PQ(RDS *rds, PAIR *target, uint64_t p_num);
 void removePair_PQ(RDS *rds, PAIR *target, uint64_t p_num);
 void incrementPair(RDS *rds, PAIR *target);
 void decrementPair(RDS *rds, PAIR *target);
+uint64_t replacePairs(RDS *rds, PAIR *max_pair, CODE new_code);
 PAIR* getMaxPair(RDS *rds);
 PAIR *createPair(RDS *rds, CODE left, CODE right, uint16_t f_pos);
 void destructPair(RDS *rds, PAIR *target);
 void resetPQ(RDS *rds, uint64_t p_num);
 void initRDS_by_counting_pairs(RDS *rds);
 void destructRDS(RDS *rds);
+void getCompSeq(RDS *rds, DICT *dict);
+CODE addNewPair(DICT *dict, PAIR *max_pair);
+DICT *createDict(uint64_t txt_len, uint16_t CHAR_SIZE);
+EDICT *convertDict(DICT *dict, uint16_t CHAR_SIZE);
 
 #endif

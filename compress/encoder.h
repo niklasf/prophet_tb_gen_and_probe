@@ -27,15 +27,6 @@
 #include <math.h>
 #include "repair.h"
 
-typedef struct EncodeDictionary {
-  uint64_t txt_len;
-  uint64_t seq_len;
-  uint64_t num_rules;
-  CODE *comp_seq;
-  RULE *rule;
-  CODE *tcode;
-} EDICT;
-
 // mock
 typedef struct bit_output {
   uint64_t bit_count;

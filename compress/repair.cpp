@@ -470,7 +470,7 @@ DICT *createDict(uint64_t txt_len, uint16_t CHAR_SIZE) {
   dict->comp_seq = NULL;
   dict->num_rules = 0;
   
-  for (uint16_t i = 0; i < dict->buff_size; i++) {
+  for (uint64_t i = 0; i < dict->buff_size; i++) {
     dict->rule[i].left = DUMMY_CODE;
     dict->rule[i].right = DUMMY_CODE;
   }
