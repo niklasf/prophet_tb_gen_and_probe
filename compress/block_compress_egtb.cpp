@@ -15,11 +15,21 @@
 #include "../misc.h"
 namespace fs = std::filesystem;
 
-#include "libdeflate.h"
-#include <zstd.h>
+// #define LIBDEFLATE
+// #define ZSTD
+// #define LZ4
 
+#ifdef LIBDEFLATE
+  #include "libdeflate.h"
+#endif
+#ifdef ZSTD
+  #include <zstd.h>
+#endif
+#ifdef LZ4
+  #include <lz4hc.h>
+#endif
 
-uint64_t compress_egtb(std::string filename, int nthreads, int compression_level, uint64_t block_size, bool write) {
+uint64_t compress_egtb(std::string filename, int nthreads, int compression_level, uint64_t block_size, bool write, bool verbose) {
 
   // load file
   FILE* f = fopen(filename.c_str(), "rb");
@@ -38,50 +48,62 @@ uint64_t compress_egtb(std::string filename, int nthreads, int compression_level
   fclose(f);
 
 
-  std::cout << "Read " << num_pos << " entries (" << (double) num_pos*2 / (1024*1024*1024) << " GiB) from " << filename << std::endl;
+  if (verbose) std::cout << "Read " << num_pos << " entries (" << (double) num_pos*2 / (1024*1024*1024) << " GiB) from " << filename << std::endl;
 
   uint64_t n_blocks = ceil((double) num_pos / block_size);
-  uint16_t* block_sizes = (uint16_t*) malloc(n_blocks * sizeof(uint16_t));  
+  uint64_t* block_sizes = (uint64_t*) malloc(n_blocks * sizeof(uint64_t));  
 
-  bool large_blocks = false; 
+  bool large_blocks = block_size > uint64_t(UINT16_MAX); 
   uint64_t final_size = 0;
 
   #pragma omp parallel num_threads(nthreads)
   {
     // thread-private allocations
-    // libdeflate_compressor* compressor = libdeflate_alloc_compressor(compression_level);
     std::vector<uint8_t> compressed(block_size*2);
 
+    #ifdef LIBDEFLATE
+      libdeflate_compressor* compressor = libdeflate_alloc_compressor(compression_level);
+    #endif
+
+
     
-    #pragma omp for schedule(static) reduction(+:final_size) reduction(||: large_blocks)
+    #pragma omp for schedule(static) reduction(+:final_size)
     for (uint64_t start_ix = 0; start_ix < num_pos; start_ix += block_size) {
       uint64_t size = std::min(block_size, num_pos - start_ix) * sizeof(int16_t);
       uint64_t block_ix = start_ix / block_size;
 
-      // uint64_t compressed_size = libdeflate_deflate_compress(compressor, (uint8_t*) &TB[start_ix], size, compressed.data(), compressed.size());
-      uint64_t compressed_size = ZSTD_compress(compressed.data(), compressed.size(),  (uint8_t*) &TB[start_ix], size, compression_level);
+
+      #ifdef LIBDEFLATE
+        uint64_t compressed_size = libdeflate_deflate_compress(compressor, (uint8_t*) &TB[start_ix], size, compressed.data(), compressed.size());
+      #endif
+      #ifdef ZSTD
+        uint64_t compressed_size = ZSTD_compress(compressed.data(), compressed.size(),  (uint8_t*) &TB[start_ix], size, compression_level);
+      #endif
+      #ifdef LZ4
+        uint64_t compressed_size = LZ4_compress_HC((char*) &TB[start_ix], (char*) compressed.data(), size, compressed.size(), compression_level);
+      #endif
+      
 
       if (compressed_size == 0) {
         std::cerr << "Compression failed\n";
         exit(1);
       }
-      large_blocks = large_blocks || (compressed_size > UINT16_MAX);
       final_size += compressed_size;
 
-      assert (compressed_size <= UINT16_MAX);
-      assert (compressed_size <= size);
       block_sizes[block_ix] = compressed_size;
       std::memcpy(&TB[start_ix], compressed.data(), compressed_size);
     }
 
-    // libdeflate_free_compressor(compressor);
+    #ifdef LIBDEFLATE
+      libdeflate_free_compressor(compressor);
+    #endif
   }
 
   final_size += large_blocks ? sizeof(uint32_t) * n_blocks : sizeof(uint16_t) * n_blocks;
   final_size += sizeof(uint64_t); // num_pos
   final_size += sizeof(uint64_t); // block_size
 
-  std::cout << "final size: " << final_size << " " << (double) final_size / file_size << " (large_blocks = " << large_blocks << ")" << std::endl;
+  if (verbose) std::cout << "final size: " << final_size << " " << (double) final_size / file_size << " (large_blocks = " << large_blocks << ")" << std::endl;
 
 
   if (write) {
@@ -93,17 +115,26 @@ uint64_t compress_egtb(std::string filename, int nthreads, int compression_level
     }
     fwrite(&num_pos, sizeof(uint64_t), 1, f);
     fwrite(&block_size, sizeof(uint64_t), 1, f);
-    fwrite(block_sizes, sizeof(uint16_t), n_blocks, f);
+    if (large_blocks) {
+      uint32_t* write_block_sizes = (uint32_t*) malloc(n_blocks * sizeof(uint32_t));  
+      for (uint64_t i = 0; i < n_blocks; i++) write_block_sizes[i] = block_sizes[i];
+      fwrite(write_block_sizes, sizeof(uint32_t), n_blocks, f);
+    } else {
+      uint16_t* write_block_sizes = (uint16_t*) malloc(n_blocks * sizeof(uint16_t));  
+      for (uint64_t i = 0; i < n_blocks; i++) write_block_sizes[i] = block_sizes[i];
+      fwrite(write_block_sizes, sizeof(uint16_t), n_blocks, f);
+    }
 
     for (uint64_t start_ix = 0; start_ix < num_pos; start_ix += block_size) {
       uint64_t block_ix = start_ix / block_size;
       fwrite(&TB[start_ix], sizeof(uint8_t), block_sizes[block_ix], f);
       assert(block_ix * block_size == start_ix);
     }
-    std::cout << "Wrote to " << compressed_filename << std::endl;
+    if (verbose) std::cout << "Wrote to " << compressed_filename << std::endl;
     fclose(f);
   }
 
+  free(block_sizes);
   free(TB);
   return final_size;
 }
@@ -114,12 +145,17 @@ struct CompressedEGTB {
   uint64_t num_pos;
   uint64_t block_size;
   uint64_t n_blocks;
-  uint16_t* block_sizes;
+  uint64_t* block_sizes;
   uint64_t* block_offsets;
   uint8_t* map_ptr;
   uint8_t* compressed_blocks;
   int16_t* uncompressed_buf;
-  libdeflate_decompressor* decompressor;
+  #ifdef LIBDEFLATE
+    libdeflate_decompressor* decompressor;
+  #endif
+  #ifdef ZSTD
+    ZSTD_DCtx* decompressor;
+  #endif
 
   CompressedEGTB(std::string filename) {
     this->filename = filename;
@@ -143,8 +179,20 @@ struct CompressedEGTB {
     this->num_pos = ((uint64_t*) this->map_ptr)[0];
     this->block_size = ((uint64_t*) this->map_ptr)[1];
     this->n_blocks = ceil((double) num_pos / block_size);
-    this->block_sizes = (uint16_t*) &this->map_ptr[2*sizeof(uint64_t)];
-    this->compressed_blocks = &this->map_ptr[2*sizeof(uint64_t) + this->n_blocks*sizeof(uint16_t)];
+    
+    bool large_blocks = block_size > uint64_t(UINT16_MAX);
+    this->block_sizes = (uint64_t*) malloc(n_blocks * sizeof(uint64_t));
+    if (large_blocks) {
+      uint32_t* block_sizes_ptr = (uint32_t*) &this->map_ptr[2*sizeof(uint64_t)];
+      for (uint64_t i = 0; i < n_blocks; i++) this->block_sizes[i] = block_sizes_ptr[i];
+      this->compressed_blocks = &this->map_ptr[2*sizeof(uint64_t) + this->n_blocks*sizeof(uint32_t)];
+    } else {
+      uint16_t* block_sizes_ptr = (uint16_t*) &this->map_ptr[2*sizeof(uint64_t)];
+      for (uint64_t i = 0; i < n_blocks; i++) this->block_sizes[i] = block_sizes_ptr[i];
+      this->compressed_blocks = &this->map_ptr[2*sizeof(uint64_t) + this->n_blocks*sizeof(uint16_t)];
+    }
+    
+
     this->block_offsets = (uint64_t*) malloc(this->n_blocks * sizeof(uint64_t));
     this->uncompressed_buf = (int16_t*) malloc(block_size * sizeof(int16_t));
 
@@ -154,36 +202,57 @@ struct CompressedEGTB {
       offset += this->block_sizes[block_ix];
     }
 
-    this->decompressor = libdeflate_alloc_decompressor();
+    #ifdef LIBDEFLATE
+      this->decompressor = libdeflate_alloc_decompressor();
+    #endif
+    #ifdef ZSTD
+      this->decompressor = ZSTD_createDCtx();
+    #endif
 
-    std::cout << "CompressedEGTB: filesize=" << this->filesize << ", num_pos=" << this->num_pos << ", block_size=" << this->block_size << ", n_blocks=" << this->n_blocks << std::endl;
+    // std::cout << "CompressedEGTB" << this->filename << ": filesize=" << this->filesize << ", num_pos=" << this->num_pos << ", block_size=" << this->block_size << ", n_blocks=" << this->n_blocks << std::endl;
   }
 
   ~CompressedEGTB() {
+    // std::cout << "~CompressedEGTB" << this->filename << std::endl;
     int unmap = munmap(this->map_ptr, this->filesize);
     if (unmap == -1) {
         perror("Error munmapping the file");
         exit(EXIT_FAILURE);
     }
+    free(this->block_sizes);
     free(this->block_offsets);
     free(this->uncompressed_buf);
-    libdeflate_free_decompressor(this->decompressor);
+
+    #ifdef LIBDEFLATE
+      libdeflate_free_decompressor(this->decompressor);
+    #endif
+    #ifdef ZSTD
+      ZSTD_freeDCtx(this->decompressor);
+    #endif
   }
 
   int16_t get(uint64_t ix) {
     uint64_t block_ix = ix / block_size;
     uint64_t ix_in_block = ix % block_size;
     uint64_t offset = block_offsets[block_ix];
-    // uint64_t size = std::min(block_size, num_pos - block_ix*block_size) * sizeof(int16_t);
-    // libdeflate_result res = libdeflate_deflate_decompress(decompressor,
-    //   &compressed_blocks[offset], block_sizes[block_ix],
-    //   uncompressed_buf, size, NULL);
-    // if (res != 0) {
-    //   std::cout << "libdeflate_result: " << res << std::endl;
-    //   exit(1);
-    // }
-    size_t res = ZSTD_decompress(uncompressed_buf, block_size * sizeof(int16_t), &compressed_blocks[offset], block_sizes[block_ix]);
-    assert (!ZSTD_isError(res));
+
+    #ifdef LIBDEFLATE
+      uint64_t size = std::min(block_size, num_pos - block_ix*block_size) * sizeof(int16_t);
+      libdeflate_result res = libdeflate_deflate_decompress(decompressor,
+        &compressed_blocks[offset], block_sizes[block_ix],
+        uncompressed_buf, size, NULL);
+      assert (res == 0);
+    #endif
+    #ifdef ZSTD
+      size_t res = ZSTD_decompressDCtx(this->decompressor,
+        uncompressed_buf, block_size * sizeof(int16_t),
+        &compressed_blocks[offset], block_sizes[block_ix]);
+      assert (!ZSTD_isError(res));
+    #endif
+    #ifdef LZ4
+    int res = LZ4_decompress_safe((char*) &compressed_blocks[offset], (char*) uncompressed_buf, block_sizes[block_ix], block_size * sizeof(int16_t));
+    assert (res > 0);
+    #endif
     return uncompressed_buf[ix_in_block];
   }
 };
@@ -194,51 +263,72 @@ int main(int argc, char *argv[]) {
   uint64_t compression_level = atoi(argv[2]);
   uint64_t block_size = atoi(argv[3]); // [4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152]
   if (argc == 4) {
+    #ifdef LIBDEFLATE
+    std::cout << "LIBDEFLATE" << std::endl;
+    #endif
+    #ifdef ZSTD
+    std::cout << "ZSTD" << std::endl;
+    #endif
+    #ifdef LZ4
+    std::cout << "LZ4" << std::endl;
+    #endif
     std::cout << "n_threads: " << n_threads << ", compression_level: " << compression_level << ", block_size: " << block_size << std::endl;
-    
+    bool verbose = false;
+    bool write = true;
+
     uint64_t count = 0;
     uint64_t total_size = 0;
     uint64_t total_compressed_size = 0;
     uint64_t total_zipped_size = 0;
     std::string path = "../egtbs/5men/";
+    std::vector<std::string> files;
+    TimePoint t0 = now();
     for (const auto & entry : fs::recursive_directory_iterator(path)) {
       if (entry.path().extension() != ".egtb") continue;
       count++;
+      files.push_back(entry.path().u8string());
       uint64_t size = entry.file_size();
       total_size += size;
       uint64_t zipped_size = fs::file_size(fs::path(entry.path().u8string() + ".zip"));
       total_zipped_size += zipped_size;
-      uint64_t compressed_size = compress_egtb(entry.path().u8string(), n_threads, compression_level, block_size, false);
+      uint64_t compressed_size = compress_egtb(entry.path().u8string(), n_threads, compression_level, block_size, write, verbose);
       total_compressed_size += compressed_size;
-      std::cout << entry.path() << " size: " << size;
-      std::cout << " zipped size: " << zipped_size << " (" << (double) zipped_size / size << ")";
-      std::cout << " compressed size: " << compressed_size << " (" << (double) compressed_size / size << ")";
-      std::cout << (compressed_size <= zipped_size ? " OK" : " :(") << std::endl;
-      std::cout << std::endl;
+      if (verbose) {
+        std::cout << entry.path() << " size: " << size;
+        std::cout << " zipped size: " << zipped_size << " (" << (double) zipped_size / size << ")";
+        std::cout << " compressed size: " << compressed_size << " (" << (double) compressed_size / size << ")";
+        std::cout << (compressed_size <= zipped_size ? " OK" : " :(") << std::endl;
+        std::cout << std::endl;
+      }
     }
     std::cout << "Compressed " << count << " files" << std::endl;
     std::cout << "TOTAL" << " size: " << total_size;
     std::cout << " zipped size: " << total_zipped_size << " (" << (double) total_zipped_size / total_size << ")";
     std::cout << " compressed size: " << total_compressed_size << " (" << (double) total_compressed_size / total_size << ")" << std::endl;
 
-  // zip size: 8709004054 (0.144411)
+    TimePoint t1 = now();
+    std::cout << "Finished in " << (double) (t1 - t0) / 1000 << " s" << std::endl;
 
-  // libdeflate levels = 1 ... 12
-
-  // compression_level = 9 block_size = 32768 -> 8563460076 (0.141998) 3m20
-  // compression_level = 10 block_size = 32768 -> 7936397012 (0.1316) 7m BEST
-  // compression_level = 12 block_size = 32768 -> 7785773584 (0.129102) 19m
-
-  // compression_level = 9 block_size = 8192 -> 9137047977 (0.151509) 3m
-  // compression_level = 10 block_size = 8192 -> 8581590257 (0.142298) 6m20
-  // compression_level = 12 block_size = 8192 -> 8416370763 (0.139559) 17m
-
-  // compression_level = 10 block_size = 1048576 ->  7627181263 (0.126473) 8m
-
-  // zstd levels = 1 ... 22
-
-  // compression_level = 10 block_size = 32768 -> 8401179133 (0.139307) 2m
-  // compression_level = 16 block_size = 32768 -> 7264373856 (0.120457) 12m
+    CompressedEGTB** cegtbs = (CompressedEGTB**) malloc(count * sizeof(CompressedEGTB*));
+    for (uint64_t i = 0; i < count; i++) {
+      cegtbs[i] = new CompressedEGTB(files[i] + ".bz");
+    }
+    
+    int n = 100000;
+    t0 = now();
+    for (int i = 0; i < n; i++) {
+      int fix = rand() % count;
+      CompressedEGTB* cegtb = cegtbs[fix];
+      uint64_t ix = rand() % cegtb->num_pos;
+      cegtb->get(ix);
+    }
+    t1 = now();
+    std::cout << "Mean access time " << (double) (t1 - t0) /n << "ms vs filesize " << (double) total_compressed_size / (1024*1024*1024) <<  "GiB" << std::endl;
+    
+    for (uint64_t i = 0; i < count; i++) {
+      free(cegtbs[i]);
+    }
+    free(cegtbs);
 
   } else {
   
@@ -246,7 +336,7 @@ int main(int argc, char *argv[]) {
     std::string filename = argv[4];
     // ../egtbs/5men/1pawns/KRKRP.egtb
 
-    compress_egtb(filename, n_threads, compression_level, block_size, true);
+    compress_egtb(filename, n_threads, compression_level, block_size, true, true);
 
     CompressedEGTB cegtb = CompressedEGTB(filename + ".bz");
 
