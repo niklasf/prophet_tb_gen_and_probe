@@ -19,6 +19,8 @@ namespace fs = std::filesystem;
 // #define ZSTD
 // #define LZ4
 
+#define EXT ".bz"
+
 #ifdef LIBDEFLATE
   #include "libdeflate.h"
 #endif
@@ -120,7 +122,7 @@ uint64_t compress_egtb(std::string filename, int nthreads, int compression_level
 
 
   if (write) {
-    std::string compressed_filename = filename + ".bz";
+    std::string compressed_filename = filename + EXT;
     f = fopen(compressed_filename.c_str(), "wb");
     if (f == NULL) {
       std::cerr << "Error opening file: " << filename << std::endl;
@@ -382,7 +384,7 @@ int main_test(int argc, char *argv[]) {
   if (test) {
     CompressedEGTB** cegtbs = (CompressedEGTB**) malloc(count * sizeof(CompressedEGTB*));
     for (uint64_t i = 0; i < count; i++) {
-      cegtbs[i] = new CompressedEGTB(files[i] + ".bz");
+      cegtbs[i] = new CompressedEGTB(files[i] + EXT);
       int16_t* decompressed_TB = cegtbs[i]->decompress_into_array(n_threads);
       free(decompressed_TB);
     }
@@ -477,6 +479,6 @@ int main_compress(int argc, char *argv[]) {
 }
 
 int main(int argc, char *argv[]) {
-  // main_test(argc, argv);
-  main_compress(argc, argv); // ./compress/compress_zstd.out 32 19 1048576 |& tee -a log_compress.txt
+  main_test(argc, argv);
+  // main_compress(argc, argv); // ./compress/compress_zstd.out 32 19 1048576 |& tee -a log_compress.txt
 }
