@@ -5,7 +5,7 @@
 # -flto=full
 
 CC = g++
-flags = -Wall -Wcast-qual -fno-exceptions -std=c++17  -pedantic -Wextra -Wshadow -m64 -mbmi2 -funroll-loops -DIS_64BIT -DUSE_POPCNT -fopenmp -O3
+flags = -Wall -Wcast-qual -fno-exceptions -std=c++17  -pedantic -Wextra -Wshadow -m64 -mbmi2 -flto -funroll-loops -DIS_64BIT -DUSE_POPCNT -fopenmp -O3
 lzstd = -I zstd/lib -L zstd/lib -lzstd
 
 fast:
@@ -19,8 +19,14 @@ build:
 	$(CC) -g -o main bitboard.o main.o uci.o $(flags)
 
 mates:
-	$(CC) -g $(flags)  -c -o longest_mate.o longest_mate.cpp
-	$(CC) -g -o longest_mate bitboard.o longest_mate.o uci.o  $(flags)
+	$(CC) -g $(flags) -c -o bitboard.o bitboard.cpp
+	$(CC) -g $(flags) -c -o eg_position.o eg_position.cpp
+	$(CC) -g $(flags) -c -o linearize.o linearize.cpp
+	$(CC) -g $(flags) -c -o triangular_indexes.o triangular_indexes.cpp
+	$(CC) -g $(flags) -c -o kkx.o kkx.cpp
+	$(CC) -g $(flags) -c -o uci.o uci.cpp
+	$(CC) -g $(flags) -c -o egtb.o egtb.cpp
+	$(CC) -g -o longest_mate longest_mate.cpp egtb.o kkx.o linearize.o triangular_indexes.o eg_position.o bitboard.o uci.o  $(flags) $(lzstd) -DZSTD
 
 
 compress:
