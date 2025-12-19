@@ -74,6 +74,8 @@ public:
     template<PieceType Pt>
     int count(Color c) const;
 
+    int count(Color c, PieceType pt) const;
+
     void reset();
 
     Square ep_square() const;
@@ -100,6 +102,10 @@ private:
 template<PieceType Pt>
 inline int EGPosition::count(Color c) const {
     return pieceCount[make_piece(c, Pt)];
+}
+
+inline int EGPosition::count(Color c, PieceType pt) const {
+    return pieceCount[make_piece(c, pt)];
 }
 
 // Returns an ASCII representation of the position

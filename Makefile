@@ -21,12 +21,13 @@ build:
 mates:
 	$(CC) -g $(flags) -c -o bitboard.o bitboard.cpp
 	$(CC) -g $(flags) -c -o eg_position.o eg_position.cpp
+	$(CC) -g $(flags) -c -o eg_movegen.o eg_movegen.cpp
 	$(CC) -g $(flags) -c -o linearize.o linearize.cpp
 	$(CC) -g $(flags) -c -o triangular_indexes.o triangular_indexes.cpp
 	$(CC) -g $(flags) -c -o kkx.o kkx.cpp
 	$(CC) -g $(flags) -c -o uci.o uci.cpp
 	$(CC) -g $(flags) -c -o egtb.o egtb.cpp
-	$(CC) -g -o longest_mate longest_mate.cpp egtb.o kkx.o linearize.o triangular_indexes.o eg_position.o bitboard.o uci.o  $(flags) $(lzstd) -DZSTD
+	$(CC) -g -o longest_mate longest_mate.cpp egtb.o kkx.o linearize.o triangular_indexes.o eg_position.o eg_movegen.o bitboard.o uci.o  $(flags) $(lzstd) -DZSTD
 
 
 compress:
