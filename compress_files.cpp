@@ -4,6 +4,7 @@
 #include "egtb.h"
 #include "compressed_tb.h"
 #include "misc.h"
+#include <filesystem>
 namespace fs = std::filesystem;
 
 void load_file(std::string filename, int16_t*& TB, u_int64_t& num_pos, bool verbose) {
@@ -31,7 +32,6 @@ int test_from_zip(int argc, char *argv[]) {
   assert(argc == 4);
   uint64_t n_threads = atoi(argv[1]);
   uint64_t compression_level = atoi(argv[2]);
-  // [4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152]
   uint64_t block_size = atoi(argv[3]); 
 
   std::cout << "n_threads: " << n_threads << ", compression_level: " << compression_level << ", block_size: " << block_size << std::endl;
@@ -49,16 +49,17 @@ int test_from_zip(int argc, char *argv[]) {
   for (const auto & entry : fs::recursive_directory_iterator(path)) {
     if (entry.path().extension() != ".egtb") continue;
     count++;
-    files.push_back(entry.path().u8string());
+    std::string filename = entry.path().u8string();
+    files.push_back(filename);
     uint64_t size = entry.file_size();
     total_size += size;
-    uint64_t zipped_size = fs::file_size(fs::path(entry.path().u8string() + ".zip"));
+    uint64_t zipped_size = fs::file_size(fs::path(filename + ".zip"));
     total_zipped_size += zipped_size;
 
     int16_t* TB;
     uint64_t num_pos;
-    load_file(entry.path().u8string(), TB, num_pos, verbose);
-    uint64_t compressed_size = compress_egtb(TB, num_pos, n_threads, compression_level, block_size, entry.path().u8string() + COMP_EXT, write, verbose);
+    load_file(filename, TB, num_pos, verbose);
+    uint64_t compressed_size = compress_egtb(TB, num_pos, n_threads, compression_level, block_size, filename + COMP_EXT, write, verbose);
     free(TB);
 
     total_compressed_size += compressed_size;
@@ -79,11 +80,11 @@ int test_from_zip(int argc, char *argv[]) {
   std::cout << "Finished in " << (double) (t1 - t0) / 1000 << " s" << std::endl;
 
   if (test) {
-    CompressedTB** cegtbs = (CompressedTB**) malloc(count * sizeof(CompressedTB*));
+    CompressedTB** ctbs = (CompressedTB**) malloc(count * sizeof(CompressedTB*));
     for (uint64_t i = 0; i < count; i++) {
-      cegtbs[i] = new CompressedTB(i, files[i] + COMP_EXT);
-      int16_t* decompressed_TB = (int16_t*) malloc(cegtbs[i]->num_pos * sizeof(int16_t));
-      cegtbs[i]->decompress_to_array(n_threads, decompressed_TB); // performs checksum test
+      ctbs[i] = new CompressedTB(i, files[i] + COMP_EXT);
+      int16_t* decompressed_TB = (int16_t*) malloc(ctbs[i]->num_pos * sizeof(int16_t));
+      ctbs[i]->decompress_to_array(n_threads, decompressed_TB); // performs checksum test
       free(decompressed_TB);
     }
     
@@ -91,17 +92,17 @@ int test_from_zip(int argc, char *argv[]) {
     t0 = now();
     for (int i = 0; i < n; i++) {
       int fix = rand() % count;
-      CompressedTB* cegtb = cegtbs[fix];
-      uint64_t ix = rand() % cegtb->num_pos;
-      cegtb->get_value(ix);
+      CompressedTB* ctb = ctbs[fix];
+      uint64_t ix = rand() % ctb->num_pos;
+      ctb->get_value(ix);
     }
     t1 = now();
     std::cout << "Mean access time " << (double) (t1 - t0) /n << "ms vs filesize " << (double) total_compressed_size / (1024*1024*1024) <<  "GiB" << std::endl;
     
     for (uint64_t i = 0; i < count; i++) {
-      free(cegtbs[i]);
+      free(ctbs[i]);
     }
-    free(cegtbs);
+    free(ctbs);
   }
 
   return 0;
@@ -148,9 +149,8 @@ int compress_from_zip(int argc, char *argv[]) {
     int16_t* TB;
     uint64_t num_pos;
     load_file(entry.path().u8string(), TB, num_pos, verbose);
-    uint64_t compressed_size = compress_egtb(TB, num_pos, n_threads, compression_level, block_size, entry.path().u8string() + COMP_EXT, write, verbose);
+    uint64_t compressed_size = compress_egtb(TB, num_pos, n_threads, compression_level, block_size, filename + COMP_EXT, write, verbose);
     free(TB);
-
 
     total_compressed_size += compressed_size;
 
@@ -177,6 +177,88 @@ int compress_from_zip(int argc, char *argv[]) {
 }
 
 int main(int argc, char *argv[]) {
-  test_from_zip(argc, argv);
-  // main_compress(argc, argv); // ./compress/compress_zstd.out 32 19 1048576 |& tee -a log_compress.txt
+  // [4096, 8192, 16384, 32768, , 131072, 262144, 524288, 1048576, 2097152]
+  // test_from_zip(argc, argv);
+  // compress_from_zip(argc, argv);
+
+  assert(argc == 4);
+  uint64_t n_threads = atoi(argv[1]);
+  uint64_t compression_level = atoi(argv[2]);
+  uint64_t block_size = atoi(argv[3]);
+
+  bool verbose = true;
+  bool write = true;
+  bool test = true;
+
+  std::cout << "n_threads: " << n_threads << ", compression_level: " << compression_level << ", block_size: " << block_size << std::endl;
+
+  uint64_t count = 0;
+  uint64_t total_size = 0;
+  uint64_t total_compressed_size = 0;
+  
+  std::string path = "egtbs";
+  std::vector<std::string> files;
+  
+  TimePoint t0 = now();
+  for (const auto & entry : fs::recursive_directory_iterator(path)) {
+    if (entry.path().extension() != COMP_EXT) continue;
+    std::string bz_filename = entry.path().u8string();
+    files.push_back(bz_filename);
+    count++;
+    std::string filename = bz_filename.substr(0, bz_filename.size() - 3);
+    CompressedTB ctb = CompressedTB(0, bz_filename);
+    uint64_t size = ctb.num_pos * sizeof(int16_t);
+    total_size += size;
+    uint64_t compressed_size;
+    TimePoint tt0 = now();
+    if (ctb.block_size != block_size) {
+      int16_t* TB = (int16_t*) malloc(size);
+      ctb.decompress_to_array(n_threads, TB);
+      compressed_size = compress_egtb(TB, ctb.num_pos, n_threads, compression_level, block_size, filename + COMP_EXT, write, verbose);
+      free(TB);
+    } else {
+      compressed_size = ctb.compressed_filesize;
+    }
+    TimePoint tt1 = now();
+    total_compressed_size += compressed_size;
+    if (verbose) {
+      std::cout << filename << " size: " << size;
+      std::cout << " compressed size: " << compressed_size << " (" << (double) compressed_size / size << ")";
+      std::cout << std::endl;
+      std::cout << "Finished in " << (double) (tt1 - tt0) / 1000 << " s" << std::endl;
+    }
+  }
+  TimePoint t1 = now();
+
+  std::cout << "Compressed " << count << " files" << std::endl;
+  std::cout << "TOTAL" << " size: " << total_size;
+  std::cout << " compressed size: " << total_compressed_size << " (" << (double) total_compressed_size / total_size << ")" << std::endl;
+  std::cout << "Finished in " << (double) (t1 - t0) / 1000 << " s" << std::endl;
+
+
+  if (test) {
+    CompressedTB** ctbs = (CompressedTB**) malloc(count * sizeof(CompressedTB*));
+    for (uint64_t i = 0; i < count; i++) {
+      ctbs[i] = new CompressedTB(i, files[i]);
+      // int16_t* decompressed_TB = (int16_t*) malloc(ctbs[i]->num_pos * sizeof(int16_t));
+      // ctbs[i]->decompress_to_array(n_threads, decompressed_TB); // performs checksum test
+      // free(decompressed_TB);
+    }
+    
+    int n = 100000;
+    t0 = now();
+    for (int i = 0; i < n; i++) {
+      int fix = rand() % count;
+      CompressedTB* ctb = ctbs[fix];
+      uint64_t ix = rand() % ctb->num_pos;
+      ctb->get_value(ix);
+    }
+    t1 = now();
+    std::cout << "Mean access time " << (double) (t1 - t0) / n << "ms vs filesize " << (double) total_compressed_size / (1024*1024*1024) <<  "GiB" << std::endl;
+    
+    for (uint64_t i = 0; i < count; i++) {
+      free(ctbs[i]);
+    }
+    free(ctbs);
+  }
 }

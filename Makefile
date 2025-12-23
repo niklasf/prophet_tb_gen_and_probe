@@ -20,7 +20,7 @@ lib:
 	$(CC) -g $(flags) -c -o triangular_indexes.o triangular_indexes.cpp
 	$(CC) -g $(flags) -c -o uci.o uci.cpp
 
-libfiles = bitboard.o ompressed_tb.o eg_movegen.o eg_position.o egtb.o egtb_ids.o kkx.o linearize.o triangular_indexes.o uci.o
+libfiles = bitboard.o compressed_tb.o eg_movegen.o eg_position.o egtb.o egtb_ids.o kkx.o linearize.o triangular_indexes.o uci.o
 
 mates:
 	$(CC) -g $(flags) -o longest_mate.out longest_mate.cpp $(libfiles) $(lzstd) -DZSTD
