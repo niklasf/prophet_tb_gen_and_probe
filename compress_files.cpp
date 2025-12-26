@@ -177,7 +177,7 @@ int compress_from_zip(int argc, char *argv[]) {
 }
 
 int main(int argc, char *argv[]) {
-  // [4096, 8192, 16384, 32768, , 131072, 262144, 524288, 1048576, 2097152]
+  // [4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152]
   // test_from_zip(argc, argv);
   // compress_from_zip(argc, argv);
 
@@ -225,7 +225,7 @@ int main(int argc, char *argv[]) {
       std::cout << filename << " size: " << size;
       std::cout << " compressed size: " << compressed_size << " (" << (double) compressed_size / size << ")";
       std::cout << std::endl;
-      std::cout << "Finished in " << (double) (tt1 - tt0) / 1000 << " s" << std::endl;
+      std::cout << count << ". Finished in " << (double) (tt1 - tt0) / 1000 << " s" << std::endl;
     }
   }
   TimePoint t1 = now();

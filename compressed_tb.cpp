@@ -58,7 +58,7 @@ uint64_t compress_egtb(int16_t* TB, uint64_t num_pos, int nthreads, int compress
 
 
   if (write) {
-    FILE* f = fopen(compressed_filename.c_str(), "wb");
+    FILE* f = fopen((compressed_filename + ".tmp").c_str(), "wb");
     if (f == NULL) {
       std::cerr << "Error opening file: " << compressed_filename << std::endl;
       exit(1);
@@ -81,8 +81,9 @@ uint64_t compress_egtb(int16_t* TB, uint64_t num_pos, int nthreads, int compress
       fwrite(&TB[start_ix], sizeof(uint8_t), block_sizes[block_ix], f);
       assert(block_ix * block_size == start_ix);
     }
-    if (verbose) std::cout << "Wrote to " << compressed_filename << std::endl;
     fclose(f);
+    system(("mv " + compressed_filename + ".tmp " + compressed_filename).c_str());
+    if (verbose) std::cout << "Wrote to " << compressed_filename << std::endl;
   }
 
   free(block_sizes);
