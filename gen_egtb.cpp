@@ -14,11 +14,6 @@
 #include "values.h"
 
 #define CHUNKSIZE 2048
-#define CONSISTENCY_CHECK_MAX_BYTES 96636764160ULL
-// == 90 GiB = 96GB
-#define COMPRESSION_LEVEL 19
-#define BLOCKSIZE 32768
-
 
 class GenEGTB {
     std::string folder;
@@ -34,12 +29,21 @@ class GenEGTB {
 
     bool do_consistency_checks;
     bool disable_allocate_promotion_tb;
+    bool compress;
 
     uint64_t bytes_allocated;
     uint64_t bytes_mmaped;
 
+    uint64_t CONSISTENCY_CHECK_MAX_BYTES;
+    uint64_t COMPRESSION_LEVEL;
+    uint64_t BLOCKSIZE;
+
 public:
-    GenEGTB(int wpieces_[6], int bpieces_[6], std::string folder_, bool do_consistency_checks_, bool disable_allocate_promotion_tb_) {
+    GenEGTB(
+        int wpieces_[6], int bpieces_[6], std::string folder_,
+        bool do_consistency_checks_, bool disable_allocate_promotion_tb_, bool compress_,
+        uint64_t CONSISTENCY_CHECK_MAX_BYTES_, uint64_t COMPRESSION_LEVEL_, uint64_t BLOCKSIZE_) {
+        
         // std::cout << "GenEGTB\n";
         this->folder = folder_;
         this->n_pieces = 0;
@@ -149,6 +153,11 @@ public:
 
         this->do_consistency_checks = do_consistency_checks_;
         this->disable_allocate_promotion_tb = disable_allocate_promotion_tb_;
+        this->compress = compress_;
+
+        this->CONSISTENCY_CHECK_MAX_BYTES = CONSISTENCY_CHECK_MAX_BYTES_;
+        this->COMPRESSION_LEVEL = COMPRESSION_LEVEL_;
+        this->BLOCKSIZE = BLOCKSIZE_;
 
         this->bytes_allocated = 0;
         this->bytes_mmaped = 0;
@@ -1108,18 +1117,21 @@ void GenEGTB::gen(int nthreads) {
     std::string cmd = "mkdir -p " + WTM_EGTB->get_folder(folder);
     system(cmd.c_str());
     if (WTM_EGTB->id == BTM_EGTB->id) {
-        compress_egtb(WTM_EGTB->TB, WTM_EGTB->num_pos,
-            nthreads, COMPRESSION_LEVEL, BLOCKSIZE,
-            WTM_EGTB->get_filename(folder) + COMP_EXT, true, true);
+        if (compress) {
+            WTM_EGTB->compress_egtb(folder, nthreads, COMPRESSION_LEVEL, BLOCKSIZE, true);
+        } else {
+            WTM_EGTB->store_egtb(folder);
+        }
         
         std::cout << "Stored " << WTM_EGTB->id << std::endl;
     } else {
-        compress_egtb(WTM_EGTB->TB, WTM_EGTB->num_pos,
-            nthreads, COMPRESSION_LEVEL, BLOCKSIZE,
-            WTM_EGTB->get_filename(folder) + COMP_EXT, true, true);
-        compress_egtb(BTM_EGTB->TB, BTM_EGTB->num_pos,
-            nthreads, COMPRESSION_LEVEL, BLOCKSIZE,
-            BTM_EGTB->get_filename(folder) + COMP_EXT, true, true);
+        if (compress) {
+            WTM_EGTB->compress_egtb(folder, nthreads, COMPRESSION_LEVEL, BLOCKSIZE, true);
+            BTM_EGTB->compress_egtb(folder, nthreads, COMPRESSION_LEVEL, BLOCKSIZE, true);
+        } else {
+            WTM_EGTB->store_egtb(folder);
+            BTM_EGTB->store_egtb(folder);
+        }
         std::cout << "Stored " << WTM_EGTB->id << " and " << BTM_EGTB->id << std::endl;
     }
      

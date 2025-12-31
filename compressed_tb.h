@@ -36,7 +36,7 @@ individual compressed blocks concatenated at byte level
 
 
 uint64_t compute_checksum(int16_t* TB, uint64_t num_pos, int nthreads);
-uint64_t compress_egtb(int16_t* TB, uint64_t num_pos, int nthreads, int compression_level, uint64_t block_size, std::string compressed_filename, bool write, bool verbose);
+uint64_t block_compress_TB(int16_t* TB, uint64_t num_pos, int nthreads, int compression_level, uint64_t block_size, std::string compressed_filename, bool write, bool verbose);
 
 struct DecompressCtx {
   int egtb_ix;

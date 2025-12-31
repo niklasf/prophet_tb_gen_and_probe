@@ -23,6 +23,12 @@ void EGTB::store_egtb(std::string root_folder) {
     fclose(f);
 }
 
+void EGTB::compress_egtb(std::string root_folder, int nthreads, int compression_level, uint64_t block_size, bool verbose) {
+    block_compress_TB(this->TB, this->num_pos,
+        nthreads, compression_level, block_size,
+        this->get_filename(root_folder) + COMP_EXT, true, verbose);
+}
+
 
 void EGTB::mmap_egtb_from_file(std::string root_folder) {
     assert (!this->loaded);

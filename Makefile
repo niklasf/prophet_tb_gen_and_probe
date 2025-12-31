@@ -8,7 +8,7 @@ CC = g++
 flags = -std=c++17 -Wall -Wcast-qual -fno-exceptions -pedantic -Wextra -Wshadow -m64 -mbmi2 -flto=auto -funroll-loops -DIS_64BIT -DUSE_POPCNT -fopenmp -O3
 lzstd = -I zstd/lib -L zstd/lib -lzstd
 
-core:
+lib:
 	$(CC) -g $(flags) -c -o bitboard.o bitboard.cpp
 	$(CC) -g $(flags) -c -o compressed_tb.o compressed_tb.cpp
 	$(CC) -g $(flags) -c -o eg_movegen.o eg_movegen.cpp

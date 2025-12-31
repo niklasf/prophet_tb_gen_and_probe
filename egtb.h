@@ -146,6 +146,8 @@ struct EGTB {
     }
 
     void store_egtb(std::string root_folder);
+    void compress_egtb(std::string root_folder, int nthreads, int compression_level, uint64_t block_size, bool verbose);
+
     void mmap_egtb_from_file(std::string root_folder);
     void load_egtb_from_file(std::string root_folder);
     void init_compressed_tb(std::string root_folder);

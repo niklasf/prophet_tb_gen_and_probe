@@ -12,7 +12,7 @@ uint64_t compute_checksum(int16_t* TB, uint64_t num_pos, int nthreads) {
     return s;
 }
 
-uint64_t compress_egtb(int16_t* TB, uint64_t num_pos, int nthreads, int compression_level, uint64_t block_size, std::string compressed_filename, bool write, bool verbose) {
+uint64_t block_compress_TB(int16_t* TB, uint64_t num_pos, int nthreads, int compression_level, uint64_t block_size, std::string compressed_filename, bool write, bool verbose) {
   uint64_t tb_size_bytes = num_pos * sizeof(int16_t);
   uint64_t checksum = compute_checksum(TB, num_pos, nthreads);
 
