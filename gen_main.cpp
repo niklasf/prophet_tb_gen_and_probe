@@ -8,7 +8,9 @@
 #include "triangular_indexes.h"
 #include "gen_egtb.cpp"
 #include <unordered_set>
+#ifdef OMP
 #include <omp.h>
+#endif
 
 #define CONSISTENCY_CHECK_MAX_BYTES 96636764160ULL
 // == 90 GiB = 96GB

@@ -7,7 +7,9 @@
 #include "egtb.h"
 #include "eg_movegen.h"
 #include <fstream>
+#ifdef OMP
 #include <omp.h>
+#endif
 
 struct CSVEntry {
     std::string egtb_id;

@@ -4,12 +4,13 @@
 #include <cstring>
 
 uint64_t compute_checksum(int16_t* TB, uint64_t num_pos, int nthreads) {
+  nthreads = nthreads * 1; // silence unused-parameter warning if compiled without omp
   uint64_t s = 0;
-    #pragma omp parallel for num_threads(nthreads) schedule(static) reduction(^:s)
-    for (uint64_t ix = 0; ix < num_pos; ix++) {
-      s ^= (ix << 10) | ((uint64_t) abs(TB[ix]));
-    }
-    return s;
+  #pragma omp parallel for num_threads(nthreads) schedule(static) reduction(^:s)
+  for (uint64_t ix = 0; ix < num_pos; ix++) {
+    s ^= (ix << 10) | ((uint64_t) abs(TB[ix]));
+  }
+  return s;
 }
 
 uint64_t block_compress_TB(int16_t* TB, uint64_t num_pos, int nthreads, int compression_level, uint64_t block_size, std::string compressed_filename, bool write, bool verbose) {

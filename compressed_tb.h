@@ -1,7 +1,9 @@
 #ifndef COMPRESSED_TB_H_INCLUDED
 #define COMPRESSED_TB_H_INCLUDED
 
+#ifdef OMP
 #include <omp.h>
+#endif
 #include <iostream>
 #include <cassert>
 #include <zstd.h>

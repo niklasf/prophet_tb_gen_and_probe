@@ -1,5 +1,6 @@
 
 #include "eg_position.h"
+#include <sstream>
 
 bool EGPosition::is_equal(const EGPosition& pos) const {
     if (sideToMove != pos.sideToMove) { return false; }

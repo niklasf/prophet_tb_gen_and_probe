@@ -26,8 +26,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <string>
-#include <x86intrin.h>
-
 
 #include "types.h"
 
@@ -424,12 +422,21 @@ inline Bitboard flippedDiagA1H8(Bitboard x) {
    x ^=       t ^ (t >>  7) ;
    return x;
 }
-
-inline Bitboard nth_set_bb(Bitboard x, int n) {
-    return _pdep_u64(1ULL << n, x);
-}
+#ifdef USE_BMI_EXT
+    #include <x86intrin.h>
+    inline Bitboard nth_set_bb(Bitboard x, int n) {
+        return _pdep_u64(1ULL << n, x);
+    }
+#else
+    inline Bitboard nth_set_bb(Bitboard x, int n) {
+        for (int i = 0; i < n-1; i++) {
+            x &= x - 1;
+        }
+        return x & -x;
+    }
+#endif
 inline Bitboard nth_unset_bb(Bitboard x, int n) {
-    return _pdep_u64(1ULL << n, ~x);
+    return nth_set_bb(~x, n);
 }
 inline Square nth_set_sq(Bitboard x, int n) {
     return lsb(nth_set_bb(x,n));

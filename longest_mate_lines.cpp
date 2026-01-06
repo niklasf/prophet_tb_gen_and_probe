@@ -9,7 +9,9 @@
 #include "eg_movegen.h"
 #include <fstream>
 #include <unordered_map>
+#ifdef OMP
 #include <omp.h>
+#endif
 
 std::unordered_map<std::string, EGTB*> id_to_egtb = {};
 
