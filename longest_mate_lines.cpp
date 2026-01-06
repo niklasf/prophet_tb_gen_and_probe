@@ -1,90 +1,35 @@
 #include <iostream>
 #include <vector>
-#include "bitboard.h"
-#include "values.h"
-#include "kkx.h"
-#include "misc.h"
-#include "triangular_indexes.h"
-#include "egtb.h"
-#include "eg_movegen.h"
 #include <fstream>
 #include <unordered_map>
+#include <prophet.h>
+#include "misc.h"
 #ifdef OMP
 #include <omp.h>
 #endif
 
-std::unordered_map<std::string, EGTB*> id_to_egtb = {};
-
-
-std::string egtb_id_from_pos(const EGPosition pos) {
-    std::ostringstream os;
-    for (Color c : {pos.side_to_move(), ~pos.side_to_move()}) {
-        for (PieceType pt : {KING, QUEEN, ROOK, BISHOP, KNIGHT, PAWN}) {
-            for (int i = 0; i < pos.count(c, pt); i++) {
-                os << PieceToChar[pt];
-            }
-        }
-    }
-    return os.str();
+uint64_t probe_count = 0;
+int16_t probe_position_dctx_counted(EGPosition pos, DecompressCtx* dctx) {
+    #pragma omp atomic
+    probe_count++;
+    return probe_position_dctx(pos, dctx);
 }
 
-std::string get_mirror_id(const std::string& egtb_id) {
-    size_t firstK = egtb_id.find('K');
-    size_t secondK = egtb_id.find('K', firstK + 1);
-    std::string stuff1 = egtb_id.substr(firstK + 1, secondK - firstK - 1);
-    std::string stuff2 = egtb_id.substr(secondK + 1);
-    return "K" + stuff2 + "K" + stuff1;
-}
-
-uint64_t query_count = 0;
-int16_t query_position(EGPosition pos, DecompressCtx* dctx) {
-    std::string egtb_id = egtb_id_from_pos(pos);
-
-    if (id_to_egtb[egtb_id] != nullptr) {
-        #pragma omp atomic
-        query_count++;
-        return id_to_egtb[egtb_id]->query_postion_dctx(pos, dctx);
-    } else {
-        EGMoveList movelist = EGMoveList<FORWARD>(pos);
-        if (movelist.size() == 0) {
-            if (pos.stm_in_check()) {
-                return LOSS_IN(0);
-            } else {
-                return 0;
-            }
-        }
-        int16_t max_val = LOSS_IN(0);
-        for (Move move : movelist) {
-            UndoInfo u = pos.do_move(move);
-            int16_t val = query_position(pos, dctx);
-            max_val = std::max(max_val, (int16_t) -val);
-            pos.undo_move(move, u);
-        }
-        if (max_val > 0) max_val--;
-        if (max_val < 0) max_val++;
-        return max_val;
-    }
-}
-
-
-std::vector<Move> get_pv(EGPosition pos, DecompressCtx* dctx) {
-    int16_t val = query_position(pos, dctx);
+std::vector<Move> get_mate_line(EGPosition pos, DecompressCtx* dctx) {
+    int16_t val = probe_position_dctx_counted(pos, dctx);
     std::vector<Move> pv;
     while (val != LOSS_IN(0)) {
-        // std::cout << val << std::endl;
         val = -val;
         if (val > 0) val++;
         if (val < 0) val--;
         bool found = false;
         for (Move move : EGMoveList<FORWARD>(pos)) {
             UndoInfo u = pos.do_move(move);
-            int16_t move_val = query_position(pos, dctx);
-            // std::cout << move_to_uci(move) << " " << move_val << std::endl;
+            int16_t move_val = probe_position_dctx_counted(pos, dctx);
             pos.undo_move(move, u);
             if (move_val == val) {
                 pv.push_back(move);
                 pos.do_move(move);
-                // std::cout << move_to_uci(move) << std::endl;
                 found = true;
                 break;
             }
@@ -103,26 +48,20 @@ struct CSVEntry {
 #define LOAD_HALF 1
 
 int main(int argc, char *argv[]) {
-    Bitboards::init();
-    init_kkx_table();
-    init_kkp_table();
-    init_tril();
-    init_egtb_id_to_ix();
-
     assert (argc > 0);
     int nthreads = atoi(argv[1]);
+    #ifndef OMP
+    assert(nthreads == 1);
+    #endif
+    std::cout << "Probing with " << nthreads << " threads." << std::endl;
+
 
     std::string folder = "egtbs";
-    std::vector<std::string> egtb_ids = get_egtb_identifiers(0, 4);
-
-    for (std::string egtb_id : egtb_ids) {
-        id_to_egtb[egtb_id] = new EGTB(egtb_id);
-        id_to_egtb[egtb_id]->init_compressed_tb(folder);
-    }
-
+    init_prophet_tb(folder);
     
+
 #if LOAD_HALF
-    for (std::string egtb_id : egtb_ids) {
+    for (std::string egtb_id : get_egtb_identifiers(4, 4)) {
         std::string mirror_egtb_id = get_mirror_id(egtb_id);
         if (mirror_egtb_id != egtb_id) {
             if (id_to_egtb[egtb_id] == nullptr || id_to_egtb[mirror_egtb_id] == nullptr) continue;
@@ -136,16 +75,17 @@ int main(int argc, char *argv[]) {
         }
     }
 #endif
+
     
     uint64_t count = 0;
     uint64_t compressed_filesize = 0;
-    for (std::string egtb_id : egtb_ids) {
+    for (std::string egtb_id : get_egtb_identifiers()) {
         if (id_to_egtb[egtb_id] != nullptr) {
             count++;
             compressed_filesize += id_to_egtb[egtb_id]->CTB->compressed_filesize;
         }
     }
-    std::cout << "Loaded " << count << " EGTBs (" << compressed_filesize / (1024*1024*1024) << "GiB)" << std::endl;
+    std::cout << "Loaded " << count << " EGTBs (" << (int) ceil((double) compressed_filesize / (1024*1024*1024)) << "GiB)" << std::endl;
 
     std::ifstream file("longest_mates.csv");std::string line;
 
@@ -174,7 +114,7 @@ int main(int argc, char *argv[]) {
             if (entry.ply_str != "") {
                 EGPosition pos;
                 pos.from_fen(entry.fen);
-                get_pv(pos, dctx);
+                get_mate_line(pos, dctx);
                 // for (Move move : get_pv(pos)) {
                 //     std::cout << " " << move_to_uci(move) ;
                 // }
@@ -189,28 +129,6 @@ int main(int argc, char *argv[]) {
     }
 
     TimePoint t1 = now();
-    std::cout << "Finished in " << (double) (t1-t0) / 1000 << "s. Query count = " << query_count << " (" << (double) (t1-t0) / query_count << "ms/query)" << std::endl;
+    std::cout << "Finished in " << (double) (t1-t0) / 1000 << "s. Probe count = " << probe_count << " (" << (double) (t1-t0) / probe_count << "ms/probe)" << std::endl;
 
 }
-
-// blocksize = 1048576
-// Loaded 1001 EGTBs (945GiB)
-// Finished in 312.912s. Query count =   757364 (0.413159ms/query)
-// Loaded 511 EGTBs (375GiB)
-// Finished in 6675.26s. Query count = 15767444 (0.423357ms/query) // double count
-// Finished in 441.334s. Query count = 7883722 (0.0559804ms/query) // multi threaded
-
-// blocksize = 32768
-//  ./longest_mate_lines.out 1
-// Loaded 1001 EGTBs (1110GiB)
-// Finished in 53.596s. Query count = 757364 (0.0707665ms/query)
-// ./longest_mate_lines.out 32
-// Loaded 1001 EGTBs (1110GiB)
-// Finished in 2.781s. Query count = 757364 (0.00367195ms/query)
-
-//  ./longest_mate_lines.out 1
-// Loaded 511 EGTBs (448GiB)
-// Finished in 254.324s. Query count = 7903032 (0.0321806ms/query)
-// ./longest_mate_lines.out 32
-// Loaded 511 EGTBs (448GiB)
-// Finished in 33.155s. Query count = 7903032 (0.00419523ms/query)
