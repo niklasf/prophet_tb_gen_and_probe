@@ -13,8 +13,8 @@ ifdef OMP
 else
 	flags += -Wno-unknown-pragmas
 endif
-ifdef MBI2
-	flags += -mbmi2 -DUSE_PDEP
+ifdef PDEP
+	flags += -mbmi2 -DPDEP
 endif
 
 prophet: flags += -fPIC
@@ -44,7 +44,8 @@ compress:
 prophet: lib
 	$(CC) -g $(flags) -shared -o build/libprophet.so prophet.cpp $(corefiles) $(lzstd)
 
-mates:
-	$(CC) -g $(flags) -o longest_mate_lines.out longest_mate_lines.cpp -I . -L build -lprophet -Wl,-rpath,'$$ORIGIN/build' $(lzstd)
+lprophet = -I . -L build -lprophet -Wl,-rpath,'$$ORIGIN/build'
 
-# $(CC) -g $(flags) -o longest_mate.out longest_mate.cpp $(corefiles) $(lzstd)
+mates:
+	$(CC) -g $(flags) -o longest_mate.out longest_mate.cpp $(lprophet) $(lzstd)
+	$(CC) -g $(flags) -o longest_mate_lines.out longest_mate_lines.cpp $(lprophet) $(lzstd)

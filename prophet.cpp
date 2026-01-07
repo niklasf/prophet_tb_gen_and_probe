@@ -59,17 +59,19 @@ void init_prophet_tb(std::string path) {
     init_egtb_id_to_ix();
 
     int count = 0;
+    uint64_t compressed_filesize = 0;
     for (std::string egtb_id : get_egtb_identifiers()) {
         EGTB* egtb = new EGTB(egtb_id);
         if (egtb->exists(path)) {
             egtb->init_compressed_tb(path);
+            compressed_filesize += egtb->CTB->compressed_filesize;
             id_to_egtb[egtb_id] = egtb;
             count++;
         } else {
             delete egtb;
         }
     }
-    std::cout << "Init ProphetTB: Loaded " << count << " tables." << std::endl;
+    std::cout << "Init ProphetTB: Loaded " << count << " tables (" << (int) ceil((double) compressed_filesize / (1024*1024*1024)) << "GiB)" << std::endl;
 }
 
 void deinit_prophet_tb() {

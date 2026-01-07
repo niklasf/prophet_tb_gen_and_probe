@@ -424,7 +424,7 @@ inline Bitboard flippedDiagA1H8(Bitboard x) {
 }
 
 // count starts at 0, i.e. nth_set_bb(x, 0) == least_significant_square_bb(x)
-#ifdef USE_PDEP
+#ifdef PDEP
     #include <x86intrin.h>
     inline Bitboard nth_set_bb(Bitboard x, int n) {
         return _pdep_u64(1ULL << n, x);
