@@ -35,7 +35,7 @@ lib:
 
 corefiles = build/bitboard.o build/compressed_tb.o build/eg_movegen.o build/eg_position.o build/egtb.o build/egtb_ids.o build/kkx.o build/linearize.o build/triangular_indexes.o build/uci.o
 
-gen:
+gen: lib
 	$(CC) -g $(flags)  -o build/gen_main.out src/gen_main.cpp $(corefiles) $(lzstd)
 
 compress:
@@ -47,5 +47,4 @@ prophet: lib
 lprophet = -I src -L build -lprophet -Wl,-rpath,'$$ORIGIN/build'
 
 mates:
-	$(CC) -g $(flags) -o build/longest_mate.out src/longest_mate.cpp $(lprophet) $(lzstd)
-	$(CC) -g $(flags) -o build/longest_mate_lines.out src/longest_mate_lines.cpp $(lprophet) $(lzstd)
+	$(CC) -g $(flags) -o build/longest_mates.out src/longest_mates.cpp $(lprophet) $(lzstd)
