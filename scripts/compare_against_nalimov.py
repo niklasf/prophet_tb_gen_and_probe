@@ -4,12 +4,11 @@ with open("longest_mates.txt", "r") as f:
     count = 0
     correct = 0
     for l in f:
-        egtb, _, rest = l.strip().partition(": ")
-        if rest == "no win.":
+        egtb, _, _, fen, dtm_str, _ = l.split(",")
+        dtm = int(dtm_str)
+        if dtm == -1:
             continue
-        fen = " ".join(rest.split()[:-1])
-        plies = int(rest.split()[-1])
-        print(egtb, fen, "plies:", plies)
+        print(egtb, fen, "dtm:", dtm)
         if (len(egtb) <= 5): continue
         
         res = requests.get("https://www.k4it.de/egtb/fetch.php", params={
@@ -25,11 +24,10 @@ with open("longest_mates.txt", "r") as f:
             print("... no tablebase info")
         else:
             mate_in = int(mate_in_text.split()[-1])
-            is_equal = mate_in == plies // 2 + 1
+            is_equal = mate_in == dtm // 2 + 1
             print("... matches:", is_equal)
             count += 1
             correct += is_equal
         
-        # exit(0)
         sleep(1)
     print(f"Total tested: {count}, Correct: {correct}, Accuracy: {correct / count:.2%}")
