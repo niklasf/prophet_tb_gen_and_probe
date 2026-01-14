@@ -37,7 +37,7 @@ individual compressed blocks concatenated at byte level
 */ 
 
 
-uint64_t compute_checksum(int16_t* TB, uint64_t num_pos, int nthreads);
+uint64_t compute_checksum(int16_t* TB, uint64_t num_pos, [[maybe_unused]] int nthreads);
 uint64_t block_compress_TB(int16_t* TB, uint64_t num_pos, int nthreads, int compression_level, uint64_t block_size, std::string compressed_filename, bool write, bool verbose);
 
 struct DecompressCtx {
@@ -215,6 +215,8 @@ struct CompressedTB {
     }
     fclose(f);
   }
+
+  bool check_integrity([[maybe_unused]] int nthreads);
 };
 
 #endif

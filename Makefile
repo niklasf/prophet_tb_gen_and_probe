@@ -44,7 +44,10 @@ compress:
 prophet: lib
 	$(CC) -g $(flags) -shared -o build/libprophet.so src/prophet.cpp $(corefiles) $(lzstd)
 
-lprophet = -I src -L build -lprophet -Wl,-rpath,'$$ORIGIN/build'
+lprophet = -I src -L build -lprophet -Wl,-rpath,'$$ORIGIN'
+
+check:
+	$(CC) -g $(flags) -o build/check_file_integrity.out src/check_file_integrity.cpp $(lprophet) $(lzstd)
 
 mates:
 	$(CC) -g $(flags) -o build/longest_mates.out src/longest_mates.cpp $(lprophet) $(lzstd)

@@ -3,13 +3,46 @@
 #include <vector>
 #include <cstring>
 
-uint64_t compute_checksum(int16_t* TB, uint64_t num_pos, int nthreads) {
+uint64_t compute_checksum(int16_t* TB, uint64_t num_pos, [[maybe_unused]] int nthreads) {
   uint64_t s = 0;
   #pragma omp parallel for num_threads(nthreads) schedule(static) reduction(^:s)
   for (uint64_t ix = 0; ix < num_pos; ix++) {
     s ^= (ix << 10) | ((uint64_t) abs(TB[ix]));
   }
   return s;
+}
+
+bool CompressedTB::check_integrity([[maybe_unused]] int nthreads) {
+  uint64_t s = 0;
+
+  #pragma omp parallel num_threads(nthreads)
+  {
+    DecompressCtx* dctx = new DecompressCtx(block_size);
+    uint64_t local_s = 0;
+
+    #pragma omp for schedule(static)
+    for (uint64_t start_ix = 0; start_ix < num_pos; start_ix += block_size) {
+      uint64_t block_ix = start_ix / block_size;
+      uint64_t offset = block_offsets[block_ix];
+      uint64_t block_npos = std::min(block_size, num_pos - start_ix);
+      size_t res = ZSTD_decompressDCtx(dctx->decompressor,
+        dctx->uncompressed_buf, block_npos * sizeof(int16_t),
+        &compressed_blocks[offset], block_sizes[block_ix]);
+      assert (!ZSTD_isError(res));
+
+      for (uint64_t ix = start_ix; ix < start_ix + block_npos; ix++) {
+        local_s ^= (ix << 10) | ((uint64_t) abs(dctx->uncompressed_buf[ix - start_ix]));
+      }
+    }
+
+    #pragma omp critical
+    {
+      s ^= local_s;
+      delete dctx;
+    }
+  }
+
+  return (s == checksum);
 }
 
 uint64_t block_compress_TB(int16_t* TB, uint64_t num_pos, int nthreads, int compression_level, uint64_t block_size, std::string compressed_filename, bool write, bool verbose) {

@@ -23,12 +23,12 @@ int main(int argc, char *argv[]) {
     init_kkp_table();
     init_tril();
 
-    assert (argc == 3);
-    int npieces = atoi(argv[1]);
-    int nthreads = atoi(argv[2]);
-
-    std::string folder = "egtbs";
-    std::vector<std::string> egtb_ids = get_egtb_identifiers(0, npieces);
+    assert (argc == 4);
+    std::string folder = argv[1];
+    int max_npieces = atoi(argv[2]);
+    int nthreads = atoi(argv[3]);
+    assert (0 <= max_npieces && max_npieces <= 4);
+    std::vector<std::string> egtb_ids = get_egtb_identifiers(0, max_npieces);
     std::cout << "EGTB count: " << egtb_ids.size() << std::endl;
 
     bool generate_missing = true;
