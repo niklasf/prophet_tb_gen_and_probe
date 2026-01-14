@@ -1,13 +1,14 @@
 import requests
 from time import sleep
-with open("longest_mates.txt", "r") as f:
+with open("longest_mates.csv", "r") as f:
     count = 0
     correct = 0
-    for l in f:
+    for l in f.readlines()[1:]:
         egtb, _, _, fen, dtm_str, _ = l.split(",")
-        dtm = int(dtm_str)
-        if dtm == -1:
+        print(egtb, fen, dtm_str)
+        if dtm_str == "":
             continue
+        dtm = int(dtm_str)
         print(egtb, fen, "dtm:", dtm)
         if (len(egtb) <= 5): continue
         
@@ -30,4 +31,4 @@ with open("longest_mates.txt", "r") as f:
             correct += is_equal
         
         sleep(1)
-    print(f"Total tested: {count}, Correct: {correct}, Accuracy: {correct / count:.2%}")
+    print(f"Total tested: {count}, Correct: {correct / count:.2%}")
