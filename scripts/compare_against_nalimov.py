@@ -31,4 +31,4 @@ with open("longest_mates.csv", "r") as f:
             correct += is_equal
         
         sleep(1)
-    print(f"Total tested: {count}, Correct: {correct / count:.2%}")
+    print(f"Total tested: {count}, Correct: {correct}/{count}")
