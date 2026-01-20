@@ -3,7 +3,81 @@
 #include "kkx.h"
 #include "triangular_indexes.h"
 
+#include <string>
+#include "types.h"
+#include "values.h"
+#include "eg_position.h"
+#include "eg_movegen.h"
+#include "egtb.h"
+#include "egtb_ids.h"
+#include "compressed_tb.h"
+
+#include <filesystem>
+namespace fs = std::filesystem;
+
+bool lazy_load = true;
 std::unordered_map<std::string, EGTB*> id_to_egtb = {};
+
+
+void prophet_tb_init() {
+    Bitboards::init();
+    init_kkx_table();
+    init_kkp_table();
+    init_tril();
+    init_egtb_id_to_ix();
+
+    for (std::string egtb_id : get_egtb_identifiers()) {
+        id_to_egtb[egtb_id] = nullptr;
+    }
+}
+
+int prophet_tb_add_path(const char* path) {
+    int count = 0;
+    for (const auto & entry : fs::recursive_directory_iterator(path)) {
+        if (entry.path().extension() == COMP_EXT) {
+            std::string folder = entry.path().parent_path().u8string();
+            std::string filename = entry.path().filename().u8string();
+
+            std::string egtb_id = filename.substr(0, filename.find_first_of(".")); 
+
+            if (id_to_egtb[egtb_id] == nullptr) {
+                EGTB* egtb = new EGTB(folder, egtb_id);
+                id_to_egtb[egtb_id] = egtb;
+                count++;
+            } 
+        }
+    }
+    return count;
+}
+
+void prophet_tb_load_all_files() {
+    lazy_load = false;
+    for (auto & entry : id_to_egtb) {
+        if (entry.second != nullptr) entry.second->init_compressed_tb();
+    }
+}
+size_t prophet_tb_get_size_on_disk_of_loaded_files() {
+    size_t size = 0;
+    for (auto & entry : id_to_egtb) {
+        if (entry.second != nullptr && entry.second->compressed) {
+            size += entry.second->CTB->compressed_filesize;
+        }
+    }
+    return size;
+}
+
+
+void prophet_tb_deinit() {
+    for (auto & entry : id_to_egtb) {
+        if (entry.second != nullptr) {
+            delete entry.second;
+        }
+    }
+    for (std::string egtb_id : get_egtb_identifiers()) {
+        id_to_egtb[egtb_id] = nullptr;
+    }
+}
+
 
 std::string egtb_id_from_pos(const EGPosition pos) {
     std::ostringstream os;
@@ -17,10 +91,30 @@ std::string egtb_id_from_pos(const EGPosition pos) {
     return os.str();
 }
 
-int16_t probe_position_dctx(EGPosition pos, DecompressCtx* dctx) {
+#define ERROR_TB_MISSING -1001
+
+int dtm(int16_t raw) {
+    if (raw == ERROR_TB_MISSING) {
+        return ERROR_TB_MISSING;
+    } else if (raw == 0) {
+        return 0;
+    } else if (raw > 0) {
+        return WIN_IN(0) - raw;
+    } else {
+        return raw - LOSS_IN(0);
+    }
+}
+
+
+int16_t probe_position_raw_dctx(EGPosition pos, DecompressCtx* dctx) {
     std::string egtb_id = egtb_id_from_pos(pos);
+    std::string mirror_id = get_mirror_id(egtb_id);
+    if (id_to_egtb[egtb_id] == nullptr && id_to_egtb[mirror_id] == nullptr) {
+        return ERROR_TB_MISSING;
+    }
 
     if (id_to_egtb[egtb_id] != nullptr) {
+        if (lazy_load) id_to_egtb[egtb_id]->ensure_compressed_tb_initialised();
         return id_to_egtb[egtb_id]->query_postion_dctx(pos, dctx);
     } else {
         EGMoveList movelist = EGMoveList(pos);
@@ -34,7 +128,7 @@ int16_t probe_position_dctx(EGPosition pos, DecompressCtx* dctx) {
         int16_t max_val = LOSS_IN(0);
         for (Move move : movelist) {
             UndoInfo u = pos.do_move(move);
-            int16_t val = probe_position_dctx(pos, dctx);
+            int16_t val = probe_position_raw_dctx(pos, dctx);
             max_val = std::max(max_val, (int16_t) -val);
             pos.undo_move(u);
         }
@@ -43,63 +137,49 @@ int16_t probe_position_dctx(EGPosition pos, DecompressCtx* dctx) {
         return max_val;
     }
 }
+int probe_position_dtm_dctx(EGPosition pos, DecompressCtx* dctx) {
+    return dtm(probe_position_raw_dctx(pos, dctx));
+}
 
-int16_t probe_position(EGPosition pos) {
+int probe_position_dtm(EGPosition pos) {
     DecompressCtx* dctx = new DecompressCtx(32768);
-    int16_t val = probe_position_dctx(pos, dctx);
+    int val = probe_position_dtm_dctx(pos, dctx);
     delete dctx;
     return val;
 }
 
-void init_prophet_tb(std::string path) {
-    Bitboards::init();
-    init_kkx_table();
-    init_kkp_table();
-    init_tril();
-    init_egtb_id_to_ix();
-
-    int count = 0;
-    uint64_t compressed_filesize = 0;
-    for (std::string egtb_id : get_egtb_identifiers()) {
-        EGTB* egtb = new EGTB(egtb_id);
-        if (egtb->exists(path)) {
-            egtb->init_compressed_tb(path);
-            compressed_filesize += egtb->CTB->compressed_filesize;
-            id_to_egtb[egtb_id] = egtb;
-            count++;
-        } else {
-            delete egtb;
-        }
-    }
-    std::cout << "Init ProphetTB: Loaded " << count << " tables (" << (int) ceil((double) compressed_filesize / (1024*1024*1024)) << "GiB)" << std::endl;
-}
-
-void deinit_prophet_tb() {
-    for (std::string egtb_id : get_egtb_identifiers()) {
-        delete id_to_egtb[egtb_id];
-        id_to_egtb[egtb_id] = nullptr;
-    }
+int16_t probe_position_raw_dtm(EGPosition pos) {
+    DecompressCtx* dctx = new DecompressCtx(32768);
+    int val = probe_position_raw_dctx(pos, dctx);
+    delete dctx;
+    return val;
 }
 
 
 DecompressCtx* CreateDecompressCtx() {
     return new DecompressCtx(32768);
 }
-int16_t probe_dctx(Piece pieces[6], Square squares[6], DecompressCtx* dctx) {
+void FreeDecompressCtx(DecompressCtx* dctx) {
+    delete dctx;
+}
+
+int prophet_tb_probe_dtm_dctx(const int pieces[6], const int squares[6], const int stm, const int ep_square, DecompressCtx* dctx) {
     EGPosition pos;
     pos.reset();
     for (int i = 0; i < 6; i++) {
         if (pieces[i] != NO_PIECE) {
-            pos.put_piece(pieces[i], squares[i]);
+            pos.put_piece(Piece(pieces[i]), Square(squares[i]));
         }
     }
-    return probe_position_dctx(pos, dctx);
+    pos.set_side_to_move(Color(stm));
+    pos.set_ep_square(Square(ep_square));
+    return probe_position_dtm_dctx(pos, dctx);
 }
 
 
-int16_t probe(Piece pieces[6], Square squares[6]) {
+int prophet_tb_probe_dtm(const int pieces[6], const int squares[6], const int stm, const int ep_square) {
     DecompressCtx* dctx = new DecompressCtx(32768);
-    int16_t val = probe_dctx(pieces, squares, dctx);
+    int val = prophet_tb_probe_dtm_dctx(pieces, squares, stm, ep_square, dctx);
     delete dctx;
     return val;
 }

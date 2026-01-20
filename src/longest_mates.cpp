@@ -2,10 +2,13 @@
 #include <vector>
 #include <fstream>
 #include <prophet.h>
+#include <prophet_common.h>
 #include "misc.h"
 #ifdef OMP
 #include <omp.h>
 #endif
+#include <filesystem>
+namespace fs = std::filesystem;
 
 struct CSVEntry {
     std::string egtb_id;
@@ -17,7 +20,7 @@ struct CSVEntry {
 };
 
 std::vector<Move> get_mate_line(EGPosition pos, DecompressCtx* dctx) {
-    int16_t val = probe_position_dctx(pos, dctx);
+    int16_t val = probe_position_raw_dctx(pos, dctx);
     std::vector<Move> pv;
     while (val != LOSS_IN(0)) {
         val = -val;
@@ -26,7 +29,7 @@ std::vector<Move> get_mate_line(EGPosition pos, DecompressCtx* dctx) {
         bool found = false;
         for (Move move : EGMoveList(pos)) {
             UndoInfo u = pos.do_move(move);
-            int16_t move_val = probe_position_dctx(pos, dctx);
+            int16_t move_val = probe_position_raw_dctx(pos, dctx);
             pos.undo_move(u);
             if (move_val == val) {
                 pv.push_back(move);
@@ -55,27 +58,66 @@ int main(int argc, char *argv[]) {
         std::cout << "Compute all mate lines..." << std::endl;
     }
 
-    init_prophet_tb(folder);
+    prophet_tb_init();
+
+    int filecount = 0;
+    filecount += prophet_tb_add_path((fs::path(folder).append("2men")).c_str());
+    filecount += prophet_tb_add_path((fs::path(folder).append("3men")).c_str());
+    filecount += prophet_tb_add_path((fs::path(folder).append("4men")).c_str());
+    filecount += prophet_tb_add_path((fs::path(folder).append("5men")).c_str());
+    filecount += prophet_tb_add_path((fs::path(folder).append("6men_minimal")).c_str());
+    filecount += prophet_tb_add_path((fs::path(folder).append("6men_remaining")).c_str());
+
+
+    std::cout << "filecount: " << filecount << std::endl;
+    prophet_tb_load_all_files();
+    size_t compressed_filesize = prophet_tb_get_size_on_disk_of_loaded_files();
+    std::cout << "Init ProphetTB: Loaded " << filecount << " tables (" << (int) ceil((double) compressed_filesize / (1024*1024*1024)) << "GiB)" << std::endl;
         
-    std::vector<std::string> egtb_ids = get_egtb_identifiers(0, max_npieces);
-    std::vector<CSVEntry> entries(egtb_ids.size());
+
+    std::vector<fs::path> all_egtb_paths;
+    for (const auto & entry : fs::recursive_directory_iterator(folder)) {
+        if (entry.path().extension() == COMP_EXT) {
+            std::string filename = entry.path().filename().u8string();
+            std::string egtb_id = filename.substr(0, filename.find_first_of("."));
+            all_egtb_paths.push_back(entry.path());
+        }
+    }
+
+    // sort
+    std::vector<fs::path> egtb_paths;
+    for (std::string egtb_id : get_egtb_identifiers(0, max_npieces)) {
+        for (fs::path egtb_path : all_egtb_paths) {
+            std::string filename = egtb_path.filename().u8string();
+            if (egtb_id == filename.substr(0, filename.find_first_of("."))) {
+                egtb_paths.push_back(egtb_path);
+            }
+        }
+    }
+
+
+    std::vector<CSVEntry> entries(egtb_paths.size());
 
     TimePoint t0 = now();
 
+    uint64_t probe_count = 0;
     int count = 0;
     #pragma omp parallel for num_threads(nthreads) schedule(dynamic)
-    for (uint i = 0; i < egtb_ids.size(); i++) {
-        std::string egtb_id = egtb_ids[i];
-        EGTB egtb = EGTB(egtb_id);
+    for (uint i = 0; i < egtb_paths.size(); i++) {
+        fs::path egtb_path = egtb_paths[i];
+        std::string egtb_folder = egtb_path.parent_path().u8string();
+        std::string egtb_filename = egtb_path.filename().u8string();;
+        std::string egtb_id = egtb_filename.substr(0, egtb_filename.find_first_of("."));
+        EGTB egtb = EGTB(egtb_folder, egtb_id);
 
-        if (!egtb.exists(folder)) {
+        if (!egtb.exists()) {
             #pragma omp critical
             {
                 std::cout << egtb_id << " does not exist." << std::endl;
             }
             continue;
         }
-        egtb.init_compressed_tb(folder);
+        egtb.init_compressed_tb();
 
         int16_t longest_mate = WIN_IN(0) + 1;
         uint64_t longest_mate_ix = 0;
@@ -105,6 +147,8 @@ int main(int argc, char *argv[]) {
                 }
                 mate_line = mate_line_os.str();
 
+                #pragma omp atomic
+                probe_count += dctx->probe_count;
             }
 
             entries[i] = {egtb_id, egtb.num_pos, egtb.CTB->compressed_filesize, pos.fen(), mate_in_dtm, mate_line};
@@ -113,28 +157,28 @@ int main(int argc, char *argv[]) {
         #pragma omp critical
         {
             count++;
-            std::cout << "Finished " << count << "/" << egtb_ids.size() << ": " << entries[i].egtb_id << " " << entries[i].fen << " " << entries[i].dtm << std::endl;
+            std::cout << "Finished " << count << "/" << egtb_paths.size() << ": " << entries[i].egtb_id << " " << entries[i].fen << " " << entries[i].dtm << std::endl;
         }
 
     }
     
     TimePoint t1 = now();
-    std::cout << "Finished in " << (t1-t0) / 1000 << " seconds." << std::endl;
+    std::cout << "Finished in " << (double) (t1-t0) / 1000 << "s. Probe count = " << probe_count << std::endl;
 
 
     std::ofstream file("longest_mates.csv");
     file << "id,numpos,bytes,fen,dtm,line\n";
 
-    for (uint i = 0; i < egtb_ids.size(); i++) {
+    for (uint i = 0; i < egtb_paths.size(); i++) {
         CSVEntry entry = entries[i];
         if (entry.dtm == -1) {
-            std::cout << entry.egtb_id << " no win." << std::endl;
             file << entry.egtb_id << "," << entry.num_pos << "," << entry.bytes << ",,,\n";
         } else {
-            std::cout << entry.egtb_id << " " << entry.fen << " mate in " << entry.dtm << " dtm (" << entry.dtm / 2 + 1 << " moves) " << std::endl;
             file << entry.egtb_id << "," << entry.num_pos << "," << entry.bytes << "," << entry.fen << "," << entry.dtm << "," << entry.mate_line << "\n";
         }
     }
 
     file.close();
+
+    prophet_tb_deinit();
 }

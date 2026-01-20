@@ -9,8 +9,13 @@
 #include "linearize.h"
 #include "types.h"
 #include "egtb_ids.h"
+#include <mutex>
+
+std::string get_default_folder(std::string root_folder, int stm_pieces_[6], int sntm_pieces_[6]);
+std::string get_default_folder_for_id(std::string root_folder, std::string egtb_id);
 
 struct EGTB {
+    std::string folder; // does not end with "/"
     std::string id;
     int16_t* TB;
     CompressedTB* CTB;
@@ -27,23 +32,33 @@ struct EGTB {
     bool compressed;
     bool loaded;
 
+    std::once_flag has_initialised_compressed_tb;
 
-    EGTB(int stm_pieces_[6], int sntm_pieces_[6]) {
-        init(stm_pieces_, sntm_pieces_);
+    EGTB(int stm_pieces_[6], int sntm_pieces_[6], std::string root_folder) {
+        std::string folder_ = get_default_folder(root_folder, stm_pieces_, sntm_pieces_);
+        std::string id_ = get_egtb_identifier(stm_pieces_, sntm_pieces_);
+
+        init(folder_, id_, stm_pieces_, sntm_pieces_);
     }
     
-    EGTB(std::string egtb_id) {
+    EGTB(std::string folder_, std::string egtb_id) {
         int stm_pieces_[6];
         int sntm_pieces_[6];
         egtb_id_to_pieces(egtb_id, stm_pieces_, sntm_pieces_);
-        init(stm_pieces_, sntm_pieces_);
+        init(folder_, egtb_id, stm_pieces_, sntm_pieces_);
     }
     ~EGTB() {
+        // std::cout << "~EGTB(" << id << ")" << std::endl;
         free_compressed_tb();
         assert (TB == nullptr);
     }
 
-    void init(int stm_pieces_[6], int sntm_pieces_[6]) {
+    void init(std::string folder_, std::string id_, int stm_pieces_[6], int sntm_pieces_[6]) {
+        assert (id_ == get_egtb_identifier(stm_pieces_, sntm_pieces_));
+        assert (!folder_.empty() && folder_.back() != '/');
+        id = id_;
+        folder = folder_;
+        
         npieces = 2;
         for (int i = 0; i < 6; i++) {
             stm_pieces[i] = stm_pieces_[i];
@@ -51,7 +66,6 @@ struct EGTB {
             npieces += stm_pieces[i] + sntm_pieces[i];
         }
         npawns = stm_pieces[PAWN] + sntm_pieces[PAWN];
-        id = get_egtb_identifier(stm_pieces, sntm_pieces);
         compute_poscounts(stm_pieces, sntm_pieces, kntm_poscounts, num_nonep_pos, num_ep_pos, num_pos);
         loaded = false;
         compressed = false;
@@ -116,37 +130,31 @@ struct EGTB {
         return this->get_value_dctx(this->ix_from_pos(pos), dctx);
     }
 
-    std::string get_folder(std::string root_folder) {
-        assert (!root_folder.empty() && root_folder.back() != '/');
-        std::ostringstream os;
-        os << root_folder << "/" << npieces << "men/" << npawns << "pawns/";
-        return os.str();
-    }
-    
-    std::string get_filename(std::string root_folder) {
-        return get_folder(root_folder) + id + ".egtb";
+    std::string get_filename() {
+        assert (!folder.empty() && folder.back() != '/');
+        return folder + "/" +  id + ".egtb";
     }
 
-    bool exists_compressed(std::string root_folder) {
-        std::string filename = this->get_filename(root_folder) + COMP_EXT;
+    bool exists_compressed() {
+        std::string filename = this->get_filename() + COMP_EXT;
         return std::ifstream(filename).good();
     }
 
-    bool exists_decompressed(std::string root_folder) {
-        std::string filename = this->get_filename(root_folder);
+    bool exists_decompressed() {
+        std::string filename = this->get_filename();
         return std::ifstream(filename).good();
     }
 
-    bool exists(std::string root_folder) {
-        return this->exists_decompressed(root_folder) || this->exists_compressed(root_folder);
+    bool exists() {
+        return this->exists_decompressed() || this->exists_compressed();
     }
 
-    void store_egtb(std::string root_folder);
-    void compress_egtb(std::string root_folder, int nthreads, int compression_level, uint64_t block_size, bool verbose);
+    void store_egtb();
+    void compress_egtb(int nthreads, int compression_level, uint64_t block_size, bool verbose);
 
-    void mmap_egtb_from_file(std::string root_folder);
-    void load_egtb_from_file(std::string root_folder);
-    void init_compressed_tb(std::string root_folder);
+    void mmap_egtb_from_file();
+    void load_egtb_from_file();
+    void init_compressed_tb();
     void free_compressed_tb() {
         if (compressed && CTB != nullptr) {
             delete CTB;
@@ -154,24 +162,27 @@ struct EGTB {
             compressed = false;
         }
     }
-    void load_egtb_from_compressed_file(std::string root_folder, int nthreads);
+    void ensure_compressed_tb_initialised() {
+        std::call_once(has_initialised_compressed_tb, &EGTB::init_compressed_tb, this);
+    }
+    void load_egtb_from_compressed_file(int nthreads);
     void free_tb();
 
-    void maybe_decompress_and_mmap_egtb(std::string root_folder) {
-        if (!this->exists_decompressed(root_folder)) {
+    void maybe_decompress_and_mmap_egtb() {
+        if (!this->exists_decompressed()) {
             // have to decompress on disk, delete later!
-            this->init_compressed_tb(root_folder);
-            this->CTB->decompress_to_file(this->get_filename(root_folder));
+            this->init_compressed_tb();
+            this->CTB->decompress_to_file(this->get_filename());
         }
-        this->mmap_egtb_from_file(root_folder);
+        this->mmap_egtb_from_file();
     }
 
-    void maybe_decompress_and_load_egtb(std::string root_folder, int nthreads) {
-        if (!this->exists_decompressed(root_folder)) {
+    void maybe_decompress_and_load_egtb(int nthreads) {
+        if (!this->exists_decompressed()) {
             // can decompress directly to memory
-            this->load_egtb_from_compressed_file(root_folder, nthreads);
+            this->load_egtb_from_compressed_file(nthreads);
         } else {
-            this->load_egtb_from_file(root_folder);
+            this->load_egtb_from_file();
         }
     }
 };

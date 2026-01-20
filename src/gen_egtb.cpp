@@ -60,8 +60,8 @@ public:
             }
         }
 
-        this->WTM_EGTB = new EGTB(this->wpieces, this->bpieces);
-        this->BTM_EGTB = new EGTB(this->bpieces, this->wpieces);
+        this->WTM_EGTB = new EGTB(this->wpieces, this->bpieces, this->folder);
+        this->BTM_EGTB = new EGTB(this->bpieces, this->wpieces, this->folder);
 
         std::cout << "White pieces: " << get_pieces_identifier(wpieces) << std::endl;
         std::cout << "Black pieces: " << get_pieces_identifier(bpieces) << std::endl;
@@ -76,7 +76,7 @@ public:
         for (PieceType capture_pt = PAWN; capture_pt <= QUEEN; ++capture_pt) {
             if (wpieces[capture_pt] > 0) {
                 wpieces[capture_pt]--;
-                EGTB* egtb = new EGTB(wpieces, bpieces);
+                EGTB* egtb = new EGTB(wpieces, bpieces, this->folder);
                 this->WTM_EGTBs[NO_PIECE_TYPE][capture_pt] = egtb;
                 std::cout << " " << egtb->id << " for white " << PieceToChar[capture_pt] << " captured, white to move" << std::endl;
                 capture_bytes += egtb->num_pos * 2;
@@ -84,7 +84,7 @@ public:
             }
             if (bpieces[capture_pt] > 0) {
                 bpieces[capture_pt]--;
-                EGTB* egtb = new EGTB(bpieces,wpieces);
+                EGTB* egtb = new EGTB(bpieces,wpieces, this->folder);
                 this->BTM_EGTBs[NO_PIECE_TYPE][capture_pt] = egtb;
                 std::cout << " " << egtb->id << " for black " << PieceToChar[capture_pt] << " captured, black to move"  << std::endl;
                 capture_bytes += egtb->num_pos * 2;
@@ -101,7 +101,7 @@ public:
                     wpieces[capture_pt]--;
                     bpieces[PAWN]--;
                     bpieces[promote_pt]++;
-                    EGTB* egtb = new EGTB(wpieces, bpieces);
+                    EGTB* egtb = new EGTB(wpieces, bpieces, this->folder);
                     this->WTM_EGTBs[promote_pt][capture_pt] = egtb;
                     std::cout << " " << egtb->id << " for white " << PieceToChar[capture_pt] << " captured with black promotion to " << PieceToChar[promote_pt] << ", white to move" << std::endl;
                     capture_promo_bytes += egtb->num_pos * 2;
@@ -113,7 +113,7 @@ public:
                     bpieces[capture_pt]--;
                     wpieces[PAWN]--;
                     wpieces[promote_pt]++;
-                    EGTB* egtb = new EGTB(bpieces,wpieces);
+                    EGTB* egtb = new EGTB(bpieces,wpieces, this->folder);
                     this->BTM_EGTBs[promote_pt][capture_pt] = egtb;
                     std::cout << " " << egtb->id << " for black " << PieceToChar[capture_pt] << " captured with white promotion to " << PieceToChar[promote_pt] << ", black to move" << std::endl;
                     capture_promo_bytes += egtb->num_pos * 2;
@@ -131,7 +131,7 @@ public:
             if (bpieces[PAWN] > 0) {
                 bpieces[PAWN]--;
                 bpieces[promote_pt]++;
-                EGTB* egtb = new EGTB(wpieces, bpieces);
+                EGTB* egtb = new EGTB(wpieces, bpieces, this->folder);
                 this->WTM_EGTBs[promote_pt][NO_PIECE_TYPE] = egtb;
                 std::cout << " " << egtb->id << " for black promotion to " << PieceToChar[promote_pt] << ", white to move" << std::endl;
                 promotion_bytes += egtb->num_pos * 2;
@@ -141,7 +141,7 @@ public:
             if (wpieces[PAWN] > 0) {
                 wpieces[PAWN]--;
                 wpieces[promote_pt]++;
-                EGTB* egtb = new EGTB(bpieces, wpieces); 
+                EGTB* egtb = new EGTB(bpieces, wpieces, this->folder); 
                 this->BTM_EGTBs[promote_pt][NO_PIECE_TYPE] = egtb;
                 std::cout << " " << egtb->id << " for white promotion to " << PieceToChar[promote_pt] << ", black to move" << std::endl;
                 promotion_bytes += egtb->num_pos * 2;
@@ -244,7 +244,7 @@ void GenEGTB::load_tb_dependencies(int nthreads, bool allocate_promotion_tb, boo
                     if (egtb->loaded) {
                         std::cout << "Already loaded ";
                     } else {
-                        egtb->maybe_decompress_and_load_egtb(folder, nthreads);
+                        egtb->maybe_decompress_and_load_egtb(nthreads);
                         add_to_bytes_count(egtb);
                         std::cout << "Loaded ";
                     }
@@ -262,7 +262,7 @@ void GenEGTB::load_tb_dependencies(int nthreads, bool allocate_promotion_tb, boo
                     if (egtb->loaded) {
                         std::cout << "Already loaded ";
                     } else {
-                        egtb->maybe_decompress_and_load_egtb(folder, nthreads);
+                        egtb->maybe_decompress_and_load_egtb(nthreads);
                         add_to_bytes_count(egtb);
                         std::cout << "Loaded ";
                     }
@@ -445,7 +445,7 @@ void GenEGTB::check_consistency_max_bytes_allocated(int nthreads, uint64_t max_b
         }
 
         // query from compressed file
-        LOSS_EGTB->init_compressed_tb(folder);
+        LOSS_EGTB->init_compressed_tb();
         assert (LOSS_EGTB->CTB->block_size == BLOCKSIZE);
 
         //                 NP, P, N, B, R, Q
@@ -473,7 +473,7 @@ void GenEGTB::check_consistency_max_bytes_allocated(int nthreads, uint64_t max_b
                         break;
                     }
                     std::cout << "Loading " << cap_egtb->id << " with " << cap_egtb->num_pos*2 / (1024*1024)  << " MiB to check consistency for " << LOSS_EGTB->id << "... ";
-                    cap_egtb->maybe_decompress_and_load_egtb(folder, nthreads);
+                    cap_egtb->maybe_decompress_and_load_egtb(nthreads);
                     add_to_bytes_count(cap_egtb);
                     loaded_one_egtb = true;
                     std::cout << "(total allocated " << bytes_allocated / (1024*1024) << " MiB)" << std::endl;
@@ -664,7 +664,7 @@ void GenEGTB::retrograde_promotion_tbs(int nthreads) {
             if (PROMO_EGTBS[promote_pt][capture_pt] == NULL) { continue; }
             EGTB* PROMO_EGTB = PROMO_EGTBS[promote_pt][capture_pt];
             // query from compressed file
-            PROMO_EGTB->init_compressed_tb(folder);
+            PROMO_EGTB->init_compressed_tb();
             assert (PROMO_EGTB->CTB->block_size == BLOCKSIZE);
             std::cout << "Retrograde from color=" << ((COLOR == WHITE) ? "W" : "B") << ", promotion=" << PieceToChar[promote_pt] << ", " << PROMO_EGTB->id << " with #positions=" << PROMO_EGTB->num_pos << std::endl;
 
@@ -722,7 +722,7 @@ void GenEGTB::retrograde_promotion_tbs(int nthreads) {
 
 
 void GenEGTB::gen(int nthreads) {
-    if (WTM_EGTB->exists(folder) && BTM_EGTB->exists(folder)) {
+    if (WTM_EGTB->exists() && BTM_EGTB->exists()) {
         std::cout << WTM_EGTB->id << " and " << BTM_EGTB->id << " already exist." << std::endl;
         return;
     }
@@ -1069,23 +1069,23 @@ void GenEGTB::gen(int nthreads) {
 
     // Step 5. Write to disk
 
-    std::string cmd = "mkdir -p " + WTM_EGTB->get_folder(folder);
+    std::string cmd = "mkdir -p " + WTM_EGTB->folder;
     system(cmd.c_str());
     if (WTM_EGTB->id == BTM_EGTB->id) {
         if (compress) {
-            WTM_EGTB->compress_egtb(folder, nthreads, COMPRESSION_LEVEL, BLOCKSIZE, true);
+            WTM_EGTB->compress_egtb(nthreads, COMPRESSION_LEVEL, BLOCKSIZE, true);
         } else {
-            WTM_EGTB->store_egtb(folder);
+            WTM_EGTB->store_egtb();
         }
         
         std::cout << "Stored " << WTM_EGTB->id << std::endl;
     } else {
         if (compress) {
-            WTM_EGTB->compress_egtb(folder, nthreads, COMPRESSION_LEVEL, BLOCKSIZE, true);
-            BTM_EGTB->compress_egtb(folder, nthreads, COMPRESSION_LEVEL, BLOCKSIZE, true);
+            WTM_EGTB->compress_egtb(nthreads, COMPRESSION_LEVEL, BLOCKSIZE, true);
+            BTM_EGTB->compress_egtb(nthreads, COMPRESSION_LEVEL, BLOCKSIZE, true);
         } else {
-            WTM_EGTB->store_egtb(folder);
-            BTM_EGTB->store_egtb(folder);
+            WTM_EGTB->store_egtb();
+            BTM_EGTB->store_egtb();
         }
         std::cout << "Stored " << WTM_EGTB->id << " and " << BTM_EGTB->id << std::endl;
     }

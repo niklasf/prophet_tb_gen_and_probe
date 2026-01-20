@@ -10,30 +10,46 @@
 #include <sys/mman.h> // mmap
 #include <sys/stat.h> // file size
 
+std::string get_default_folder(std::string root_folder, int stm_pieces[6], int sntm_pieces[6]) {
+    assert (!root_folder.empty() && root_folder.back() != '/');
+    int npieces = 2;
+    for (int i = 0; i < 6; i++) {
+        npieces += stm_pieces[i] + sntm_pieces[i];
+    }
+    int npawns = stm_pieces[PAWN] + sntm_pieces[PAWN];
+    std::ostringstream os;
+    os << root_folder << "/" << npieces << "men/" << npawns << "pawns";
+    return os.str();
+}
+std::string get_default_folder_for_id(std::string root_folder, std::string egtb_id) {
+    int stm_pieces[6];
+    int sntm_pieces[6];
+    egtb_id_to_pieces(egtb_id, stm_pieces, sntm_pieces);
+    return get_default_folder(root_folder, stm_pieces, sntm_pieces);
+}
 
-void EGTB::store_egtb(std::string root_folder) {
+void EGTB::store_egtb() {
     // make folder if it does not exist
-    std::string folder = this->get_folder(root_folder);
     std::string cmd = "mkdir -p " + folder;
     system(cmd.c_str());
 
-    std::string filename = this->get_filename(root_folder);
+    std::string filename = this->get_filename();
     FILE *f = fopen(filename.c_str(), "wb");
     fwrite(this->TB, sizeof(int16_t), this->num_pos, f);
     fclose(f);
 }
 
-void EGTB::compress_egtb(std::string root_folder, int nthreads, int compression_level, uint64_t block_size, bool verbose) {
+void EGTB::compress_egtb(int nthreads, int compression_level, uint64_t block_size, bool verbose) {
     block_compress_TB(this->TB, this->num_pos,
         nthreads, compression_level, block_size,
-        this->get_filename(root_folder) + COMP_EXT, true, verbose);
+        this->get_filename() + COMP_EXT, true, verbose);
 }
 
 
-void EGTB::mmap_egtb_from_file(std::string root_folder) {
+void EGTB::mmap_egtb_from_file() {
     assert (!this->loaded);
     assert (this->TB == nullptr);
-    std::string filename = this->get_filename(root_folder);
+    std::string filename = this->get_filename();
     struct stat st;
     stat(filename.c_str(), &st);
     int fd = open(filename.c_str(), O_RDONLY);
@@ -56,10 +72,10 @@ void EGTB::mmap_egtb_from_file(std::string root_folder) {
     close(fd);
 }
 
-void EGTB::load_egtb_from_file(std::string root_folder) {
+void EGTB::load_egtb_from_file() {
     assert (!this->loaded);
     assert (this->TB == nullptr);
-    std::string filename = this->get_filename(root_folder);
+    std::string filename = this->get_filename();
     this->TB = (int16_t*) calloc(this->num_pos, sizeof(int16_t));
     FILE *f = fopen(filename.c_str(), "rb");
     fread(this->TB, sizeof(int16_t), this->num_pos, f);
@@ -71,19 +87,19 @@ void EGTB::load_egtb_from_file(std::string root_folder) {
 }
 
 
-void EGTB::init_compressed_tb(std::string root_folder) {
+void EGTB::init_compressed_tb() {
     if (!this->compressed) {
         assert (this->CTB == nullptr);
         this->CTB = new CompressedTB(
             EGTB_ID_TO_IX[this->id],
-            this->get_filename(root_folder) + COMP_EXT
+            this->get_filename() + COMP_EXT
         );
         this->compressed = true;
     }
 }
 
-void EGTB::load_egtb_from_compressed_file(std::string root_folder, int nthreads) {
-    if (!this->compressed) this->init_compressed_tb(root_folder);
+void EGTB::load_egtb_from_compressed_file(int nthreads) {
+    if (!this->compressed) this->init_compressed_tb();
     assert (this->CTB != nullptr);
     assert (!this->loaded);
     assert (this->TB == nullptr);

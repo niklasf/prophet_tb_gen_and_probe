@@ -36,7 +36,7 @@ lib:
 corefiles = build/bitboard.o build/compressed_tb.o build/eg_movegen.o build/eg_position.o build/egtb.o build/egtb_ids.o build/kkx.o build/linearize.o build/triangular_indexes.o build/uci.o
 
 gen: lib
-	$(CC) -g $(flags)  -o build/gen_main.out src/gen_main.cpp $(corefiles) $(lzstd)
+	$(CC) -g $(flags) -o build/gen_main.out src/gen_main.cpp $(corefiles) $(lzstd)
 
 compress:
 	$(CC) -g $(flags) -o build/compress_files.out src/compress_files.cpp $(corefiles) $(lzstd)

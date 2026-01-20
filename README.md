@@ -66,7 +66,6 @@ make check
 ./build/check_file_integrity.out [folder] [threads]
 ```
 
-You have to organise your (sub-)set of tables as shown in the following section.
 
 ## Table Size and Structure
 ```

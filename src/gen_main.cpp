@@ -38,10 +38,11 @@ int main(int argc, char *argv[]) {
 
     uint64_t count = 0;
     for (std::string egtb_id : egtb_ids) {
-        EGTB egtb = EGTB(egtb_id);
+        std::string egtb_folder = get_default_folder_for_id(folder, egtb_id);
+        EGTB egtb = EGTB(egtb_folder, egtb_id);
         count++;
         std::cout << count << ". " << egtb.id << std::endl;
-        if (generate_missing && !egtb.exists(folder)) {
+        if (generate_missing && !egtb.exists()) {
             bool disable_allocate_promotion_tb = (egtb.npieces == 6);
 
             GenEGTB g = GenEGTB(
