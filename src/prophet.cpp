@@ -156,14 +156,14 @@ int16_t probe_position_raw_dtm(EGPosition pos) {
 }
 
 
-DecompressCtx* CreateDecompressCtx() {
+ProphetDecompressCtx* prophet_tb_CreateDecompressCtx() {
     return new DecompressCtx(32768);
 }
-void FreeDecompressCtx(DecompressCtx* dctx) {
+void prophet_tb_FreeDecompressCtx(ProphetDecompressCtx* dctx) {
     delete dctx;
 }
 
-int prophet_tb_probe_dtm_dctx(const int pieces[6], const int squares[6], const int stm, const int ep_square, DecompressCtx* dctx) {
+int prophet_tb_probe_dtm_dctx(const int pieces[6], const int squares[6], const int stm, const int ep_square, ProphetDecompressCtx* dctx) {
     EGPosition pos;
     pos.reset();
     for (int i = 0; i < 6; i++) {

@@ -52,13 +52,13 @@ size_t prophet_tb_get_size_on_disk_of_loaded_files();
 // is thread-safe
 int prophet_tb_probe_dtm(const int pieces[6], const int squares[6], const int stm, const int ep_square);
 
-// for better performance reuse DecompressCtx
-// for multi-threading use one DecompressCtx per thread
+// for better performance reuse ProphetDecompressCtx
+// for multi-threading use one ProphetDecompressCtx per thread
 // all functions below are thread-safe
-typedef struct DecompressCtx DecompressCtx;
-DecompressCtx* CreateDecompressCtx();
-void FreeDecompressCtx(DecompressCtx* dctx);
-int prophet_tb_probe_dtm_dctx(const int pieces[6], const int squares[6], const int stm, const int ep_square, DecompressCtx* dctx);
+typedef struct DecompressCtx ProphetDecompressCtx;
+ProphetDecompressCtx* prophet_tb_CreateDecompressCtx();
+void prophet_tb_FreeDecompressCtx(ProphetDecompressCtx* dctx);
+int prophet_tb_probe_dtm_dctx(const int pieces[6], const int squares[6], const int stm, const int ep_square, ProphetDecompressCtx* dctx);
 
 
 #ifdef __cplusplus
