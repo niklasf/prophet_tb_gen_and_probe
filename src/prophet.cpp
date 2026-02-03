@@ -163,6 +163,34 @@ void prophet_tb_free_decompress_ctx(prophet_tb_decompress_ctx* dctx) {
     delete dctx;
 }
 
+
+int is_valid_position(const int pieces[6], const int squares[6], const int stm, const int ep_square) {
+    if (stm < 0 || stm > 1) return -1;
+    EGPosition pos;
+    pos.reset();
+    for (int i = 0; i < 6; i++) {
+        if (pieces[i] < 0 || pieces[i] > 14) return -1;
+        if (squares[i] < 0 || squares[i] > 63) return -1;
+        if (pieces[i] != NO_PIECE) {
+            if (pos.piece_on(Square(squares[i])) != NO_PIECE) return -3;
+            pos.put_piece(Piece(pieces[i]), Square(squares[i]));
+        }
+    }
+    if (pos.count(WHITE, KING) != 1 || pos.count(BLACK, KING) != 1) return -2;
+    pos.set_side_to_move(Color(stm));
+
+    if (ep_square < 0 || ep_square > 63) return -1;
+    if (ep_square != 0) {
+        if (!pos.check_ep(Square(ep_square))) return -5;
+        pos.set_ep_square(Square(ep_square));
+    }
+
+    if (pos.sntm_in_check()) return -4;
+
+    return 1;
+}
+
+
 int prophet_tb_probe_dtm_dctx(const int pieces[6], const int squares[6], const int stm, const int ep_square, prophet_tb_decompress_ctx* dctx) {
     EGPosition pos;
     pos.reset();

@@ -20,6 +20,9 @@ int prophet_tb_add_path(const char* path);
 void prophet_tb_load_all_files();
 size_t prophet_tb_get_size_on_disk_of_loaded_files();
 
+
+// arguments description
+
 // pieces = 0, ..., 14
 //  0 = NO_PIECE
 //  1 = W_PAWN
@@ -45,11 +48,24 @@ size_t prophet_tb_get_size_on_disk_of_loaded_files();
 // 0 = WHITE
 // 1 = BLACK
 
-// returns v=0 if draw or illegal position
+// if positions is valid, is_valid_position returns 1
+// this includes following checks:
+// - are pieces valid, 0 <= p <= 14, otherwise returns -1
+// - are squares valid, 0 <= s <= 63, otherwise returns -1
+// - is stm valid, stm = 0 or 1, otherwise returns -1
+// - are there two opposite colored kings?, otherwise returns -2
+// - are all specified pieces (!= 0) on different squares, otherwise returns -3
+// - is side-not-to-move in check? -> illegal, returns -4
+// - if ep_square != 0, is en-passant legal on ep_square?, otherwise returns -5
+int is_valid_position(const int pieces[6], const int squares[6], const int stm, const int ep_square);
+
+// for valid positions, prophet_tb_probe_dtm:
+// returns v=0 if draw
 // returns 1000>v>0 if win in v plies
 // returns -1000<v<0 if loss in v plies
 // returns -1001 if table is completely missing (both sides, if one side is missing it performs search)
-// is thread-safe
+// for invalid positions: undefined/unsafe behaviour -> may trigger assertions or return 0
+// this function is thread-safe
 int prophet_tb_probe_dtm(const int pieces[6], const int squares[6], const int stm, const int ep_square);
 
 // for better performance reuse prophet_tb_decompress_ctx
