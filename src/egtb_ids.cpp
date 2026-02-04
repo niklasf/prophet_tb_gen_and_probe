@@ -1,5 +1,7 @@
 #include "egtb_ids.h"
 
+namespace Prophet {
+
 std::string get_pieces_identifier(int pieces[6]) {
     std::ostringstream os;
     os << "K";
@@ -67,7 +69,7 @@ void unplace_piece(Piece p, int* pieces1, int* pieces2) {
 }
 
 std::vector<std::string> get_egtb_identifiers(int MIN_PIECE_COUNT, int MAX_PIECE_COUNT, int MIN_PAWN_COUNT, int MAX_PAWN_COUNT) {
-    
+
     std::vector<int> pieces1(6);
     std::vector<int> pieces2(6);
 
@@ -126,3 +128,5 @@ void init_egtb_id_to_ix() {
         EGTB_ID_TO_IX[egtb_id] = count;
     }
 }
+
+} // namespace Prophet

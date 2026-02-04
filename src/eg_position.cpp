@@ -2,6 +2,8 @@
 #include "eg_position.h"
 #include <sstream>
 
+namespace Prophet {
+
 bool EGPosition::is_equal(const EGPosition& pos) const {
     if (sideToMove != pos.sideToMove) { return false; }
     if (epSquare != pos.epSquare) { return false; }
@@ -101,7 +103,7 @@ void EGPosition::from_fen(std::string fenStr) {
     sideToMove = (token == 'w' ? WHITE : BLACK);
     ss >> token;
 
-    // 3. Not castling. 
+    // 3. Not castling.
     while ((ss >> token) && !isspace(token)) {
         token = char(toupper(token));
         assert(token != 'K' && token != 'Q');
@@ -129,7 +131,7 @@ bool EGPosition::check_ep(Square ep_sq) const {
         // there has to be pawn that can be captured with ep
         return false;
     }
-    
+
     if (piece_on(ep_sq) || piece_on(from)) {
         // ep_sq and from have to be empty since pawn should have been able to make double push
         return false;
@@ -280,3 +282,5 @@ Bitboard EGPosition::blockers_for_king(Color c) const {
     }
     return blockersForKing;
 }
+
+} // namespace Prophet

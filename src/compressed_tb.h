@@ -34,8 +34,9 @@ where  n_blocks = ceil((double) num_pos / block_size);
 
 COMPRESSED DATA
 individual compressed blocks concatenated at byte level
-*/ 
+*/
 
+namespace Prophet {
 
 uint64_t compute_checksum(int16_t* TB, uint64_t num_pos, [[maybe_unused]] int nthreads);
 uint64_t block_compress_TB(int16_t* TB, uint64_t num_pos, int nthreads, int compression_level, uint64_t block_size, std::string compressed_filename, bool write, bool verbose);
@@ -101,7 +102,7 @@ struct CompressedTB {
     this->num_pos = ((uint64_t*) this->map_ptr)[1];
     this->block_size = ((uint64_t*) this->map_ptr)[2];
     this->n_blocks = ceil((double) num_pos / block_size);
-    
+
     bool large_blocks = block_size > uint64_t(UINT16_MAX);
     this->block_sizes = (uint64_t*) malloc(n_blocks * sizeof(uint64_t));
     if (large_blocks) {
@@ -113,7 +114,7 @@ struct CompressedTB {
       for (uint64_t i = 0; i < n_blocks; i++) this->block_sizes[i] = block_sizes_ptr[i];
       this->compressed_blocks = &this->map_ptr[headersize + this->n_blocks*sizeof(uint16_t)];
     }
-    
+
 
     this->block_offsets = (uint64_t*) malloc(this->n_blocks * sizeof(uint64_t));
     uint64_t offset = 0;
@@ -146,7 +147,7 @@ struct CompressedTB {
 
     return get_value_dctx(ix, decompress_ctx);
   }
-  
+
   // thread-safe
   int16_t get_value_dctx(uint64_t ix, DecompressCtx* dctx) {
     assert (dctx->buf_size >= block_size);
@@ -167,7 +168,7 @@ struct CompressedTB {
     }
     return dctx->uncompressed_buf[ix_in_block];
   }
-  
+
 
   void decompress_to_array(int nthreads, int16_t* TB) {
     #pragma omp parallel num_threads(nthreads)
@@ -218,5 +219,7 @@ struct CompressedTB {
 
   bool check_integrity([[maybe_unused]] int nthreads);
 };
+
+} // namespace Prophet
 
 #endif

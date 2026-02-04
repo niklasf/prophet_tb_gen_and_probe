@@ -1,6 +1,7 @@
 
 #include "eg_movegen.h"
 
+namespace Prophet {
 
 template<Direction offset, EGGenType Type>
 inline Move* splat_pawn_moves(Move* moveList, Bitboard to_bb) {
@@ -21,7 +22,7 @@ inline Move* splat_moves(Move* moveList, Square from, Bitboard to_bb) {
     while (to_bb)
         if constexpr (Type == REVERSE)
             *moveList++ = Move(pop_lsb(to_bb), from);
-        else 
+        else
             *moveList++ = Move(from, pop_lsb(to_bb));
     return moveList;
 }
@@ -85,7 +86,7 @@ Move* generate_pawn_moves(const EGPosition& pos, Move* moveList, Bitboard target
         while (b3)
             moveList = make_promotions<Type, Up>(moveList, pop_lsb(b3));
     }
-   
+
     // Standard and en passant captures
     {
         Bitboard b1 = shift<UpRight>(pawnsNotOn7) & enemies;
@@ -162,7 +163,7 @@ Move* generate_forward(const EGPosition& pos, Move* moveList) {
         moveList = checkers ? generate_all_fwd<WHITE,FWD_EVASIONS>(pos, moveList, checkers) : generate_all_fwd<WHITE,FWD_NON_EVASIONS>(pos, moveList, checkers);
     else
         moveList = checkers ? generate_all_fwd<BLACK,FWD_EVASIONS>(pos, moveList, checkers) : generate_all_fwd<BLACK,FWD_NON_EVASIONS>(pos, moveList,  checkers);
-    
+
     while (cur != moveList) {
         if (pinned & cur->from_sq() && !(line_bb(cur->from_sq(), cur->to_sq()) & ksq)) {
             *cur = *(--moveList);
@@ -217,7 +218,7 @@ Move* generate_all_rev(const EGPosition& pos, Move* moveList, PieceType captured
     moveList = generate_moves<Us, BISHOP, Type>(pos, moveList, target);
     moveList = generate_moves<Us, ROOK, Type>(pos, moveList, target);
     moveList = generate_moves<Us, QUEEN, Type>(pos, moveList, target);
-    
+
     Bitboard b = attacks_bb<KING>(ksq) & target;
     moveList = splat_moves<Type>(moveList, ksq, b);
 
@@ -300,7 +301,7 @@ Move* generate_reverse(const EGPosition& pos, Move* moveList, PieceType captured
             moveList = (us == WHITE) ? generate_promotions_rev<WHITE, REVERSE>(pos, moveList, captured, promotion) : generate_promotions_rev<BLACK, REVERSE>(pos, moveList, captured, promotion);
     }
 
-    
+
     Bitboard byTypeBB[PIECE_TYPE_NB];
     Bitboard byColorBB[COLOR_NB];
     for (PieceType pt = ALL_PIECES; pt <= KING; ++pt) byTypeBB[pt] = pos.pieces(pt);
@@ -312,7 +313,7 @@ Move* generate_reverse(const EGPosition& pos, Move* moveList, PieceType captured
         Square to = cur->to_sq();
         PieceType pt = type_of(pos.piece_on(to));
         // std::cout << move_to_uci(*cur) << std::endl;
-        if (promotion && (promotion != pt)) { 
+        if (promotion && (promotion != pt)) {
             *cur = *(--moveList);
             continue;
         }
@@ -331,7 +332,7 @@ Move* generate_reverse(const EGPosition& pos, Move* moveList, PieceType captured
         } else {
             byTypeBB[pt] ^= fromTo;
         }
-        
+
         if (captured) {
             byTypeBB[ALL_PIECES] ^= to;
             byTypeBB[captured] ^= to;
@@ -361,9 +362,11 @@ Move* generate_reverse(const EGPosition& pos, Move* moveList, PieceType captured
         } else {
             byTypeBB[pt] ^= fromTo;
         }
-        
+
         byTypeBB[ALL_PIECES] ^= fromTo;;
         byColorBB[us] ^= fromTo;
     }
     return moveList;
 }
+
+} // namespace Prophet

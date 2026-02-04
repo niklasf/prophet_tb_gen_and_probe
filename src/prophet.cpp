@@ -15,69 +15,11 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
+
+namespace Prophet {
+
 bool lazy_load = true;
 std::unordered_map<std::string, EGTB*> id_to_egtb = {};
-
-
-void prophet_tb_init() {
-    Bitboards::init();
-    init_kkx_table();
-    init_kkp_table();
-    init_tril();
-    init_egtb_id_to_ix();
-
-    for (std::string egtb_id : get_egtb_identifiers()) {
-        id_to_egtb[egtb_id] = nullptr;
-    }
-}
-
-int prophet_tb_add_path(const char* path) {
-    int count = 0;
-    for (const auto & entry : fs::recursive_directory_iterator(path)) {
-        if (entry.path().extension() == COMP_EXT) {
-            std::string folder = entry.path().parent_path().u8string();
-            std::string filename = entry.path().filename().u8string();
-
-            std::string egtb_id = filename.substr(0, filename.find_first_of(".")); 
-
-            if (id_to_egtb[egtb_id] == nullptr) {
-                EGTB* egtb = new EGTB(folder, egtb_id);
-                id_to_egtb[egtb_id] = egtb;
-                count++;
-            } 
-        }
-    }
-    return count;
-}
-
-void prophet_tb_load_all_files() {
-    lazy_load = false;
-    for (auto & entry : id_to_egtb) {
-        if (entry.second != nullptr) entry.second->init_compressed_tb();
-    }
-}
-size_t prophet_tb_get_size_on_disk_of_loaded_files() {
-    size_t size = 0;
-    for (auto & entry : id_to_egtb) {
-        if (entry.second != nullptr && entry.second->compressed) {
-            size += entry.second->CTB->compressed_filesize;
-        }
-    }
-    return size;
-}
-
-
-void prophet_tb_deinit() {
-    for (auto & entry : id_to_egtb) {
-        if (entry.second != nullptr) {
-            delete entry.second;
-        }
-    }
-    for (std::string egtb_id : get_egtb_identifiers()) {
-        id_to_egtb[egtb_id] = nullptr;
-    }
-}
-
 
 std::string egtb_id_from_pos(const EGPosition pos) {
     std::ostringstream os;
@@ -90,6 +32,7 @@ std::string egtb_id_from_pos(const EGPosition pos) {
     }
     return os.str();
 }
+
 
 #define ERROR_TB_MISSING -1001
 
@@ -155,9 +98,77 @@ int16_t probe_position_raw_dtm(EGPosition pos) {
     return val;
 }
 
+} // namespace Prophet
+
+
+extern "C" {
+
+struct prophet_tb_decompress_ctx : public Prophet::DecompressCtx {
+    using DecompressCtx::DecompressCtx;
+};
+
+void prophet_tb_init() {
+    Prophet::Bitboards::init();
+    Prophet::init_kkx_table();
+    Prophet::init_kkp_table();
+    Prophet::init_tril();
+    Prophet::init_egtb_id_to_ix();
+
+    for (std::string egtb_id : Prophet::get_egtb_identifiers()) {
+        Prophet::id_to_egtb[egtb_id] = nullptr;
+    }
+}
+
+int prophet_tb_add_path(const char* path) {
+    int count = 0;
+    for (const auto & entry : fs::recursive_directory_iterator(path)) {
+        if (entry.path().extension() == COMP_EXT) {
+            std::string folder = entry.path().parent_path().u8string();
+            std::string filename = entry.path().filename().u8string();
+
+            std::string egtb_id = filename.substr(0, filename.find_first_of("."));
+
+            if (Prophet::id_to_egtb[egtb_id] == nullptr) {
+                auto* egtb = new Prophet::EGTB(folder, egtb_id);
+                Prophet::id_to_egtb[egtb_id] = egtb;
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+void prophet_tb_load_all_files() {
+    Prophet::lazy_load = false;
+    for (auto & entry : Prophet::id_to_egtb) {
+        if (entry.second != nullptr) entry.second->init_compressed_tb();
+    }
+}
+size_t prophet_tb_get_size_on_disk_of_loaded_files() {
+    size_t size = 0;
+    for (auto & entry : Prophet::id_to_egtb) {
+        if (entry.second != nullptr && entry.second->compressed) {
+            size += entry.second->CTB->compressed_filesize;
+        }
+    }
+    return size;
+}
+
+
+void prophet_tb_deinit() {
+    for (auto & entry : Prophet::id_to_egtb) {
+        if (entry.second != nullptr) {
+            delete entry.second;
+        }
+    }
+    for (std::string egtb_id : Prophet::get_egtb_identifiers()) {
+        Prophet::id_to_egtb[egtb_id] = nullptr;
+    }
+}
+
 
 prophet_tb_decompress_ctx* prophet_tb_create_decompress_ctx() {
-    return new DecompressCtx(32768);
+    return new prophet_tb_decompress_ctx(32768);
 }
 void prophet_tb_free_decompress_ctx(prophet_tb_decompress_ctx* dctx) {
     delete dctx;
@@ -166,7 +177,7 @@ void prophet_tb_free_decompress_ctx(prophet_tb_decompress_ctx* dctx) {
 
 int prophet_tb_is_valid_position(const int pieces[6], const int squares[6], const int stm, const int ep_square) {
     if (stm < 0 || stm > 1) return -1;
-    EGPosition pos;
+    Prophet::EGPosition pos;
     pos.reset();
     for (int i = 0; i < 6; i++) {
         if (pieces[i] < 0 || pieces[i] > 14) return -1;
@@ -192,7 +203,7 @@ int prophet_tb_is_valid_position(const int pieces[6], const int squares[6], cons
 
 
 int prophet_tb_probe_dtm_dctx(const int pieces[6], const int squares[6], const int stm, const int ep_square, prophet_tb_decompress_ctx* dctx) {
-    EGPosition pos;
+    Prophet::EGPosition pos;
     pos.reset();
     for (int i = 0; i < 6; i++) {
         if (pieces[i] != NO_PIECE) {
@@ -206,8 +217,8 @@ int prophet_tb_probe_dtm_dctx(const int pieces[6], const int squares[6], const i
 
 
 int prophet_tb_probe_dtm(const int pieces[6], const int squares[6], const int stm, const int ep_square) {
-    DecompressCtx* dctx = new DecompressCtx(32768);
-    int val = prophet_tb_probe_dtm_dctx(pieces, squares, stm, ep_square, dctx);
-    delete dctx;
-    return val;
+    auto dctx = std::make_unique<prophet_tb_decompress_ctx>(32768);
+    return prophet_tb_probe_dtm_dctx(pieces, squares, stm, ep_square, dctx.get());
 }
+
+} // extern "C"

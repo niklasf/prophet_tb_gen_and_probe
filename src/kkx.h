@@ -8,6 +8,8 @@
 #include "bitboard.h"
 #include "uci.h"
 
+namespace Prophet {
+
 void enumerate_kkx();
 
 #define N_KKX 462
@@ -63,7 +65,9 @@ inline int16_t get_kkp_ix(Square kntm, Square ktm) {
 
 #define N_EP 14
 extern const Square EP_PAWN[N_EP];
-extern const Square EP_CAP_PAWN[N_EP]; 
+extern const Square EP_CAP_PAWN[N_EP];
 extern const uint64_t EP_IX[8][3];
+
+} // namespace Prophet
 
 #endif

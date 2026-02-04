@@ -1,5 +1,7 @@
 #include "linearize.h"
 
+namespace Prophet {
+
 void compute_poscounts(const int stm_pieces[6], const int sntm_pieces[6], uint64_t kntm_poscounts[], uint64_t& num_nonep_pos, uint64_t& num_ep_pos, uint64_t& num_pos) {
     Bitboard unblockable_checks = 0;
     Bitboard forbidden_squares = 0;
@@ -52,7 +54,7 @@ void compute_poscounts(const int stm_pieces[6], const int sntm_pieces[6], uint64
 
         kntm_poscounts[ix+1] = kntm_poscounts[ix] + n;
     }
-    
+
     num_nonep_pos = (n_pawns == 0) ? kntm_poscounts[N_KKX] : kntm_poscounts[N_KKP];
 
     if (stm_pieces[PAWN] == 0 || sntm_pieces[PAWN] == 0) {
@@ -202,9 +204,9 @@ void pos_at_ix_(EGPosition &pos, uint64_t ix, Color stm, const int stm_pieces[6]
         s = number_of_ordered_tuples(n_available_squares, piece_count);
         uint64_t tril_ix = ix % s;
         ix = ix / s;
-        
+
         // std::cout << "pos_at_ix: " << PieceToChar[pc] << ": n_available_squares: " << n_available_squares << " tril_ix: " << tril_ix << " piece_count: " << piece_count << std::endl;
-    
+
         tril_from_linear(piece_count, tril_ix, sqs_ixs);
 
         for (int j = 0; j < piece_count; j++) {
@@ -216,7 +218,7 @@ void pos_at_ix_(EGPosition &pos, uint64_t ix, Color stm, const int stm_pieces[6]
         }
         // std::cout << std::endl;
     }
-    
+
     if (n_occupied_sqs > 6) { std::cout << "More than 6 pieces not supported! (have " << n_occupied_sqs << ")\n"; assert(false); }
 
     // can be broken such that popcount(pos.pieces()) != n_occupied_sqs
@@ -263,7 +265,7 @@ inline Bitboard maybe_update_swap_and_transform_bb(Bitboard piecesBB, int8_t fli
             }
         }
     }
-    
+
     if (!swap) {
         return b;
     } else {
@@ -337,7 +339,7 @@ uint64_t ix_from_pos_(EGPosition const &pos, const uint64_t kntm_poscounts[]) {
     Square kntm_sq = maybe_update_swap_and_transform(orig_kntm_sq, flip, is_diag_symmetric, swap);
 
     Square ktm_sq = maybe_update_swap_and_transform(orig_ktm_sq, flip, is_diag_symmetric, swap);
-    
+
 
     if (!EP) {
         occupied_sqs |= (square_bb(kntm_sq) | square_bb(ktm_sq));
@@ -361,7 +363,7 @@ uint64_t ix_from_pos_(EGPosition const &pos, const uint64_t kntm_poscounts[]) {
 
     Color cs[10] = {stm, ~stm, stm, stm, stm, stm, ~stm, ~stm, ~stm, ~stm};
     PieceType pts[10] = {PAWN, PAWN, QUEEN, ROOK, BISHOP, KNIGHT, QUEEN, ROOK, BISHOP, KNIGHT};
-    
+
     for (int i = 0; i < 10; i++) {
         Color c = cs[i];
         PieceType pt = pts[i];
@@ -491,3 +493,5 @@ void transform_to(const EGPosition &pos, EGPosition &pos2, int8_t h_flip, int8_t
     pos2.set_side_to_move(pos.side_to_move());
 
 }
+
+} // namespace Prophet

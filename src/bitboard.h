@@ -29,6 +29,8 @@
 
 #include "types.h"
 
+namespace Prophet {
+
 namespace Bitboards {
 
 void        init();
@@ -108,25 +110,25 @@ constexpr Bitboard square_bb(Square s) {
 }
 
 
-constexpr Bitboard AboveDiagBB = 
+constexpr Bitboard AboveDiagBB =
     square_bb(SQ_A8) | square_bb(SQ_B8) | square_bb(SQ_C8) | square_bb(SQ_D8) | square_bb(SQ_E8) | square_bb(SQ_F8) | square_bb(SQ_G8) |
-    square_bb(SQ_A7) | square_bb(SQ_B7) | square_bb(SQ_C7) | square_bb(SQ_D7) | square_bb(SQ_E7) | square_bb(SQ_F7) | 
+    square_bb(SQ_A7) | square_bb(SQ_B7) | square_bb(SQ_C7) | square_bb(SQ_D7) | square_bb(SQ_E7) | square_bb(SQ_F7) |
     square_bb(SQ_A6) | square_bb(SQ_B6) | square_bb(SQ_C6) | square_bb(SQ_D6) | square_bb(SQ_E6) |
     square_bb(SQ_A5) | square_bb(SQ_B5) | square_bb(SQ_C5) | square_bb(SQ_D5) |
     square_bb(SQ_A4) | square_bb(SQ_B4) | square_bb(SQ_C4) |
     square_bb(SQ_A3) | square_bb(SQ_B3) |
     square_bb(SQ_A2) ;
 
-constexpr Bitboard DiagBB = 
+constexpr Bitboard DiagBB =
     square_bb(SQ_A1) | square_bb(SQ_B2) | square_bb(SQ_C3) | square_bb(SQ_D4) | square_bb(SQ_E5) | square_bb(SQ_F6) | square_bb(SQ_G7) | square_bb(SQ_H8);
 
-constexpr Bitboard BelowDiagBB = 
+constexpr Bitboard BelowDiagBB =
                                                                                                                       square_bb(SQ_H7) |
                                                                                                    square_bb(SQ_G6) | square_bb(SQ_H6) |
                                                                                 square_bb(SQ_F5) | square_bb(SQ_G5) | square_bb(SQ_H5) |
                                                              square_bb(SQ_E4) | square_bb(SQ_F4) | square_bb(SQ_G4) | square_bb(SQ_H4) |
                                           square_bb(SQ_D3) | square_bb(SQ_E3) | square_bb(SQ_F3) | square_bb(SQ_G3) | square_bb(SQ_H3) |
-                       square_bb(SQ_C2) | square_bb(SQ_D2) | square_bb(SQ_E2) | square_bb(SQ_F2) | square_bb(SQ_G2) | square_bb(SQ_H2) | 
+                       square_bb(SQ_C2) | square_bb(SQ_D2) | square_bb(SQ_E2) | square_bb(SQ_F2) | square_bb(SQ_G2) | square_bb(SQ_H2) |
     square_bb(SQ_B1) | square_bb(SQ_C1) | square_bb(SQ_D1) | square_bb(SQ_E1) | square_bb(SQ_F1) | square_bb(SQ_G1) | square_bb(SQ_H1);
 
 // constexpr bool is_full1 = (FullBB == (TopHalfBB | BottomHalfBB));
@@ -259,7 +261,7 @@ inline Bitboard unblockablechecks_bb(Square s, PieceType pt) {
 
 inline int num_unblockablechecks(Square s, PieceType pt) {
     assert (pt != NO_PIECE_TYPE);
-    return UnblockableChecksCount[pt][s];    
+    return UnblockableChecksCount[pt][s];
 }
 
 
@@ -446,5 +448,6 @@ inline Square nth_unset_sq(Bitboard x, int n) {
     return lsb(nth_unset_bb(x,n));
 }
 
+} // namespace Prophet
 
 #endif  // #ifndef BITBOARD_H_INCLUDED

@@ -11,6 +11,8 @@
 #include "egtb_ids.h"
 #include <mutex>
 
+namespace Prophet {
+
 std::string get_default_folder(std::string root_folder, int stm_pieces_[6], int sntm_pieces_[6]);
 std::string get_default_folder_for_id(std::string root_folder, std::string egtb_id);
 
@@ -40,7 +42,7 @@ struct EGTB {
 
         init(folder_, id_, stm_pieces_, sntm_pieces_);
     }
-    
+
     EGTB(std::string folder_, std::string egtb_id) {
         int stm_pieces_[6];
         int sntm_pieces_[6];
@@ -58,7 +60,7 @@ struct EGTB {
         assert (!folder_.empty() && folder_.back() != '/');
         id = id_;
         folder = folder_;
-        
+
         npieces = 2;
         for (int i = 0; i < 6; i++) {
             stm_pieces[i] = stm_pieces_[i];
@@ -186,5 +188,7 @@ struct EGTB {
         }
     }
 };
+
+} // namespace Prophet
 
 #endif
