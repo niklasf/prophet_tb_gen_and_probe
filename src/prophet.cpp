@@ -101,7 +101,7 @@ int dtm(int16_t raw) {
     } else if (raw > 0) {
         return WIN_IN(0) - raw;
     } else {
-        return raw - LOSS_IN(0);
+        return LOSS_IN(0) - raw;
     }
 }
 
