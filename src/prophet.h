@@ -38,25 +38,30 @@ size_t prophet_tb_get_size_on_disk_of_loaded_files();
 // 13 = B_QUEEN
 // 14 = B_KING
 
-// squares = 0, ..., 63
+// squares = 0, ..., 64
 //  0 = SQ_A1,  1 = SQ_B1, ...,  7 = SQ_H1
 //  8 = SQ_A2,  9 = SQ_B2, ..., 15 = SQ_H2
 // ...
 // 56 = SQ_A8, 57 = SQ_B8, ..., 63 = SQ_H8
+// 64 = SQ_NONE
 
 // stm = 0 or 1 stm
 // 0 = WHITE
 // 1 = BLACK
 
+// use ep_square = 0 or SQ_NONE = 64 to indicate no en-passant possible in position
+// otherwise, en-passant has to be a legal move with ep_square as destination square for pawn
+
 // if positions is valid, prophet_tb_is_valid_position returns 1
 // this includes following checks:
 // - are pieces valid, 0 <= p <= 14, otherwise returns -1
-// - are squares valid, 0 <= s <= 63, otherwise returns -1
+// - are squares valid, 0 <= s <= 64, otherwise returns -1
+// - are squares[i] != SQ_NONE for pieces[i] != NO_PIECE, otherwise returns -1
 // - is stm valid, stm = 0 or 1, otherwise returns -1
 // - are there two opposite colored kings?, otherwise returns -2
 // - are all specified pieces (!= 0) on different squares, otherwise returns -3
 // - is side-not-to-move in check? -> illegal, returns -4
-// - if ep_square != 0, is en-passant legal on ep_square?, otherwise returns -5
+// - if ep_square != 0 and ep_square != SQ_NONE, is en-passant legal on ep_square?, otherwise returns -5
 int prophet_tb_is_valid_position(const int pieces[6], const int squares[6], const int stm, const int ep_square);
 
 // for valid positions, prophet_tb_probe_dtm:

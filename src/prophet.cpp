@@ -170,8 +170,9 @@ int prophet_tb_is_valid_position(const int pieces[6], const int squares[6], cons
     pos.reset();
     for (int i = 0; i < 6; i++) {
         if (pieces[i] < 0 || pieces[i] > 14) return -1;
-        if (squares[i] < 0 || squares[i] > 63) return -1;
+        if (squares[i] < 0 || squares[i] > 64) return -1;
         if (pieces[i] != NO_PIECE) {
+            if (squares[i] == SQ_NONE) return -1;
             if (pos.piece_on(Square(squares[i])) != NO_PIECE) return -3;
             pos.put_piece(Piece(pieces[i]), Square(squares[i]));
         }
@@ -179,8 +180,8 @@ int prophet_tb_is_valid_position(const int pieces[6], const int squares[6], cons
     if (pos.count(WHITE, KING) != 1 || pos.count(BLACK, KING) != 1) return -2;
     pos.set_side_to_move(Color(stm));
 
-    if (ep_square < 0 || ep_square > 63) return -1;
-    if (ep_square != 0) {
+    if (ep_square < 0 || ep_square > 64) return -1;
+    if (ep_square != 0 && ep_square != SQ_NONE) {
         if (!pos.check_ep(Square(ep_square))) return -5;
         pos.set_ep_square(Square(ep_square));
     }
@@ -200,7 +201,7 @@ int prophet_tb_probe_dtm_dctx(const int pieces[6], const int squares[6], const i
         }
     }
     pos.set_side_to_move(Color(stm));
-    if (ep_square != 0) pos.set_ep_square(Square(ep_square));
+    if (ep_square != 0 && ep_square != SQ_NONE) pos.set_ep_square(Square(ep_square));
     return probe_position_dtm_dctx(pos, dctx);
 }
 
