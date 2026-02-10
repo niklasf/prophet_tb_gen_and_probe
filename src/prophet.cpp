@@ -92,12 +92,13 @@ std::string egtb_id_from_pos(const EGPosition pos) {
 }
 
 #define ERROR_TB_MISSING -1001
+#define DRAW_VAL 1000
 
 int dtm(int16_t raw) {
     if (raw == ERROR_TB_MISSING) {
         return ERROR_TB_MISSING;
     } else if (raw == 0) {
-        return 0;
+        return DRAW_VAL;
     } else if (raw > 0) {
         return WIN_IN(0) - raw;
     } else {

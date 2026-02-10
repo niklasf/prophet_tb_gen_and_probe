@@ -65,11 +65,12 @@ size_t prophet_tb_get_size_on_disk_of_loaded_files();
 int prophet_tb_is_valid_position(const int pieces[6], const int squares[6], const int stm, const int ep_square);
 
 // for valid positions, prophet_tb_probe_dtm:
-// returns v=0 if draw
-// returns 1000>v>0 if win in v plies
-// returns -1000<v<0 if loss in v plies
+// returns  1000 if draw
+// returns     0 if checkmate
+// returns  1000 > v > 0 if win in v plies
+// returns -1000 < v < 0 if loss in v plies
 // returns -1001 if table is completely missing (both sides, if one side is missing it performs search)
-// for invalid positions: undefined/unsafe behaviour -> may trigger assertions or return 0
+// for invalid positions: undefined/unsafe behaviour -> may trigger assertions
 // this function is thread-safe
 int prophet_tb_probe_dtm(const int pieces[6], const int squares[6], const int stm, const int ep_square);
 
