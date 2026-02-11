@@ -18,6 +18,7 @@ int prophet_tb_add_path(const char* path);
 
 // if this function is not called, files will be lazily loaded on probe
 void prophet_tb_load_all_files();
+
 size_t prophet_tb_get_size_on_disk_of_loaded_files();
 
 
